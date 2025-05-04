@@ -17,6 +17,7 @@ import '../../journal/widgets/journal_entry_form.dart';
 import '../../journal/models/journal_entry.dart';
 import '../pages/album_page.dart';
 import 'package:intl/intl.dart';
+import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 
 class MediaDetailView extends StatefulWidget {
   final AssetEntity? asset;
@@ -46,6 +47,10 @@ class _MediaDetailViewState extends State<MediaDetailView>
   bool _showControls = true;
   bool _isFullScreen = false;
   bool _showJournal = false;
+  bool _showLabels = false;
+  bool _showObjectDetection = false;
+  List<ImageLabel>? _detectedLabels;
+  List<ImageLabel>? _detectedObjects;
 
   Timer? _controlsTimer;
   AnimationController? _animationController;
@@ -219,6 +224,73 @@ class _MediaDetailViewState extends State<MediaDetailView>
     });
   }
 
+  void _showLensResults() async {
+    final asset = widget.assetList != null
+        ? widget.assetList![_currentIndex]
+        : widget.asset;
+
+    if (asset == null || asset.type == AssetType.video) return;
+
+    setState(() {
+      _showLabels = true;
+      _showInfo = false;
+      _showJournal = false;
+      _toggleControls(true);
+      _controlsTimer?.cancel();
+    });
+
+    try {
+      final mediaProvider = context.read<MediaProvider>();
+      await mediaProvider.searchImageOnGoogle(asset);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to launch Google Lens: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showObjectDetectionResults() async {
+    final asset = widget.assetList != null
+        ? widget.assetList![_currentIndex]
+        : widget.asset;
+
+    if (asset == null || asset.type == AssetType.video) return;
+
+    setState(() {
+      _showObjectDetection = true;
+      _showInfo = false;
+      _showJournal = false;
+      _showLabels = false;
+      _toggleControls(true);
+      _controlsTimer?.cancel();
+    });
+
+    try {
+      final mediaProvider = context.read<MediaProvider>();
+      final objects = await mediaProvider.detectObjects(asset);
+
+      if (mounted) {
+        setState(() {
+          _detectedObjects = objects;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to detect objects: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -281,7 +353,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
                     _resetSystemUI();
                     Navigator.pop(context);
                   },
-                  onToggleFullScreen: _toggleFullScreen,
                   onToggleInfo: () {
                     setState(() {
                       _showInfo = !_showInfo;
@@ -297,6 +368,8 @@ class _MediaDetailViewState extends State<MediaDetailView>
                   onToggleJournal: _showJournalPanel,
                   onShare: _shareMedia,
                   onDelete: _deleteMedia,
+                  onLens: _showLensResults,
+                  onDetectObjects: _showObjectDetectionResults,
                   favoriteButtonBuilder: (context) => Consumer<MediaProvider>(
                     builder: (context, mediaProvider, _) {
                       final asset = widget.assetList != null
@@ -346,6 +419,28 @@ class _MediaDetailViewState extends State<MediaDetailView>
                     right: 0,
                     child: SafeArea(
                       child: _buildJournalPanel(),
+                    ),
+                  ),
+
+                // Labels Panel
+                if (_showLabels)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(
+                      child: _buildLabelsPanel(),
+                    ),
+                  ),
+
+                // Object Detection Panel
+                if (_showObjectDetection)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(
+                      child: _buildObjectDetectionPanel(),
                     ),
                   ),
               ],
@@ -1117,6 +1212,152 @@ class _MediaDetailViewState extends State<MediaDetailView>
       ),
     );
   }
+
+  Widget _buildLabelsPanel() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Google Lens',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () {
+                  setState(() {
+                    _showLabels = false;
+                    _startControlsTimer();
+                  });
+                },
+              ),
+            ],
+          ),
+          const Divider(color: Colors.white30),
+          const SizedBox(height: 16),
+          const Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Opening Google Lens...',
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'This will open Google Lens in your browser where you can search using this image.',
+            style: TextStyle(color: Colors.white70),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildObjectDetectionPanel() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Object Detection',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () {
+                  setState(() {
+                    _showObjectDetection = false;
+                    _startControlsTimer();
+                  });
+                },
+              ),
+            ],
+          ),
+          const Divider(color: Colors.white30),
+          const SizedBox(height: 8),
+          if (_detectedObjects == null)
+            const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+              ),
+            )
+          else if (_detectedObjects!.isEmpty)
+            const Center(
+              child: Text(
+                'No objects detected',
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Detected Objects',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _detectedObjects!.map((label) {
+                    return ActionChip(
+                      label: Text(
+                        '${label.label} (${(label.confidence * 100).toStringAsFixed(0)}%)',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.blue.withOpacity(0.3),
+                      onPressed: () {
+                        context
+                            .read<MediaProvider>()
+                            .searchOnGoogle(label.label);
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _MediaControls extends StatelessWidget {
@@ -1127,11 +1368,12 @@ class _MediaControls extends StatelessWidget {
   final int currentIndex;
   final int totalItems;
   final VoidCallback onClose;
-  final VoidCallback onToggleFullScreen;
   final VoidCallback onToggleInfo;
   final VoidCallback onToggleJournal;
   final VoidCallback onShare;
   final VoidCallback onDelete;
+  final VoidCallback onLens;
+  final VoidCallback onDetectObjects;
   final Widget Function(BuildContext) favoriteButtonBuilder;
 
   const _MediaControls({
@@ -1142,11 +1384,12 @@ class _MediaControls extends StatelessWidget {
     required this.currentIndex,
     required this.totalItems,
     required this.onClose,
-    required this.onToggleFullScreen,
     required this.onToggleInfo,
     required this.onToggleJournal,
     required this.onShare,
     required this.onDelete,
+    required this.onLens,
+    required this.onDetectObjects,
     required this.favoriteButtonBuilder,
   });
 
@@ -1218,15 +1461,16 @@ class _MediaControls extends StatelessWidget {
                     onPressed: onShare,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.book, color: Colors.white),
-                    onPressed: onToggleJournal,
+                    icon: const Icon(Icons.camera_alt, color: Colors.white),
+                    onPressed: onLens,
                   ),
                   IconButton(
-                    icon: Icon(
-                      isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                      color: Colors.white,
-                    ),
-                    onPressed: onToggleFullScreen,
+                    icon: const Icon(Icons.auto_awesome, color: Colors.white),
+                    onPressed: onDetectObjects,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.book, color: Colors.white),
+                    onPressed: onToggleJournal,
                   ),
                   IconButton(
                     icon: Icon(
