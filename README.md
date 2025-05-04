@@ -1,5 +1,7 @@
 # Reverie
 
+![ChemSphere Logo](assets/icon/icon.png)
+
 A new Flutter project.
 
 ## Getting Started
