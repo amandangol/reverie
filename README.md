@@ -1,6 +1,4 @@
-# Reverie
-
-![ChemSphere Logo](assets/icon/icon.png)
+# Reverie  <img src="assets/icon/icon.png" alt="Reverie Logo" width="70" height="70">
 
 A new Flutter project.
 
