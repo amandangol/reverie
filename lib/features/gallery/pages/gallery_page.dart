@@ -44,7 +44,9 @@ class _GalleryPageState extends State<GalleryPage>
           ),
           actions: [
             IconButton(
-              icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
+              icon: Icon(
+                _isGridView ? Icons.grid_view_rounded : Icons.list_rounded,
+              ),
               onPressed: () {
                 setState(() {
                   _isGridView = !_isGridView;

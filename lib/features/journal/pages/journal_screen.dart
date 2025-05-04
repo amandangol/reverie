@@ -14,6 +14,8 @@ import 'package:intl/intl.dart';
 import 'dart:ui';
 import 'package:reverie/theme/app_theme.dart';
 
+import 'all_journals_screen.dart';
+
 class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
 
@@ -787,6 +789,10 @@ class _JournalScreenState extends State<JournalScreen> {
   }
 
   Widget _buildGridView(JournalProvider journalProvider, ThemeData theme) {
+    final entries = journalProvider.entries;
+    final displayEntries = entries.length > 4 ? entries.sublist(0, 4) : entries;
+    final hasMoreEntries = entries.length > 4;
+
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: _gridCrossAxisCount,
@@ -796,12 +802,100 @@ class _JournalScreenState extends State<JournalScreen> {
       ),
       delegate: SliverChildBuilderDelegate(
         (context, index) {
-          final entry = journalProvider.entries[index];
+          if (index == displayEntries.length && hasMoreEntries) {
+            return _buildShowAllButton(context, theme, entries.length);
+          }
+          final entry = displayEntries[index];
           return _buildGridCard(entry, theme, index);
         },
-        childCount: journalProvider.entries.length,
+        childCount: displayEntries.length + (hasMoreEntries ? 1 : 0),
       ),
     );
+  }
+
+  Widget _buildShowAllButton(
+      BuildContext context, ThemeData theme, int totalEntries) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _navigateToAllJournals(context),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.shadow.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.auto_stories_rounded,
+                size: 32,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'View All',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$totalEntries entries',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAllJournals(BuildContext context) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const AllJournalsScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 0.05);
+          const end = Offset.zero;
+          const curve = Curves.easeOutCubic;
+          var tween =
+              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+
+          return SlideTransition(
+            position: offsetAnimation,
+            child: FadeTransition(
+              opacity: animation,
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    ).then((_) {
+      // Refresh entries when returning from all journals screen
+      final journalProvider =
+          Provider.of<JournalProvider>(context, listen: false);
+      journalProvider.loadEntries();
+      // Refresh widget cache
+      setState(() {
+        _entryWidgetCache.clear();
+      });
+    });
   }
 
   Widget _buildGridCard(JournalEntry entry, ThemeData theme, int index) {
@@ -1088,8 +1182,42 @@ class _JournalScreenState extends State<JournalScreen> {
       );
     }
 
+    final journalProvider = Provider.of<JournalProvider>(context);
+    final cachedAsset = journalProvider.imageCache[entry.mediaIds.first];
+
+    if (cachedAsset != null) {
+      return ShaderMask(
+        shaderCallback: (rect) {
+          return LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withOpacity(0.6),
+              Colors.black.withOpacity(0.1),
+            ],
+            stops: const [0.0, 0.3],
+          ).createShader(rect);
+        },
+        blendMode: BlendMode.darken,
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: Image(
+            image: AssetEntityImageProvider(
+              cachedAsset,
+              isOriginal: false,
+              thumbnailSize: const ThumbnailSize(600, 600),
+            ),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildImageErrorPlaceholder(context);
+            },
+          ),
+        ),
+      );
+    }
+
     return FutureBuilder<AssetEntity?>(
-      future: AssetEntity.fromId(entry.mediaIds.first),
+      future: journalProvider.getImageAsset(entry.mediaIds.first),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:photo_manager/photo_manager.dart';
 import '../models/journal_entry.dart';
 
 class JournalProvider with ChangeNotifier {
@@ -13,6 +14,7 @@ class JournalProvider with ChangeNotifier {
   Map<String, JournalEntry> _entryCache = {};
   Map<String, List<JournalEntry>> _tagCache = {};
   Map<String, List<JournalEntry>> _moodCache = {};
+  Map<String, AssetEntity?> _imageCache = {};
 
   JournalProvider() {
     _initDatabase();
@@ -22,6 +24,7 @@ class JournalProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isInitialized => _isInitialized;
+  Map<String, AssetEntity?> get imageCache => _imageCache;
 
   Future<void> _initDatabase() async {
     try {
@@ -47,6 +50,7 @@ class JournalProvider with ChangeNotifier {
       );
 
       await loadEntries();
+      await _preloadImages();
       _isInitialized = true;
       notifyListeners();
     } catch (e) {
@@ -54,6 +58,40 @@ class JournalProvider with ChangeNotifier {
       debugPrint(_error);
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _preloadImages() async {
+    for (var entry in _entries) {
+      if (entry.mediaIds.isNotEmpty) {
+        try {
+          final asset = await AssetEntity.fromId(entry.mediaIds.first);
+          if (asset != null) {
+            _imageCache[entry.mediaIds.first] = asset;
+          }
+        } catch (e) {
+          debugPrint('Failed to preload image: $e');
+        }
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<AssetEntity?> getImageAsset(String mediaId) async {
+    if (_imageCache.containsKey(mediaId)) {
+      return _imageCache[mediaId];
+    }
+
+    try {
+      final asset = await AssetEntity.fromId(mediaId);
+      if (asset != null) {
+        _imageCache[mediaId] = asset;
+        notifyListeners();
+      }
+      return asset;
+    } catch (e) {
+      debugPrint('Failed to load image: $e');
+      return null;
     }
   }
 
@@ -296,6 +334,7 @@ class JournalProvider with ChangeNotifier {
   @override
   void dispose() {
     _database?.close();
+    _imageCache.clear();
     super.dispose();
   }
 }
