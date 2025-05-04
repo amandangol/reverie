@@ -5,7 +5,7 @@ import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/journal_provider.dart';
 import '../models/journal_entry.dart';
-import '../journal_detail_screen.dart';
+import 'journal_detail_screen.dart';
 import 'package:reverie/theme/app_theme.dart';
 import 'package:reverie/utils/media_utils.dart';
 

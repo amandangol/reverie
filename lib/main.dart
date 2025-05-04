@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:reverie/features/ai_compilation/provider/ai_compilation_provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
-import 'features/ai_compilation/provider/ai_compilation_provider.dart';
 import 'features/gallery/pages/gallery_page.dart';
 import 'features/ai_compilation/ai_compilation_page.dart';
-import 'features/settings/settings_page.dart';
+import 'features/permissions/provider/permission_provider.dart';
+import 'features/settings/pages/settings_page.dart';
 import 'features/gallery/provider/media_provider.dart';
 import 'theme/app_theme.dart';
 import 'features/journal/pages/journal_screen.dart';
 import 'features/splash/splash_screen.dart';
+import 'providers/gallery_preferences_provider.dart';
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => PermissionProvider()),
         ChangeNotifierProvider(create: (_) => MediaProvider()),
         ChangeNotifierProvider(create: (_) => JournalProvider()),
-        ChangeNotifierProvider(create: (_) => AICompilationProvider()),
+        ChangeNotifierProvider(create: (_) => GalleryPreferencesProvider()),
+        ChangeNotifierProvider(create: (_) => AICompilationProvider())
       ],
       child: const MyApp(),
     ),

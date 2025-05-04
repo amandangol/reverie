@@ -13,7 +13,8 @@ import '../../provider/media_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
 import '../../widgets/media_detail_view.dart';
 import 'package:reverie/utils/media_utils.dart';
-
+import '../../../permissions/provider/permission_provider.dart';
+import '../../../permissions/widgets/permission_dialog.dart';
 import '../../../../commonwidgets/shimmer_loading.dart';
 
 class PhotosTab extends StatefulWidget {
@@ -371,7 +372,7 @@ class _PhotosTabState extends State<PhotosTab> {
           return EmptyState(
             title: 'No media found',
             subtitle: 'There are no photos in your gallery',
-            onRefresh: () => mediaProvider.requestPermission(),
+            onRefresh: () => _checkAndRequestPermission(context),
           );
         }
 
@@ -448,6 +449,32 @@ class _PhotosTabState extends State<PhotosTab> {
           ],
         );
       },
+    );
+  }
+
+  Future<void> _checkAndRequestPermission(BuildContext context) async {
+    final permissionProvider = context.read<PermissionProvider>();
+    final granted = await permissionProvider.requestMediaPermission();
+    if (granted) {
+      context.read<MediaProvider>().requestPermission();
+    }
+  }
+
+  void _showPermissionDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required VoidCallback onRequestPermission,
+    required VoidCallback onOpenSettings,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => PermissionDialog(
+        title: title,
+        message: message,
+        onRequestPermission: onRequestPermission,
+        onOpenSettings: onOpenSettings,
+      ),
     );
   }
 

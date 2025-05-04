@@ -9,10 +9,10 @@ import 'package:reverie/utils/media_utils.dart';
 import 'package:reverie/features/journal/models/journal_entry.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../utils/snackbar_utils.dart';
-import '../gallery/provider/media_provider.dart';
-import '../gallery/widgets/media_detail_view.dart';
-import 'widgets/journal_entry_form.dart';
+import '../../../utils/snackbar_utils.dart';
+import '../../gallery/provider/media_provider.dart';
+import '../../gallery/widgets/media_detail_view.dart';
+import '../widgets/journal_entry_form.dart';
 
 class JournalDetailScreen extends StatefulWidget {
   final JournalEntry entry;

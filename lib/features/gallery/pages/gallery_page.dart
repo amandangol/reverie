@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../providers/gallery_preferences_provider.dart';
+import '../../permissions/provider/permission_provider.dart';
+import '../../permissions/widgets/permission_aware_widget.dart';
 import '../provider/media_provider.dart';
 import 'tabs/photos_tab.dart';
 import 'tabs/albums_tab.dart';
@@ -14,15 +17,21 @@ class GalleryPage extends StatefulWidget {
 class _GalleryPageState extends State<GalleryPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _isGridView = true;
-  int _gridCrossAxisCount = 3;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MediaProvider>().requestPermission();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final permissionProvider = context.read<PermissionProvider>();
+      final mediaProvider = context.read<MediaProvider>();
+
+      await permissionProvider.checkMediaPermission();
+      if (permissionProvider.hasMediaPermission) {
+        if (!mediaProvider.isInitialized) {
+          await mediaProvider.loadMedia();
+        }
+      }
     });
   }
 
@@ -34,6 +43,8 @@ class _GalleryPageState extends State<GalleryPage>
 
   @override
   Widget build(BuildContext context) {
+    final preferences = context.watch<GalleryPreferencesProvider>();
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -45,23 +56,23 @@ class _GalleryPageState extends State<GalleryPage>
           actions: [
             IconButton(
               icon: Icon(
-                _isGridView ? Icons.grid_view_rounded : Icons.list_rounded,
+                preferences.isGridView
+                    ? Icons.grid_view_rounded
+                    : Icons.list_rounded,
               ),
               onPressed: () {
-                setState(() {
-                  _isGridView = !_isGridView;
-                });
+                preferences.toggleViewMode();
               },
-              tooltip: _isGridView ? 'List view' : 'Grid view',
+              tooltip: preferences.isGridView ? 'List view' : 'Grid view',
             ),
-            if (_isGridView)
+            if (preferences.isGridView)
               IconButton(
-                icon: Icon(
-                    _gridCrossAxisCount == 3 ? Icons.grid_4x4 : Icons.grid_3x3),
+                icon: Icon(preferences.gridCrossAxisCount == 3
+                    ? Icons.grid_4x4
+                    : Icons.grid_3x3),
                 onPressed: () {
-                  setState(() {
-                    _gridCrossAxisCount = _gridCrossAxisCount == 3 ? 4 : 3;
-                  });
+                  preferences.setGridCrossAxisCount(
+                      preferences.gridCrossAxisCount == 3 ? 4 : 3);
                 },
                 tooltip: 'Change grid size',
               ),
@@ -73,17 +84,22 @@ class _GalleryPageState extends State<GalleryPage>
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            PhotosTab(
-              isGridView: _isGridView,
-              gridCrossAxisCount: _gridCrossAxisCount,
-            ),
-            AlbumsTab(
-              isGridView: _isGridView,
-              gridCrossAxisCount: _gridCrossAxisCount,
-            ),
-          ],
+        body: PermissionAwareWidget(
+          onPermissionGranted: () {
+            context.read<MediaProvider>().requestPermission();
+          },
+          child: TabBarView(
+            children: [
+              PhotosTab(
+                isGridView: preferences.isGridView,
+                gridCrossAxisCount: preferences.gridCrossAxisCount,
+              ),
+              AlbumsTab(
+                isGridView: preferences.isGridView,
+                gridCrossAxisCount: preferences.gridCrossAxisCount,
+              ),
+            ],
+          ),
         ),
       ),
     );

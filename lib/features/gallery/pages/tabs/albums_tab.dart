@@ -7,6 +7,8 @@ import '../../provider/media_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
 import '../album_page.dart';
 import '../video_albums_page.dart';
+import '../../../permissions/provider/permission_provider.dart';
+import '../../../permissions/widgets/permission_dialog.dart';
 
 class AlbumsTab extends StatefulWidget {
   final bool isGridView;
@@ -99,7 +101,7 @@ class _AlbumsTabState extends State<AlbumsTab> {
           return EmptyState(
             title: 'No albums found',
             subtitle: 'There are no albums in your gallery',
-            onRefresh: () => mediaProvider.requestPermission(),
+            onRefresh: () => _checkAndRequestPermission(context),
           );
         }
 
@@ -778,6 +780,32 @@ class _AlbumsTabState extends State<AlbumsTab> {
                 );
               },
             ),
+    );
+  }
+
+  Future<void> _checkAndRequestPermission(BuildContext context) async {
+    final permissionProvider = context.read<PermissionProvider>();
+    final granted = await permissionProvider.requestMediaPermission();
+    if (granted) {
+      context.read<MediaProvider>().requestPermission();
+    }
+  }
+
+  void _showPermissionDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required VoidCallback onRequestPermission,
+    required VoidCallback onOpenSettings,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => PermissionDialog(
+        title: title,
+        message: message,
+        onRequestPermission: onRequestPermission,
+        onOpenSettings: onOpenSettings,
+      ),
     );
   }
 }

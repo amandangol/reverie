@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:reverie/utils/media_utils.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:photo_manager/photo_manager.dart';
-import '../journal_detail_screen.dart';
+import 'journal_detail_screen.dart';
 import '../providers/journal_provider.dart';
 import '../models/journal_entry.dart';
 import '../widgets/journal_entry_form.dart';
@@ -27,19 +27,11 @@ class _JournalScreenState extends State<JournalScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _showFab = true;
   Map<String, Widget> _entryWidgetCache = {};
-  int _gridCrossAxisCount = 2;
+  static const int _gridCrossAxisCount = 2;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final journalProvider =
-          Provider.of<JournalProvider>(context, listen: false);
-      if (!journalProvider.isInitialized) {
-        journalProvider.loadEntries();
-      }
-    });
-
     _scrollController.addListener(_scrollListener);
   }
 
@@ -218,20 +210,6 @@ class _JournalScreenState extends State<JournalScreen> {
             onPressed: _showHelpDialog,
             tooltip: 'Journaling Tips',
           ),
-          IconButton(
-            icon: Icon(
-              _gridCrossAxisCount == 2
-                  ? Icons.grid_view_rounded
-                  : Icons.grid_on_rounded,
-              color: colorScheme.primary,
-            ),
-            onPressed: () {
-              setState(() {
-                _gridCrossAxisCount = _gridCrossAxisCount == 2 ? 3 : 2;
-              });
-            },
-            tooltip: 'Change grid size',
-          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -240,9 +218,51 @@ class _JournalScreenState extends State<JournalScreen> {
           if (journalProvider.isLoading) {
             return _buildShimmerLoading(theme);
           }
+
+          if (journalProvider.error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    size: 48,
+                    color: theme.colorScheme.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Failed to load journal entries',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    journalProvider.error!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => journalProvider.initialize(),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Retry'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
           if (journalProvider.entries.isEmpty) {
             return _buildEmptyState(journalProvider, theme);
           }
+
           return Stack(
             children: [
               // Background design
@@ -358,23 +378,36 @@ class _JournalScreenState extends State<JournalScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header shimmer
+            // Header section
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 120,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        width: 80,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    width: 200,
+                    width: 160,
                     height: 32,
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -384,24 +417,51 @@ class _JournalScreenState extends State<JournalScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
 
-            // Stats card shimmer
+            // Stats card
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
               child: Container(
-                height: 120,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildShimmerStatItem(),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildShimmerStatItem(),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildShimmerStatItem(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 32),
 
-            // Section title shimmer
+            // Section title
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -415,20 +475,19 @@ class _JournalScreenState extends State<JournalScreen> {
                   ),
                   Container(
                     width: 80,
-                    height: 24,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
 
-            // Grid shimmer
+            // Grid
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
               child: GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -436,14 +495,76 @@ class _JournalScreenState extends State<JournalScreen> {
                   crossAxisCount: _gridCrossAxisCount,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: _gridCrossAxisCount == 2 ? 0.85 : 0.75,
+                  childAspectRatio: 0.85,
                 ),
-                itemCount: 6,
+                itemCount: 4,
                 itemBuilder: (context, index) {
                   return Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: double.infinity,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: double.infinity,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  width: double.infinity,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: 80,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -451,6 +572,47 @@ class _JournalScreenState extends State<JournalScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerStatItem() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: 40,
+            height: 20,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            width: 60,
+            height: 12,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -798,7 +960,7 @@ class _JournalScreenState extends State<JournalScreen> {
         crossAxisCount: _gridCrossAxisCount,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: _gridCrossAxisCount == 2 ? 0.85 : 0.75,
+        childAspectRatio: 0.85,
       ),
       delegate: SliverChildBuilderDelegate(
         (context, index) {
@@ -930,7 +1092,7 @@ class _JournalScreenState extends State<JournalScreen> {
                 children: [
                   // Image section with overlay
                   Expanded(
-                    flex: _gridCrossAxisCount == 2 ? 3 : 2,
+                    flex: 3,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -1032,7 +1194,7 @@ class _JournalScreenState extends State<JournalScreen> {
                   ),
                   // Content section
                   Expanded(
-                    flex: _gridCrossAxisCount == 2 ? 2 : 1,
+                    flex: 2,
                     child: Padding(
                       padding: const EdgeInsets.all(8),
                       child: Column(
@@ -1057,7 +1219,7 @@ class _JournalScreenState extends State<JournalScreen> {
                                 height: 1.2,
                                 fontSize: 11,
                               ),
-                              maxLines: _gridCrossAxisCount == 2 ? 3 : 2,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),

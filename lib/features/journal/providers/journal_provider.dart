@@ -12,7 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class JournalProvider with ChangeNotifier {
   List<JournalEntry> _entries = [];
-  bool _isLoading = false;
+  bool _isLoading = true;
   String? _error;
   Database? _database;
   bool _isInitialized = false;
@@ -22,7 +22,7 @@ class JournalProvider with ChangeNotifier {
   Map<String, AssetEntity?> _imageCache = {};
 
   JournalProvider() {
-    _initDatabase();
+    initialize();
   }
 
   List<JournalEntry> get entries => List.unmodifiable(_entries);
@@ -57,10 +57,10 @@ class JournalProvider with ChangeNotifier {
       await loadEntries();
       await _preloadImages();
       _isInitialized = true;
-      notifyListeners();
     } catch (e) {
       _error = 'Failed to initialize database: $e';
       debugPrint(_error);
+    } finally {
       _isLoading = false;
       notifyListeners();
     }
@@ -435,19 +435,21 @@ class JournalProvider with ChangeNotifier {
           }
 
           // Try to open Facebook app first
-          appUrl = 'fb://post?text=${Uri.encodeComponent(shareText)}';
+          final encodedText = Uri.encodeComponent(shareText);
+          appUrl = 'fb://post?text=$encodedText';
           final fbUri = Uri.parse(appUrl);
 
           if (await canLaunchUrl(fbUri)) {
-            await launchUrl(fbUri);
-            // Wait for Facebook to open
-            await Future.delayed(const Duration(seconds: 1));
             if (mediaFiles != null && mediaFiles.isNotEmpty) {
+              // Share with media using Share.shareXFiles
               await Share.shareXFiles(
                 mediaFiles,
                 text: shareText,
                 subject: entry.title,
               );
+            } else {
+              // Share text only using Facebook app
+              await launchUrl(fbUri);
             }
             return;
           }
@@ -479,19 +481,21 @@ class JournalProvider with ChangeNotifier {
           }
 
           // Try to open Twitter app first
-          appUrl = 'twitter://post?message=${Uri.encodeComponent(shareText)}';
+          final encodedText = Uri.encodeComponent(shareText);
+          appUrl = 'twitter://post?message=$encodedText';
           final twitterUri = Uri.parse(appUrl);
 
           if (await canLaunchUrl(twitterUri)) {
-            await launchUrl(twitterUri);
-            // Wait for Twitter to open
-            await Future.delayed(const Duration(seconds: 1));
             if (mediaFiles != null && mediaFiles.isNotEmpty) {
+              // Share with media using Share.shareXFiles
               await Share.shareXFiles(
                 mediaFiles,
                 text: shareText,
                 subject: entry.title,
               );
+            } else {
+              // Share text only using Twitter app
+              await launchUrl(twitterUri);
             }
             return;
           }
@@ -568,10 +572,40 @@ class JournalProvider with ChangeNotifier {
     }
   }
 
+  Future<void> clearAll() async {
+    if (_database == null) {
+      _error = 'Database not initialized';
+      notifyListeners();
+      return;
+    }
+
+    try {
+      await _database!.delete('journal_entries');
+      _entries.clear();
+      _entryCache.clear();
+      _tagCache.clear();
+      _moodCache.clear();
+      _imageCache.clear();
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to clear journal entries: $e';
+      debugPrint(_error);
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
     _database?.close();
     _imageCache.clear();
     super.dispose();
+  }
+
+  Future<void> initialize() async {
+    if (!_isInitialized) {
+      _isLoading = true;
+      notifyListeners();
+      await _initDatabase();
+    }
   }
 }
