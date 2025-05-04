@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:reverie/utils/media_utils.dart';
 import 'package:reverie/features/journal/models/journal_entry.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/snackbar_utils.dart';
 import '../gallery/provider/media_provider.dart';
 import '../gallery/widgets/media_detail_view.dart';
@@ -32,6 +33,165 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
   void initState() {
     super.initState();
     _currentEntry = widget.entry;
+  }
+
+  void _showShareOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Share Entry',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.share_rounded),
+                title: const Text('Share Entry'),
+                subtitle: const Text('Share as text'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await context.read<JournalProvider>().shareJournalEntry(
+                          widget.entry,
+                          includeMedia: false,
+                        );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Failed to share entry')),
+                      );
+                    }
+                  }
+                },
+              ),
+              if (widget.entry.mediaIds.isNotEmpty) ...[
+                ListTile(
+                  leading: SvgPicture.asset(
+                    'assets/svg/photos.svg',
+                    width: 24,
+                    height: 24,
+                  ),
+                  title: const Text('Share with Photos'),
+                  subtitle: const Text('Include attached media'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    try {
+                      await context.read<JournalProvider>().shareJournalEntry(
+                            widget.entry,
+                            includeMedia: true,
+                          );
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content:
+                                  Text('Failed to share entry with photos')),
+                        );
+                      }
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: SvgPicture.asset(
+                    'assets/svg/insta.svg',
+                    width: 24,
+                    height: 24,
+                  ),
+                  title: const Text('Share on Instagram'),
+                  subtitle: const Text('Share photos with caption'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    try {
+                      await context.read<JournalProvider>().shareToSocialMedia(
+                            widget.entry,
+                            'instagram',
+                          );
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Failed to share on Instagram')),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+              ListTile(
+                leading: SvgPicture.asset(
+                  'assets/svg/fb.svg',
+                  width: 24,
+                  height: 24,
+                ),
+                title: const Text('Share on Facebook'),
+                subtitle: const Text('Open Facebook app'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await context.read<JournalProvider>().shareToSocialMedia(
+                          widget.entry,
+                          'facebook',
+                        );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Failed to share on Facebook')),
+                      );
+                    }
+                  }
+                },
+              ),
+              ListTile(
+                leading: SvgPicture.asset(
+                  'assets/svg/x_twitter.svg',
+                  width: 24,
+                  height: 24,
+                ),
+                title: const Text('Share on Twitter'),
+                subtitle: const Text('Open Twitter app'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await context.read<JournalProvider>().shareToSocialMedia(
+                          widget.entry,
+                          'twitter',
+                        );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Failed to share on Twitter')),
+                      );
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -154,6 +314,11 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                   ],
                 )),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.share_rounded),
+                tooltip: 'Share Entry',
+                onPressed: _showShareOptions,
+              ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 tooltip: 'Delete Entry',

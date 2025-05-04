@@ -224,36 +224,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
     });
   }
 
-  void _showLensResults() async {
-    final asset = widget.assetList != null
-        ? widget.assetList![_currentIndex]
-        : widget.asset;
-
-    if (asset == null || asset.type == AssetType.video) return;
-
-    setState(() {
-      _showLabels = true;
-      _showInfo = false;
-      _showJournal = false;
-      _toggleControls(true);
-      _controlsTimer?.cancel();
-    });
-
-    try {
-      final mediaProvider = context.read<MediaProvider>();
-      await mediaProvider.searchImageOnGoogle(asset);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to launch Google Lens: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   void _showObjectDetectionResults() async {
     final asset = widget.assetList != null
         ? widget.assetList![_currentIndex]
@@ -368,7 +338,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
                   onToggleJournal: _showJournalPanel,
                   onShare: _shareMedia,
                   onDelete: _deleteMedia,
-                  onLens: _showLensResults,
                   onDetectObjects: _showObjectDetectionResults,
                   favoriteButtonBuilder: (context) => Consumer<MediaProvider>(
                     builder: (context, mediaProvider, _) {
@@ -458,6 +427,11 @@ class _MediaDetailViewState extends State<MediaDetailView>
       onPageChanged: (index) async {
         setState(() {
           _currentIndex = index;
+          // Hide all panels when changing pages
+          _showObjectDetection = false;
+          _showLabels = false;
+          _showInfo = false;
+          _showJournal = false;
         });
 
         final currentAsset = widget.assetList![index];
@@ -607,6 +581,9 @@ class _MediaDetailViewState extends State<MediaDetailView>
       backgroundDecoration: const BoxDecoration(color: Colors.transparent),
       errorBuilder: (context, error, stackTrace) => const Center(
         child: Icon(Icons.broken_image, color: Colors.white, size: 50),
+      ),
+      loadingBuilder: (context, event) => const Center(
+        child: CircularProgressIndicator(),
       ),
     );
   }
@@ -1372,7 +1349,6 @@ class _MediaControls extends StatelessWidget {
   final VoidCallback onToggleJournal;
   final VoidCallback onShare;
   final VoidCallback onDelete;
-  final VoidCallback onLens;
   final VoidCallback onDetectObjects;
   final Widget Function(BuildContext) favoriteButtonBuilder;
 
@@ -1388,7 +1364,6 @@ class _MediaControls extends StatelessWidget {
     required this.onToggleJournal,
     required this.onShare,
     required this.onDelete,
-    required this.onLens,
     required this.onDetectObjects,
     required this.favoriteButtonBuilder,
   });
@@ -1459,10 +1434,6 @@ class _MediaControls extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.share, color: Colors.white),
                     onPressed: onShare,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.camera_alt, color: Colors.white),
-                    onPressed: onLens,
                   ),
                   IconButton(
                     icon: const Icon(Icons.auto_awesome, color: Colors.white),

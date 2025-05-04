@@ -829,27 +829,6 @@ class MediaProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<ImageLabel>> getImageLabels(AssetEntity asset) async {
-    if (_labelCache.containsKey(asset.id)) {
-      return _labelCache[asset.id]!;
-    }
-
-    try {
-      final file = await asset.file;
-      if (file == null) return [];
-
-      final inputImage = InputImage.fromFile(file);
-      final labels = await _imageLabeler.processImage(inputImage);
-
-      _labelCache[asset.id] = labels;
-      notifyListeners();
-      return labels;
-    } catch (e) {
-      debugPrint('Error getting image labels: $e');
-      return [];
-    }
-  }
-
   Future<void> searchOnGoogle(String query) async {
     final encodedQuery = Uri.encodeComponent(query);
     final url = Uri.parse('https://www.google.com/search?q=$encodedQuery');
@@ -866,70 +845,6 @@ class MediaProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error launching URL: $e');
       // You might want to show a snackbar or dialog to inform the user
-    }
-  }
-
-  Future<void> searchImageOnGoogle(AssetEntity asset) async {
-    try {
-      final file = await asset.file;
-      if (file == null) {
-        throw 'Could not access image file';
-      }
-
-      // Create a temporary file for the image
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/search_image.jpg');
-      await tempFile.writeAsBytes(await file.readAsBytes());
-
-      // Try to launch Google Lens app first
-      final lensAppUrl = Uri.parse('googlelens://');
-      final lensWebUrl = Uri.parse('https://lens.google.com/upload');
-
-      try {
-        // Try to launch the app first
-        if (await canLaunchUrl(lensAppUrl)) {
-          await launchUrl(lensAppUrl);
-          return;
-        }
-      } catch (e) {
-        debugPrint('Google Lens app not installed, falling back to web: $e');
-      }
-
-      // Fallback to web version
-      if (await canLaunchUrl(lensWebUrl)) {
-        await launchUrl(
-          lensWebUrl,
-          mode: LaunchMode.externalApplication,
-        );
-      } else {
-        throw 'Could not launch Google Lens';
-      }
-    } catch (e) {
-      debugPrint('Error launching Google Lens: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> searchImageOnGoogleWithFile(File imageFile) async {
-    try {
-      // Create a temporary file for the image
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/search_image.jpg');
-      await tempFile.writeAsBytes(await imageFile.readAsBytes());
-
-      // Launch Google Lens with the image
-      final url = Uri.parse('https://lens.google.com/upload');
-      if (await launchUrl(url)) {
-        await launchUrl(
-          url,
-          mode: LaunchMode.externalApplication,
-        );
-      } else {
-        throw 'Could not launch Google Lens';
-      }
-    } catch (e) {
-      debugPrint('Error launching Google Lens: $e');
-      rethrow;
     }
   }
 

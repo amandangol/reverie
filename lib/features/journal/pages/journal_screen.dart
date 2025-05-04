@@ -734,7 +734,7 @@ class _JournalScreenState extends State<JournalScreen> {
             Text(
               greeting,
               style: journalTextTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onBackground.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -742,7 +742,7 @@ class _JournalScreenState extends State<JournalScreen> {
             Text(
               lastEntryDate,
               style: journalTextTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onBackground.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
           ],

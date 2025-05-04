@@ -3,7 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
+import 'dart:io';
 import '../models/journal_entry.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class JournalProvider with ChangeNotifier {
   List<JournalEntry> _entries = [];
@@ -329,6 +334,238 @@ class JournalProvider with ChangeNotifier {
 
   Future<void> refresh() async {
     await loadEntries();
+  }
+
+  Future<void> shareJournalEntry(JournalEntry entry,
+      {bool includeMedia = true}) async {
+    try {
+      String shareText = '${entry.title}\n\n${entry.content}\n\n';
+
+      // Add tags as hashtags
+      if (entry.tags.isNotEmpty) {
+        shareText += entry.tags.map((tag) => '#$tag').join(' ') + '\n\n';
+      }
+
+      // Add mood if available
+      if (entry.mood != null) {
+        shareText += 'Mood: ${entry.mood}\n';
+      }
+
+      // Add date
+      shareText += 'Date: ${DateFormat('MMMM d, yyyy').format(entry.date)}';
+
+      if (includeMedia && entry.mediaIds.isNotEmpty) {
+        // Create temporary directory for media files
+        final tempDir = await getTemporaryDirectory();
+        final mediaFiles = <XFile>[];
+
+        // Get all media files
+        for (final mediaId in entry.mediaIds) {
+          final asset = await AssetEntity.fromId(mediaId);
+          if (asset != null) {
+            final file = await asset.file;
+            if (file != null) {
+              // Create a copy in temp directory with a unique name and correct extension
+              final extension = asset.type == AssetType.video ? '.mp4' : '.jpg';
+              final tempFile = File(
+                  '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_$mediaId$extension');
+              await file.copy(tempFile.path);
+              mediaFiles.add(XFile(tempFile.path));
+            }
+          }
+        }
+
+        // Share with media
+        await Share.shareXFiles(
+          mediaFiles,
+          text: shareText,
+          subject: entry.title,
+        );
+
+        // Clean up temporary files
+        for (final file in mediaFiles) {
+          await File(file.path).delete();
+        }
+      } else {
+        // Share text only
+        await Share.share(shareText, subject: entry.title);
+      }
+    } catch (e) {
+      debugPrint('Error sharing journal entry: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> shareToSocialMedia(JournalEntry entry, String platform) async {
+    List<XFile>? mediaFiles;
+    try {
+      String shareText = '';
+      String? appUrl;
+      String? webUrl;
+
+      // Prepare media files if available
+      if (entry.mediaIds.isNotEmpty) {
+        final tempDir = await getTemporaryDirectory();
+        mediaFiles = [];
+
+        for (final mediaId in entry.mediaIds) {
+          final asset = await AssetEntity.fromId(mediaId);
+          if (asset != null) {
+            final file = await asset.file;
+            if (file != null) {
+              final extension = asset.type == AssetType.video ? '.mp4' : '.jpg';
+              final tempFile = File(
+                  '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_$mediaId$extension');
+              await file.copy(tempFile.path);
+              mediaFiles.add(XFile(tempFile.path));
+            }
+          }
+        }
+      }
+
+      switch (platform.toLowerCase()) {
+        case 'facebook':
+          // Facebook format: Title + content + hashtags
+          shareText = '${entry.title}\n\n${entry.content}\n\n';
+          if (entry.tags.isNotEmpty) {
+            shareText += entry.tags.map((tag) => '#$tag').join(' ') + '\n';
+          }
+          if (entry.mood != null) {
+            shareText += '#${entry.mood!.toLowerCase()} ';
+          }
+
+          // Try to open Facebook app first
+          appUrl = 'fb://post?text=${Uri.encodeComponent(shareText)}';
+          final fbUri = Uri.parse(appUrl);
+
+          if (await canLaunchUrl(fbUri)) {
+            await launchUrl(fbUri);
+            // Wait for Facebook to open
+            await Future.delayed(const Duration(seconds: 1));
+            if (mediaFiles != null && mediaFiles.isNotEmpty) {
+              await Share.shareXFiles(
+                mediaFiles,
+                text: shareText,
+                subject: entry.title,
+              );
+            }
+            return;
+          }
+
+          // Fallback to web URL
+          webUrl =
+              'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(shareText)}';
+          break;
+
+        case 'twitter':
+          // Twitter format: Title + content + hashtags (limited to 280 chars)
+          shareText = '${entry.title}\n\n';
+          if (entry.content.length > 100) {
+            shareText += entry.content.substring(0, 97) + '...\n\n';
+          } else {
+            shareText += entry.content + '\n\n';
+          }
+
+          if (entry.tags.isNotEmpty) {
+            shareText += entry.tags.map((tag) => '#$tag').join(' ') + '\n';
+          }
+          if (entry.mood != null) {
+            shareText += '#${entry.mood!.toLowerCase()} ';
+          }
+
+          // Truncate if too long
+          if (shareText.length > 280) {
+            shareText = shareText.substring(0, 277) + '...';
+          }
+
+          // Try to open Twitter app first
+          appUrl = 'twitter://post?message=${Uri.encodeComponent(shareText)}';
+          final twitterUri = Uri.parse(appUrl);
+
+          if (await canLaunchUrl(twitterUri)) {
+            await launchUrl(twitterUri);
+            // Wait for Twitter to open
+            await Future.delayed(const Duration(seconds: 1));
+            if (mediaFiles != null && mediaFiles.isNotEmpty) {
+              await Share.shareXFiles(
+                mediaFiles,
+                text: shareText,
+                subject: entry.title,
+              );
+            }
+            return;
+          }
+
+          // Fallback to web URL
+          webUrl =
+              'https://twitter.com/intent/tweet?text=${Uri.encodeComponent(shareText)}';
+          break;
+
+        case 'instagram':
+          if (mediaFiles != null && mediaFiles.isNotEmpty) {
+            final caption =
+                '${entry.title}\n\n${entry.content}\n\n${entry.tags.map((tag) => '#$tag').join(' ')}';
+
+            // Try to open Instagram app first
+            final instagramUri = Uri.parse('instagram://camera');
+
+            if (await canLaunchUrl(instagramUri)) {
+              await launchUrl(instagramUri);
+              // Wait for Instagram to open
+              await Future.delayed(const Duration(seconds: 1));
+              await Share.shareXFiles(
+                mediaFiles,
+                text: caption,
+              );
+            } else {
+              // Fallback to general share if Instagram app is not installed
+              await Share.shareXFiles(
+                mediaFiles,
+                text: caption,
+              );
+            }
+            return;
+          }
+          break;
+
+        default:
+          shareText = '${entry.title}\n\n${entry.content}';
+      }
+
+      // Try to open the web URL if app launch failed
+      if (webUrl != null) {
+        final uri = Uri.parse(webUrl);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          return;
+        }
+      }
+
+      // If both app and web URLs fail, fall back to general share
+      if (mediaFiles != null && mediaFiles.isNotEmpty) {
+        await Share.shareXFiles(
+          mediaFiles,
+          text: shareText,
+          subject: entry.title,
+        );
+      } else {
+        await Share.share(shareText, subject: entry.title);
+      }
+    } catch (e) {
+      debugPrint('Error sharing to social media: $e');
+      rethrow;
+    } finally {
+      // Clean up temporary files
+      if (mediaFiles != null) {
+        for (final file in mediaFiles) {
+          try {
+            await File(file.path).delete();
+          } catch (e) {
+            debugPrint('Error deleting temporary file: $e');
+          }
+        }
+      }
+    }
   }
 
   @override
