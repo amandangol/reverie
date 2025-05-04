@@ -1,0 +1,1378 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:uuid/uuid.dart';
+import 'package:video_player/video_player.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:provider/provider.dart';
+import '../../../utils/snackbar_utils.dart';
+import '../provider/media_provider.dart';
+import '../../../utils/media_utils.dart';
+import '../../journal/providers/journal_provider.dart';
+import '../../journal/widgets/journal_entry_form.dart';
+import '../../journal/models/journal_entry.dart';
+import '../pages/album_page.dart';
+import 'package:intl/intl.dart';
+
+class MediaDetailView extends StatefulWidget {
+  final AssetEntity? asset;
+  final File? file;
+  final List<AssetEntity>? assetList;
+  final String? heroTag;
+
+  const MediaDetailView({
+    super.key,
+    this.asset,
+    this.file,
+    this.assetList,
+    this.heroTag,
+  }) : assert(asset != null || file != null,
+            'Either asset or file must be provided');
+
+  @override
+  State<MediaDetailView> createState() => _MediaDetailViewState();
+}
+
+class _MediaDetailViewState extends State<MediaDetailView>
+    with SingleTickerProviderStateMixin {
+  PageController? _pageController;
+  VideoPlayerController? _videoController;
+  int _currentIndex = 0;
+  bool _showInfo = false;
+  bool _showControls = true;
+  bool _isFullScreen = false;
+  bool _showJournal = false;
+
+  Timer? _controlsTimer;
+  AnimationController? _animationController;
+  Animation<double>? _animation;
+
+  // Track if we're currently swiping to prevent unwanted control toggles
+  bool _isSwiping = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupControlsAnimation();
+    _setupSystemUI();
+
+    if (widget.assetList != null) {
+      _currentIndex = widget.assetList!.indexOf(widget.asset!);
+      if (_currentIndex == -1) _currentIndex = 0;
+      _pageController = PageController(initialPage: _currentIndex);
+
+      // Preload adjacent images
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<MediaProvider>().preloadAdjacentMedia(
+              widget.assetList!,
+              _currentIndex,
+            );
+      });
+    }
+
+    if (widget.asset?.type == AssetType.video ||
+        widget.file?.path.endsWith('.mp4') == true) {
+      _initializeVideoPlayer();
+    }
+
+    _startControlsTimer();
+  }
+
+  void _setupControlsAnimation() {
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+        parent: _animationController!, curve: Curves.easeInOut));
+
+    if (_showControls) {
+      _animationController!.value = 1.0;
+    }
+  }
+
+  void _setupSystemUI() {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.black,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
+  }
+
+  void _resetSystemUI() {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+  }
+
+  void _startControlsTimer() {
+    _controlsTimer?.cancel();
+    if (!_showInfo) {
+      _controlsTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted && !_isSwiping) {
+          _toggleControls(false);
+        }
+      });
+    }
+  }
+
+  void _toggleControls(bool show) {
+    if (show == _showControls) return;
+
+    setState(() {
+      _showControls = show;
+    });
+
+    if (show) {
+      _animationController!.forward();
+      _startControlsTimer();
+    } else {
+      _animationController!.reverse();
+    }
+  }
+
+  Future<void> _initializeVideoPlayer() async {
+    if (_videoController != null) {
+      await _videoController!.dispose();
+      _videoController = null;
+    }
+
+    try {
+      final asset = widget.assetList != null
+          ? widget.assetList![_currentIndex]
+          : widget.asset;
+      if (asset == null) return;
+
+      final file = await asset.file;
+      if (file == null || !mounted) return;
+
+      _videoController = VideoPlayerController.file(file);
+      await _videoController!.initialize();
+
+      if (!mounted) {
+        await _videoController!.dispose();
+        _videoController = null;
+        return;
+      }
+
+      setState(() {});
+      _videoController!.play();
+      _videoController!.setLooping(true);
+      _videoController!.addListener(_videoListener);
+    } catch (e) {
+      if (mounted) {
+        SnackbarUtils.showError(
+            context, 'Error playing video: ${e.toString()}');
+      }
+    }
+  }
+
+  void _videoListener() {
+    if (_videoController == null) return;
+
+    // If video finished, restart
+    if (_videoController!.value.position >= _videoController!.value.duration) {
+      _videoController!.seekTo(Duration.zero);
+      _videoController!.play();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controlsTimer?.cancel();
+    _animationController?.dispose();
+
+    if (_videoController != null) {
+      _videoController!.removeListener(_videoListener);
+      _videoController!.pause();
+      _videoController!.dispose();
+    }
+
+    _pageController?.dispose();
+    _resetSystemUI();
+    super.dispose();
+  }
+
+  void _showJournalPanel() {
+    setState(() {
+      _showJournal = !_showJournal;
+      _showInfo = false; // Close info panel when journal is opened
+      if (_showJournal) {
+        _toggleControls(true);
+        _controlsTimer?.cancel();
+      } else {
+        _startControlsTimer();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        if (_isFullScreen) {
+          _toggleFullScreen();
+          return false;
+        }
+        return true;
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Colors.black,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          extendBodyBehindAppBar: true,
+          extendBody: true,
+          body: GestureDetector(
+            onTap: () {
+              if (!_isSwiping) {
+                _toggleControls(!_showControls);
+              }
+            },
+            child: Stack(
+              children: [
+                // Photo viewer
+                NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    if (notification is ScrollStartNotification) {
+                      setState(() {
+                        _isSwiping = true;
+                      });
+                    } else if (notification is ScrollEndNotification) {
+                      setState(() {
+                        _isSwiping = false;
+                      });
+                      _startControlsTimer();
+                    }
+                    return false;
+                  },
+                  child:
+                      widget.assetList != null && widget.assetList!.length > 1
+                          ? _buildPageView()
+                          : _buildSingleAssetView(),
+                ),
+
+                // Controls
+                _MediaControls(
+                  showControls: _showControls,
+                  isFullScreen: _isFullScreen,
+                  showInfo: _showInfo,
+                  showJournal: _showJournal,
+                  currentIndex: _currentIndex,
+                  totalItems: widget.assetList?.length ?? 1,
+                  onClose: () {
+                    _resetSystemUI();
+                    Navigator.pop(context);
+                  },
+                  onToggleFullScreen: _toggleFullScreen,
+                  onToggleInfo: () {
+                    setState(() {
+                      _showInfo = !_showInfo;
+                      _showJournal = false;
+                      if (_showInfo) {
+                        _toggleControls(true);
+                        _controlsTimer?.cancel();
+                      } else {
+                        _startControlsTimer();
+                      }
+                    });
+                  },
+                  onToggleJournal: _showJournalPanel,
+                  onShare: _shareMedia,
+                  onDelete: _deleteMedia,
+                  favoriteButtonBuilder: (context) => Consumer<MediaProvider>(
+                    builder: (context, mediaProvider, _) {
+                      final asset = widget.assetList != null
+                          ? widget.assetList![_currentIndex]
+                          : widget.asset;
+                      return IconButton(
+                        icon: Icon(
+                          mediaProvider.isFavorite(asset!.id)
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color: mediaProvider.isFavorite(asset.id)
+                              ? Colors.red
+                              : Colors.white,
+                        ),
+                        onPressed: () => _toggleFavorite(asset),
+                      );
+                    },
+                  ),
+                ),
+
+                // Info Panel
+                if (_showInfo)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(
+                      child: _InfoPanel(
+                        asset: widget.assetList != null
+                            ? widget.assetList![_currentIndex]
+                            : widget.asset!,
+                        onClose: () {
+                          setState(() {
+                            _showInfo = false;
+                            _startControlsTimer();
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+
+                // Journal Panel
+                if (_showJournal)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(
+                      child: _buildJournalPanel(),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageView() {
+    return PageView.builder(
+      controller: _pageController,
+      itemCount: widget.assetList!.length,
+      onPageChanged: (index) async {
+        setState(() {
+          _currentIndex = index;
+        });
+
+        final currentAsset = widget.assetList![index];
+
+        // Dispose of current video controller if it exists
+        if (_videoController != null) {
+          _videoController!.removeListener(_videoListener);
+          await _videoController!.pause();
+          await _videoController!.dispose();
+          _videoController = null;
+        }
+
+        // Initialize new video controller if the asset is a video
+        if (currentAsset.type == AssetType.video) {
+          await _initializeVideoPlayer();
+        }
+
+        // Show controls briefly when switching media
+        _toggleControls(true);
+
+        // Preload adjacent images
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<MediaProvider>().preloadAdjacentMedia(
+                widget.assetList!,
+                _currentIndex,
+              );
+        });
+      },
+      itemBuilder: (context, index) {
+        final asset = widget.assetList![index];
+        if (asset.type == AssetType.video) {
+          return _buildVideoPlayer();
+        }
+
+        return Consumer<MediaProvider>(
+          builder: (context, mediaProvider, _) {
+            final cachedFile = mediaProvider.getCachedFile(asset.id);
+            if (cachedFile != null) {
+              return _buildPhotoView(cachedFile, 'media_${asset.id}');
+            }
+
+            return FutureBuilder<File?>(
+              future: MediaUtils.getFileForAsset(asset),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildShimmerLoading();
+                }
+
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Icon(Icons.error_outline,
+                        color: Colors.white, size: 50),
+                  );
+                }
+
+                if (snapshot.data != null) {
+                  return _buildPhotoView(snapshot.data!, 'media_${asset.id}');
+                }
+
+                return const Center(
+                  child: Text(
+                    'Failed to load image',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSingleAssetView() {
+    if (widget.asset?.type == AssetType.video ||
+        widget.file?.path.endsWith('.mp4') == true) {
+      return _buildVideoPlayer();
+    }
+
+    if (widget.asset != null) {
+      return Consumer<MediaProvider>(
+        builder: (context, mediaProvider, _) {
+          final cachedFile = mediaProvider.getCachedFile(widget.asset!.id);
+          if (cachedFile != null) {
+            return _buildPhotoView(cachedFile, widget.heroTag);
+          }
+
+          return FutureBuilder<File?>(
+            future: MediaUtils.getFileForAsset(widget.asset!),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return _buildShimmerLoading();
+              }
+
+              if (snapshot.hasError) {
+                return const Center(
+                  child:
+                      Icon(Icons.error_outline, color: Colors.white, size: 50),
+                );
+              }
+
+              if (snapshot.data != null) {
+                return _buildPhotoView(snapshot.data!, widget.heroTag);
+              }
+
+              return const Center(
+                child: Text(
+                  'Failed to load image',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
+    } else if (widget.file != null) {
+      return _buildPhotoView(widget.file!, widget.heroTag);
+    }
+
+    return const Center(
+      child: Text(
+        'Failed to load media',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoView(File file, String? heroTag) {
+    return PhotoView(
+      imageProvider: FileImage(file),
+      heroAttributes:
+          heroTag != null ? PhotoViewHeroAttributes(tag: heroTag) : null,
+      minScale: PhotoViewComputedScale.contained,
+      maxScale: PhotoViewComputedScale.covered * 3,
+      backgroundDecoration: const BoxDecoration(color: Colors.transparent),
+      errorBuilder: (context, error, stackTrace) => const Center(
+        child: Icon(Icons.broken_image, color: Colors.white, size: 50),
+      ),
+    );
+  }
+
+  Widget _buildShimmerLoading() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[800]!,
+      highlightColor: Colors.grey[600]!,
+      child: Container(
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height,
+        color: Colors.black,
+      ),
+    );
+  }
+
+  Widget _buildVideoPlayer() {
+    if (_videoController != null && _videoController!.value.isInitialized) {
+      return Center(
+        child: AspectRatio(
+          aspectRatio: _videoController!.value.aspectRatio,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              VideoPlayer(_videoController!),
+              // Video controls overlay
+              if (_showControls)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (_videoController!.value.isPlaying) {
+                        _videoController!.pause();
+                      } else {
+                        _videoController!.play();
+                      }
+                    });
+                    _startControlsTimer();
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.3),
+                          Colors.black.withOpacity(0.1),
+                          Colors.black.withOpacity(0.3),
+                        ],
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        // Play/Pause button
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _videoController!.value.isPlaying
+                                ? Icons.pause
+                                : Icons.play_arrow,
+                            color: Colors.white,
+                            size: 48,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Progress bar
+                        VideoProgressIndicator(
+                          _videoController!,
+                          allowScrubbing: true,
+                          colors: VideoProgressColors(
+                            playedColor: Colors.blue,
+                            bufferedColor: Colors.grey.withOpacity(0.5),
+                            backgroundColor: Colors.grey.withOpacity(0.2),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 16),
+                        ),
+                        // Time indicators
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _formatDuration(
+                                    _videoController!.value.position),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                _formatDuration(
+                                    _videoController!.value.duration),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Additional controls
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // Volume control
+                            IconButton(
+                              icon: Icon(
+                                _videoController!.value.volume == 0
+                                    ? Icons.volume_off
+                                    : Icons.volume_up,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _videoController!.setVolume(
+                                    _videoController!.value.volume == 0
+                                        ? 1.0
+                                        : 0.0,
+                                  );
+                                });
+                              },
+                            ),
+                            // Playback speed
+                            PopupMenuButton<double>(
+                              icon:
+                                  const Icon(Icons.speed, color: Colors.white),
+                              onSelected: (speed) {
+                                setState(() {
+                                  _videoController!.setPlaybackSpeed(speed);
+                                });
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 0.5,
+                                  child: Text('0.5x'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 1.0,
+                                  child: Text('1.0x'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 1.5,
+                                  child: Text('1.5x'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 2.0,
+                                  child: Text('2.0x'),
+                                ),
+                              ],
+                            ),
+                            // Fullscreen toggle
+                            IconButton(
+                              icon: Icon(
+                                _isFullScreen
+                                    ? Icons.fullscreen_exit
+                                    : Icons.fullscreen,
+                                color: Colors.white,
+                              ),
+                              onPressed: _toggleFullScreen,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return const Center(
+      child: CircularProgressIndicator(
+        color: Colors.white,
+      ),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return duration.inHours > 0
+        ? '$hours:$minutes:$seconds'
+        : '$minutes:$seconds';
+  }
+
+  Future<void> _shareMedia() async {
+    final asset = widget.assetList != null
+        ? widget.assetList![_currentIndex]
+        : widget.asset;
+
+    try {
+      final file = await asset!.file;
+      if (file != null) {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text:
+              'Check out this ${asset.type == AssetType.video ? 'video' : 'photo'}!',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarUtils.showError(context, 'Failed to share: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _deleteMedia() async {
+    final theme = Theme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Media'),
+        content: const Text(
+          'Are you sure you want to delete this item? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final mediaProvider = context.read<MediaProvider>();
+        final asset = widget.assetList != null
+            ? widget.assetList![_currentIndex]
+            : widget.asset;
+        await mediaProvider.deleteMedia(asset!);
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          SnackbarUtils.showError(context, 'Failed to delete: ${e.toString()}');
+        }
+      }
+    }
+  }
+
+  void _toggleFullScreen() {
+    setState(() {
+      _isFullScreen = !_isFullScreen;
+
+      if (_isFullScreen) {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      } else {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      }
+    });
+  }
+
+  Widget _buildJournalPanel() {
+    final asset = widget.assetList != null
+        ? widget.assetList![_currentIndex]
+        : widget.asset;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Journal',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () {
+                  setState(() {
+                    _showJournal = false;
+                    _startControlsTimer();
+                  });
+                },
+              ),
+            ],
+          ),
+          const Divider(color: Colors.white30),
+          const SizedBox(height: 8),
+          _buildJournalContent(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJournalContent() {
+    final asset = widget.assetList != null
+        ? widget.assetList![_currentIndex]
+        : widget.asset;
+
+    return Consumer<JournalProvider>(
+      builder: (context, journalProvider, _) {
+        if (journalProvider.isLoading) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
+            ),
+          );
+        }
+
+        if (journalProvider.error != null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Error loading journal entries: ${journalProvider.error}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => journalProvider.refresh(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Get all entries and filter those that contain the current media ID
+        final allEntries = journalProvider.entries;
+        final entries = allEntries
+            .where((entry) => entry.mediaIds.contains(asset!.id))
+            .toList();
+
+        if (entries.isEmpty) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'No journal entries for this media',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => _showAddJournalEntryDialog(),
+                icon: const Icon(Icons.add),
+                label: const Text('Add to Journal'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${entries.length} Journal ${entries.length == 1 ? 'Entry' : 'Entries'}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => _showAddJournalEntryDialog(),
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text('Add Entry',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.4,
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: entries.length,
+                itemBuilder: (context, index) {
+                  final entry = entries[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    color: Colors.black54,
+                    child: InkWell(
+                      onTap: () => _showEditJournalEntryDialog(entry),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                if (entry.mood != null)
+                                  Text(
+                                    entry.mood!,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    entry.title,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  DateFormat('MMM d, yyyy').format(entry.date),
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (entry.tags.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 4,
+                                runSpacing: 4,
+                                children: entry.tags
+                                    .map((tag) => Chip(
+                                          label: Text(tag),
+                                          backgroundColor:
+                                              Colors.blue.withOpacity(0.2),
+                                          labelStyle: const TextStyle(
+                                              color: Colors.white),
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                        ))
+                                    .toList(),
+                              ),
+                            ],
+                            const SizedBox(height: 8),
+                            Text(
+                              entry.content,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _toggleFavorite(AssetEntity asset) async {
+    try {
+      final mediaProvider = context.read<MediaProvider>();
+      final wasFavorite = mediaProvider.isFavorite(asset.id);
+      await mediaProvider.toggleFavorite(asset);
+
+      if (mounted) {
+        if (mediaProvider.isFavorite(asset.id)) {
+          SnackbarUtils.showMediaAddedToFavorites(
+            context,
+            count: 1,
+            onView: () {
+              final albums = mediaProvider.albums;
+              if (albums.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AlbumPage(
+                      album: albums.first,
+                      isGridView: true,
+                      gridCrossAxisCount: 3,
+                      isFavoritesAlbum: true,
+                    ),
+                  ),
+                );
+              }
+            },
+          );
+        } else {
+          SnackbarUtils.showMediaRemovedFromFavorites(context, count: 1);
+        }
+        setState(() {}); // Refresh the UI to update the favorite icon
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarUtils.showError(
+          context,
+          'Failed to update favorite: ${e.toString()}',
+        );
+      }
+    }
+  }
+
+  void _showAddJournalEntryDialog() {
+    final asset = widget.assetList != null
+        ? widget.assetList![_currentIndex]
+        : widget.asset;
+    _videoController?.pause();
+
+    showDialog(
+      context: context,
+      builder: (context) => JournalEntryForm(
+        initialMediaIds: [asset!.id],
+        onSave: (title, content, mediaIds, mood, tags) {
+          final entry = JournalEntry(
+            id: const Uuid().v4(),
+            title: title,
+            content: content,
+            mediaIds: mediaIds,
+            mood: mood,
+            tags: tags,
+            date: DateTime.now(),
+          );
+          context.read<JournalProvider>().addEntry(entry);
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  void _showEditJournalEntryDialog(JournalEntry entry) {
+    showDialog(
+      context: context,
+      builder: (context) => JournalEntryForm(
+        initialTitle: entry.title,
+        initialContent: entry.content,
+        initialMediaIds: entry.mediaIds,
+        initialMood: entry.mood,
+        initialTags: entry.tags,
+        onSave: (title, content, mediaIds, mood, tags) {
+          final updatedEntry = entry.copyWith(
+            title: title,
+            content: content,
+            mediaIds: mediaIds,
+            mood: mood,
+            tags: tags,
+          );
+          context.read<JournalProvider>().updateEntry(updatedEntry);
+        },
+        onDelete: () {
+          context.read<JournalProvider>().deleteEntry(entry.id);
+          Navigator.pop(context);
+          SnackbarUtils.showError(
+            context,
+            'Journal entry deleted',
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _MediaControls extends StatelessWidget {
+  final bool showControls;
+  final bool isFullScreen;
+  final bool showInfo;
+  final bool showJournal;
+  final int currentIndex;
+  final int totalItems;
+  final VoidCallback onClose;
+  final VoidCallback onToggleFullScreen;
+  final VoidCallback onToggleInfo;
+  final VoidCallback onToggleJournal;
+  final VoidCallback onShare;
+  final VoidCallback onDelete;
+  final Widget Function(BuildContext) favoriteButtonBuilder;
+
+  const _MediaControls({
+    required this.showControls,
+    required this.isFullScreen,
+    required this.showInfo,
+    required this.showJournal,
+    required this.currentIndex,
+    required this.totalItems,
+    required this.onClose,
+    required this.onToggleFullScreen,
+    required this.onToggleInfo,
+    required this.onToggleJournal,
+    required this.onShare,
+    required this.onDelete,
+    required this.favoriteButtonBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!showControls) return const SizedBox.shrink();
+
+    return Stack(
+      children: [
+        // Top bar
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.8),
+                    Colors.black.withOpacity(0),
+                  ],
+                ),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: onClose,
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${currentIndex + 1}/$totalItems',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Bottom bar
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.8),
+                    Colors.black.withOpacity(0),
+                  ],
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  favoriteButtonBuilder(context),
+                  IconButton(
+                    icon: const Icon(Icons.share, color: Colors.white),
+                    onPressed: onShare,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.book, color: Colors.white),
+                    onPressed: onToggleJournal,
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                      color: Colors.white,
+                    ),
+                    onPressed: onToggleFullScreen,
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      showInfo ? Icons.info : Icons.info_outline,
+                      color: Colors.white,
+                    ),
+                    onPressed: onToggleInfo,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: onDelete,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoPanel extends StatelessWidget {
+  final AssetEntity asset;
+  final VoidCallback onClose;
+
+  const _InfoPanel({
+    required this.asset,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Details',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: onClose,
+              ),
+            ],
+          ),
+          const Divider(color: Colors.white30),
+          const SizedBox(height: 16),
+          Consumer<MediaProvider>(
+            builder: (context, mediaProvider, _) {
+              final date = mediaProvider.getCreateDate(asset.id);
+              if (date == null) return const SizedBox();
+              return _buildInfoRow(
+                'Date',
+                MediaUtils.formatDate(date),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Consumer<MediaProvider>(
+            builder: (context, mediaProvider, _) {
+              final size = mediaProvider.getSize(asset.id);
+              if (size == null) return const SizedBox();
+              return _buildInfoRow(
+                'Size',
+                MediaUtils.formatDimensions(size),
+              );
+            },
+          ),
+          if (asset.type == AssetType.video) ...[
+            const SizedBox(height: 12),
+            Consumer<MediaProvider>(
+              builder: (context, mediaProvider, _) {
+                final duration = mediaProvider.getDuration(asset.id);
+                if (duration == null) return const SizedBox();
+                return _buildInfoRow(
+                  'Duration',
+                  MediaUtils.formatDuration(duration),
+                );
+              },
+            ),
+          ],
+          const SizedBox(height: 12),
+          Consumer<MediaProvider>(
+            builder: (context, mediaProvider, _) {
+              return FutureBuilder<int?>(
+                future: mediaProvider.getFileSize(asset.id),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const SizedBox();
+                  final fileSize = snapshot.data!;
+                  return _buildInfoRow(
+                    'File Size',
+                    MediaUtils.formatFileSize(fileSize),
+                  );
+                },
+              );
+            },
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

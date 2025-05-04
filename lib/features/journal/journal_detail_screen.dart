@@ -1,0 +1,524 @@
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:reverie/utils/media_utils.dart';
+import 'package:reverie/features/journal/models/journal_entry.dart';
+import 'package:reverie/features/journal/providers/journal_provider.dart';
+import '../../utils/snackbar_utils.dart';
+import '../gallery/provider/media_provider.dart';
+import '../gallery/widgets/media_detail_view.dart';
+import 'widgets/journal_entry_form.dart';
+
+class JournalDetailScreen extends StatefulWidget {
+  final JournalEntry entry;
+
+  const JournalDetailScreen({
+    super.key,
+    required this.entry,
+  });
+
+  @override
+  State<JournalDetailScreen> createState() => _JournalDetailScreenState();
+}
+
+class _JournalDetailScreenState extends State<JournalDetailScreen> {
+  late JournalEntry _currentEntry;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentEntry = widget.entry;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaProvider = context.watch<MediaProvider>();
+    final journalProvider = context.watch<JournalProvider>();
+
+    // Update current entry from provider if available
+    final updatedEntry = journalProvider.entries.firstWhere(
+      (e) => e.id == _currentEntry.id,
+      orElse: () => _currentEntry,
+    );
+
+    if (updatedEntry != _currentEntry) {
+      _currentEntry = updatedEntry;
+    }
+
+    // Load media if not already loaded
+    if (!mediaProvider.isInitialized) {
+      mediaProvider.loadMedia();
+    }
+
+    // Get all media items from the provider
+    final allMediaItems = mediaProvider.allMediaItems;
+    final currentMediaItems = mediaProvider.currentAlbumItems;
+    final mediaItems = mediaProvider.mediaItems;
+
+    // Find media items by ID, checking all available sources
+    final loadedMediaItems = _currentEntry.mediaIds
+        .map((id) {
+          try {
+            // First check all media items
+            final item = allMediaItems.firstWhere(
+              (item) => item.id == id,
+              orElse: () => mediaItems.firstWhere(
+                (item) => item.id == id,
+                orElse: () => currentMediaItems.firstWhere(
+                  (item) => item.id == id,
+                  orElse: () => throw Exception('Media not found'),
+                ),
+              ),
+            );
+            return item;
+          } catch (e) {
+            debugPrint('Error finding media with ID $id: $e');
+            return null;
+          }
+        })
+        .whereType<AssetEntity>()
+        .toList();
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          // Sliver app bar with parallax effect for header
+          SliverAppBar(
+            expandedHeight: 200,
+            pinned: true,
+            stretch: true,
+            backgroundColor: colorScheme.surface,
+            flexibleSpace: FlexibleSpaceBar(
+                title: Text(
+                  _currentEntry.title,
+                  style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20),
+                ),
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (loadedMediaItems.isNotEmpty)
+                      Image(
+                        image: AssetEntityImageProvider(
+                          loadedMediaItems.first,
+                          isOriginal: true,
+                        ),
+                        fit: BoxFit.cover,
+                      )
+                    else
+                      Container(
+                        color: colorScheme.primaryContainer,
+                        child: Center(
+                          child: Icon(
+                            Icons.auto_stories_rounded,
+                            size: 64,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ),
+
+                    // Blur layer
+                    BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                      child: Container(
+                        color: Colors.black.withOpacity(0.6), // Optional tint
+                      ),
+                    ),
+
+                    // ShaderMask on top of blur
+                    ShaderMask(
+                      shaderCallback: (rect) {
+                        return LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.7),
+                          ],
+                          stops: const [0.6, 1.0],
+                        ).createShader(rect);
+                      },
+                      blendMode: BlendMode.srcOver,
+                      child: Container(), // You can place other UI here
+                    ),
+                  ],
+                )),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                tooltip: 'Delete Entry',
+                onPressed: () => _confirmDeleteEntry(context),
+              ),
+            ],
+          ),
+
+          // Journal content
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Date and mood card
+                  Card(
+                    elevation: 0,
+                    color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_month_rounded),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                DateFormat('EEEE, MMMM d, yyyy')
+                                    .format(_currentEntry.date),
+                                style: textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          if (_currentEntry.mood != null)
+                            Row(
+                              children: [
+                                _getMoodIcon(_currentEntry.mood!),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _currentEntry.mood!,
+                                  style: textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Tags section with improved styling
+                  if (_currentEntry.tags.isNotEmpty) ...[
+                    Text(
+                      'Tags',
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _currentEntry.tags
+                            .map((tag) => Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: Chip(
+                                    label: Text(tag),
+                                    backgroundColor: colorScheme.primary,
+                                    labelStyle: TextStyle(
+                                      color: colorScheme.onPrimaryContainer,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  ),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Content with styled typography
+                  Text(
+                    'Journal Entry',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _currentEntry.content,
+                    style: textTheme.bodyLarge?.copyWith(
+                      height: 1.6,
+                      letterSpacing: 0.15,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+
+          // Media gallery (if there are media items)
+          if (loadedMediaItems.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Media',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${loadedMediaItems.length}',
+                            style: TextStyle(
+                              color: colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+            ),
+
+          // Staggered grid view for media
+          if (loadedMediaItems.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+              sliver: _buildMediaGrid(context, loadedMediaItems),
+            ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showEditJournalEntryDialog(context),
+        child: const Icon(Icons.edit),
+      ),
+    );
+  }
+
+  Widget _buildMediaGrid(BuildContext context, List<AssetEntity> mediaItems) {
+    return SliverGrid(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 1,
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          if (index >= mediaItems.length) return null;
+
+          final asset = mediaItems[index];
+
+          return GestureDetector(
+            onTap: () =>
+                _showFullScreenImage(context, asset, index, mediaItems),
+            child: Hero(
+              tag: 'journal_media_${_currentEntry.id}_$index',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image(
+                      image: AssetEntityImageProvider(
+                        asset,
+                        isOriginal: false,
+                        thumbnailSize: const ThumbnailSize(300, 300),
+                      ),
+                      fit: BoxFit.cover,
+                    ),
+                    if (asset.type == AssetType.video)
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                MediaUtils.getMediaTypeIcon(asset.type),
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Consumer<MediaProvider>(
+                                builder: (context, mediaProvider, _) {
+                                  final duration =
+                                      mediaProvider.getDuration(asset.id);
+                                  if (duration == null) {
+                                    return const SizedBox();
+                                  }
+                                  return Text(
+                                    MediaUtils.formatDuration(duration),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+        childCount: mediaItems.length,
+      ),
+    );
+  }
+
+  Widget _getMoodIcon(String mood) {
+    return Icon(
+      MediaUtils.getMoodIcon(mood),
+      color: MediaUtils.getMoodColor(mood),
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, AssetEntity asset,
+      int initialIndex, List<AssetEntity> mediaItems) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MediaDetailView(
+          asset: asset,
+          assetList: mediaItems,
+          heroTag: 'journal_media_${_currentEntry.id}_$initialIndex',
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteEntry(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Entry'),
+        content: const Text(
+            'Are you sure you want to delete this journal entry? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: colorScheme.primary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final journalProvider = context.read<JournalProvider>();
+              journalProvider.deleteEntry(_currentEntry.id);
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Go back to journal list
+              SnackbarUtils.showError(
+                context,
+                'Journal entry deleted',
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditJournalEntryDialog(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: JournalEntryForm(
+          initialTitle: _currentEntry.title,
+          initialContent: _currentEntry.content,
+          initialMediaIds: _currentEntry.mediaIds,
+          initialMood: _currentEntry.mood,
+          initialTags: _currentEntry.tags,
+          onSave: (title, content, mediaIds, mood, tags) async {
+            final updatedEntry = _currentEntry.copyWith(
+              title: title,
+              content: content,
+              mediaIds: mediaIds,
+              mood: mood,
+              tags: tags,
+            );
+            await context.read<JournalProvider>().updateEntry(updatedEntry);
+            if (mounted) {
+              setState(() {
+                _currentEntry = updatedEntry;
+              });
+              Navigator.pop(context);
+              SnackbarUtils.showSuccess(
+                  context, 'Journal entry updated successfully');
+              Navigator.pushNamed(context, '/journal');
+            }
+          },
+        ),
+      ),
+    );
+  }
+}
