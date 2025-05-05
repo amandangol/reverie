@@ -35,7 +35,6 @@ class PhotosTab extends StatefulWidget {
 class _PhotosTabState extends State<PhotosTab> {
   bool _isSelectionMode = false;
   final Set<String> _selectedItems = {};
-  String? _selectedCategory;
 
   void _toggleSelectionMode() {
     HapticFeedback.lightImpact();
@@ -381,23 +380,10 @@ class _PhotosTabState extends State<PhotosTab> {
           );
         }
 
-        // Get filtered media items based on selected category
-        final mediaItems = _selectedCategory != null
-            ? mediaProvider.getAssetsByCategory(_selectedCategory!)
-            : mediaProvider.mediaItems;
-
-        final groupedPhotos = _groupPhotosByDate(mediaItems);
+        final groupedPhotos = _groupPhotosByDate(mediaProvider.mediaItems);
 
         return Column(
           children: [
-            if (mediaProvider.isBackgroundProcessing)
-              LinearProgressIndicator(
-                value: mediaProvider.categorizationProgress,
-                backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Theme.of(context).primaryColor,
-                ),
-              ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
@@ -409,32 +395,6 @@ class _PhotosTabState extends State<PhotosTab> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                   const Spacer(),
-                  if (!_isSelectionMode) ...[
-                    if (!mediaProvider.isInitialCategorizationDone)
-                      TextButton.icon(
-                        icon: const Icon(Icons.category),
-                        label: const Text('Categorize Photos'),
-                        onPressed: () => mediaProvider.startCategorization(),
-                      ),
-                    if (mediaProvider.isCategorizing)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: Row(
-                          children: [
-                            const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${(mediaProvider.categorizationProgress * 100).toInt()}%',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
                   if (_isSelectionMode) ...[
                     IconButton(
                       icon: const Icon(Icons.share),
@@ -477,20 +437,13 @@ class _PhotosTabState extends State<PhotosTab> {
                 ],
               ),
             ),
-            _buildCategoryChips(mediaProvider),
             Expanded(
               child: NotificationListener<ScrollNotification>(
                 onNotification: (ScrollNotification scrollInfo) {
-                  if (scrollInfo is ScrollEndNotification) {
-                    // Process visible assets when scrolling stops
-                    final visibleAssets = _getVisibleAssets(scrollInfo.metrics);
-                    mediaProvider.processVisibleAssets(visibleAssets);
-
-                    // Load more photos if needed
-                    if (scrollInfo.metrics.pixels >=
-                        scrollInfo.metrics.maxScrollExtent * 0.8) {
-                      mediaProvider.loadMorePhotos();
-                    }
+                  if (scrollInfo is ScrollEndNotification &&
+                      scrollInfo.metrics.pixels >=
+                          scrollInfo.metrics.maxScrollExtent * 0.8) {
+                    mediaProvider.loadMorePhotos();
                   }
                   return true;
                 },
@@ -970,71 +923,5 @@ class _PhotosTabState extends State<PhotosTab> {
     // Sort the dates in descending order
     return Map.fromEntries(
         grouped.entries.toList()..sort((a, b) => b.key.compareTo(a.key)));
-  }
-
-  Widget _buildCategoryChips(MediaProvider mediaProvider) {
-    final categories = mediaProvider.getAllCategories();
-    if (categories.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      height: 40,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length + 1, // +1 for "All" category
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: FilterChip(
-                avatar: const Icon(Icons.photo_library, size: 16),
-                label: const Text('All'),
-                selected: _selectedCategory == null,
-                onSelected: (selected) {
-                  setState(() {
-                    _selectedCategory = null;
-                  });
-                },
-              ),
-            );
-          }
-
-          final category = categories[index - 1];
-          return Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: FilterChip(
-              avatar: Icon(
-                mediaProvider.getCategoryIcon(category),
-                size: 16,
-                color: _selectedCategory == category
-                    ? Theme.of(context).colorScheme.onPrimary
-                    : Theme.of(context).colorScheme.onSurface,
-              ),
-              label: Text(category),
-              selected: _selectedCategory == category,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedCategory = selected ? category : null;
-                });
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  List<AssetEntity> _getVisibleAssets(ScrollMetrics metrics) {
-    final mediaProvider = context.read<MediaProvider>();
-    final items = mediaProvider.mediaItems;
-    final itemHeight = 200.0; // Approximate height of each item
-    final startIndex = (metrics.pixels / itemHeight).floor();
-    final endIndex =
-        ((metrics.pixels + metrics.viewportDimension) / itemHeight).ceil();
-
-    return items.sublist(
-      startIndex.clamp(0, items.length),
-      endIndex.clamp(0, items.length),
-    );
   }
 }
