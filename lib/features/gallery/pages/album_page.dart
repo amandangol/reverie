@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:reverie/utils/media_utils.dart';
@@ -71,6 +72,7 @@ class _AlbumPageState extends State<AlbumPage> {
   }
 
   void _toggleSelectionMode() {
+    HapticFeedback.lightImpact();
     setState(() {
       _isSelectionMode = !_isSelectionMode;
       if (!_isSelectionMode) {
@@ -80,6 +82,7 @@ class _AlbumPageState extends State<AlbumPage> {
   }
 
   void _toggleItemSelection(String itemId) {
+    HapticFeedback.lightImpact();
     setState(() {
       if (_selectedItems.contains(itemId)) {
         _selectedItems.remove(itemId);
@@ -223,7 +226,8 @@ class _AlbumPageState extends State<AlbumPage> {
       context: context,
       builder: (context) => JournalEntryForm(
         initialMediaIds: mediaIds,
-        onSave: (title, content, mediaIds, mood, tags) async {
+        onSave: (title, content, mediaIds, mood, tags,
+            {DateTime? lastEdited}) async {
           final journalProvider = context.read<JournalProvider>();
           final entry = JournalEntry(
             id: const Uuid().v4(),
@@ -501,7 +505,9 @@ class _AlbumPageState extends State<AlbumPage> {
             ),
           ],
           IconButton(
-            icon: const Icon(Icons.select_all),
+            icon: _isSelectionMode
+                ? const Icon(Icons.check_box)
+                : const Icon(Icons.select_all),
             onPressed: _toggleSelectionMode,
             tooltip: 'Select items',
           ),
@@ -818,7 +824,7 @@ class _MediaGridItem extends StatelessWidget {
       context: context,
       builder: (context) => JournalEntryForm(
         initialMediaIds: [asset.id],
-        onSave: (title, content, mediaIds, mood, tags) {
+        onSave: (title, content, mediaIds, mood, tags, {DateTime? lastEdited}) {
           final entry = JournalEntry(
             id: const Uuid().v4(),
             title: title,
@@ -833,10 +839,7 @@ class _MediaGridItem extends StatelessWidget {
           SnackbarUtils.showJournalEntryCreated(
             context,
             title: title,
-            onView: () {
-              // Navigate to journal entry
-              Navigator.pushNamed(context, '/journal');
-            },
+            onView: () {},
           );
         },
       ),
@@ -1113,7 +1116,7 @@ class _MediaListItem extends StatelessWidget {
       context: context,
       builder: (context) => JournalEntryForm(
         initialMediaIds: [asset.id],
-        onSave: (title, content, mediaIds, mood, tags) {
+        onSave: (title, content, mediaIds, mood, tags, {DateTime? lastEdited}) {
           final entry = JournalEntry(
             id: const Uuid().v4(),
             title: title,

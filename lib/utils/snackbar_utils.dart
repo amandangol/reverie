@@ -28,7 +28,6 @@ class SnackbarUtils {
   }
 
   static void showError(BuildContext context, String message) {
-    final theme = Theme.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(

@@ -10,6 +10,7 @@ class JournalEntry {
   final List<String> mediaIds;
   final String? mood;
   final List<String> tags;
+  final DateTime? lastEdited;
 
   const JournalEntry({
     required this.id,
@@ -19,6 +20,7 @@ class JournalEntry {
     required this.mediaIds,
     this.mood,
     this.tags = const [],
+    this.lastEdited,
   });
 
   JournalEntry copyWith({
@@ -29,6 +31,7 @@ class JournalEntry {
     List<String>? mediaIds,
     String? mood,
     List<String>? tags,
+    DateTime? lastEdited,
   }) {
     return JournalEntry(
       id: id ?? this.id,
@@ -38,6 +41,7 @@ class JournalEntry {
       mediaIds: mediaIds ?? this.mediaIds,
       mood: mood ?? this.mood,
       tags: tags ?? this.tags,
+      lastEdited: lastEdited ?? this.lastEdited,
     );
   }
 
@@ -50,6 +54,7 @@ class JournalEntry {
       'media_ids': jsonEncode(mediaIds),
       'mood': mood,
       'tags': jsonEncode(tags),
+      'last_edited': lastEdited?.millisecondsSinceEpoch,
     };
   }
 
@@ -68,6 +73,9 @@ class JournalEntry {
               .map((e) => e as String)
               .toList()
           : [],
+      lastEdited: json['last_edited'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(json['last_edited'] as int)
+          : null,
     );
   }
 
@@ -81,7 +89,8 @@ class JournalEntry {
         other.date == date &&
         listEquals(other.mediaIds, mediaIds) &&
         other.mood == mood &&
-        listEquals(other.tags, tags);
+        listEquals(other.tags, tags) &&
+        other.lastEdited == lastEdited;
   }
 
   @override
@@ -94,6 +103,7 @@ class JournalEntry {
       Object.hashAll(mediaIds),
       mood,
       Object.hashAll(tags),
+      lastEdited,
     );
   }
 }

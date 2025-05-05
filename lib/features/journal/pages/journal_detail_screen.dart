@@ -392,6 +392,18 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                       ),
                     ),
                   ),
+                  if (_currentEntry.lastEdited != null &&
+                      _currentEntry.lastEdited != _currentEntry.date)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2.0, left: 16),
+                      child: Text(
+                        'Last edited: ${DateFormat('MMM d, yyyy • h:mm a').format(_currentEntry.lastEdited!)}',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface.withOpacity(0.6),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
 
                   const SizedBox(height: 24),
 
@@ -678,23 +690,21 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
           initialMediaIds: _currentEntry.mediaIds,
           initialMood: _currentEntry.mood,
           initialTags: _currentEntry.tags,
-          onSave: (title, content, mediaIds, mood, tags) async {
+          onSave: (title, content, mediaIds, mood, tags,
+              {DateTime? lastEdited}) async {
             final updatedEntry = _currentEntry.copyWith(
               title: title,
               content: content,
               mediaIds: mediaIds,
               mood: mood,
               tags: tags,
+              lastEdited: lastEdited ?? DateTime.now(),
             );
             await context.read<JournalProvider>().updateEntry(updatedEntry);
             if (mounted) {
               setState(() {
                 _currentEntry = updatedEntry;
               });
-              Navigator.pop(context);
-              SnackbarUtils.showSuccess(
-                  context, 'Journal entry updated successfully');
-              Navigator.pushNamed(context, '/journal');
             }
           },
         ),

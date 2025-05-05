@@ -30,6 +30,7 @@ class _GalleryPageState extends State<GalleryPage>
       if (permissionProvider.hasMediaPermission) {
         if (!mediaProvider.isInitialized) {
           await mediaProvider.loadMedia();
+          mediaProvider.categorizeAllMedia();
         }
       }
     });

@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
 
 class MediaProvider extends ChangeNotifier {
   List<AssetEntity> _mediaItems = [];
@@ -55,7 +56,84 @@ class MediaProvider extends ChangeNotifier {
   final _imageLabeler = ImageLabeler(
     options: ImageLabelerOptions(confidenceThreshold: 0.7),
   );
-  final Map<String, List<ImageLabel>> _labelCache = {};
+  Map<String, List<ImageLabel>> _labelCache = {};
+
+  // Add these new properties
+  Map<String, Set<String>> _categoryToAssetIds = {};
+  final Map<String, Set<String>> _assetIdToCategories = {};
+  bool _isCategorizing = false;
+
+  // Add these constants for our specific categories
+  static const List<String> _importantCategories = [
+    'People',
+    'Selfie',
+    'Nature',
+    'Food',
+    'Screenshot'
+  ];
+
+  // Add mapping for related labels to our categories
+  static const Map<String, List<String>> _labelToCategory = {
+    'People': [
+      'person',
+      'people',
+      'human',
+      'man',
+      'woman',
+      'child',
+      'boy',
+      'girl'
+    ],
+    'Selfie': ['selfie', 'portrait', 'face'],
+    'Nature': [
+      'nature',
+      'landscape',
+      'mountain',
+      'beach',
+      'ocean',
+      'sky',
+      'tree',
+      'flower',
+      'plant',
+      'forest',
+      'grass'
+    ],
+    'Food': [
+      'food',
+      'meal',
+      'dish',
+      'restaurant',
+      'fruit',
+      'vegetable',
+      'drink'
+    ],
+    'Screenshot': [
+      'screenshot',
+      'screen',
+      'computer',
+      'phone',
+      'device',
+      'app',
+      'interface'
+    ]
+  };
+
+  static const int _batchSize = 10; // Process 10 images at a time
+  bool _isBackgroundProcessing = false;
+  int _processedCount = 0;
+  int _totalCount = 0;
+
+  // Add getters for progress
+  bool get isBackgroundProcessing => _isBackgroundProcessing;
+  double get categorizationProgress =>
+      _totalCount > 0 ? _processedCount / _totalCount : 0.0;
+
+  static const String _labelsCacheKey = 'image_labels_cache';
+  static const String _categoriesCacheKey = 'image_categories_cache';
+  bool _isInitialCategorizationDone = false;
+
+  // Add getter for initial categorization status
+  bool get isInitialCategorizationDone => _isInitialCategorizationDone;
 
   @override
   void dispose() {
@@ -66,6 +144,7 @@ class MediaProvider extends ChangeNotifier {
 
   MediaProvider() {
     _initSharedPreferences();
+    _loadCachedLabels();
   }
 
   Future<void> _initSharedPreferences() async {
@@ -857,15 +936,287 @@ class MediaProvider extends ChangeNotifier {
       final file = await asset.file;
       if (file == null) return [];
 
+      // Check if file exists and is readable
+      if (!await file.exists()) return [];
+
       final inputImage = InputImage.fromFile(file);
       final labels = await _imageLabeler.processImage(inputImage);
 
+      // Cache the results
       _labelCache[asset.id] = labels;
-      notifyListeners();
+      _updateCategories(asset.id, labels);
+
       return labels;
     } catch (e) {
       debugPrint('Error detecting objects: $e');
       return [];
+    }
+  }
+
+  // Add these getters
+  bool get isCategorizing => _isCategorizing;
+  Map<String, Set<String>> get categoryToAssetIds => _categoryToAssetIds;
+  Set<String> getCategoriesForAsset(String assetId) =>
+      _assetIdToCategories[assetId] ?? {};
+
+  // Modify categorizeAllMedia to be more efficient
+  Future<void> categorizeAllMedia() async {
+    if (_isCategorizing) return;
+
+    _isCategorizing = true;
+    _isBackgroundProcessing = true;
+    _processedCount = 0;
+    _totalCount = _allMediaItems.length;
+    notifyListeners();
+
+    try {
+      final assets = _allMediaItems.values.toList();
+
+      // Process in smaller batches with lower priority
+      for (var i = 0; i < assets.length; i += 5) {
+        if (!_mounted) break;
+
+        final end = (i + 5 < assets.length) ? i + 5 : assets.length;
+        final batch = assets.sublist(i, end);
+
+        // Process batch with lower priority
+        await Future.wait(
+          batch.map((asset) async {
+            if (_labelCache.containsKey(asset.id)) {
+              _processedCount++;
+              notifyListeners();
+              return;
+            }
+
+            try {
+              final labels = await detectObjects(asset);
+              _processedCount++;
+              notifyListeners();
+
+              // Save to cache every 50 images
+              if (_processedCount % 50 == 0) {
+                await _saveLabelsToCache();
+              }
+            } catch (e) {
+              debugPrint('Error processing asset ${asset.id}: $e');
+              _processedCount++;
+              notifyListeners();
+            }
+          }),
+        );
+
+        // Longer delay between batches to reduce CPU usage
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+
+      // Final save to cache
+      await _saveLabelsToCache();
+      _isInitialCategorizationDone = true;
+    } finally {
+      _isCategorizing = false;
+      _isBackgroundProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  // Add method to start categorization manually
+  Future<void> startCategorization() async {
+    if (_isCategorizing) return;
+
+    // Start from where we left off
+    final unprocessedAssets = _allMediaItems.values
+        .where((asset) => !_labelCache.containsKey(asset.id))
+        .toList();
+
+    if (unprocessedAssets.isEmpty) {
+      _isInitialCategorizationDone = true;
+      notifyListeners();
+      return;
+    }
+
+    await categorizeAllMedia();
+  }
+
+  // Add method to clear categorization cache
+  Future<void> clearCategorizationCache() async {
+    _labelCache.clear();
+    _categoryToAssetIds.clear();
+    _assetIdToCategories.clear();
+    _isInitialCategorizationDone = false;
+
+    if (_prefs != null) {
+      await _prefs?.remove(_labelsCacheKey);
+      await _prefs?.remove(_categoriesCacheKey);
+    }
+
+    notifyListeners();
+  }
+
+  // Add method to process visible assets
+  Future<void> processVisibleAssets(List<AssetEntity> visibleAssets) async {
+    if (_isCategorizing) return;
+
+    final unprocessedAssets = visibleAssets
+        .where((asset) => !_labelCache.containsKey(asset.id))
+        .toList();
+
+    if (unprocessedAssets.isEmpty) return;
+
+    // Process visible assets in smaller batches
+    for (var i = 0; i < unprocessedAssets.length; i += 5) {
+      if (!_mounted) break;
+
+      final end =
+          (i + 5 < unprocessedAssets.length) ? i + 5 : unprocessedAssets.length;
+      final batch = unprocessedAssets.sublist(i, end);
+
+      await Future.wait(
+        batch.map((asset) => detectObjects(asset)),
+      );
+
+      // Small delay between batches
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+  }
+
+  // Add method to clear label cache
+  void clearLabelCache() {
+    _labelCache.clear();
+    _categoryToAssetIds.clear();
+    _assetIdToCategories.clear();
+    notifyListeners();
+  }
+
+  void _updateCategories(String assetId, List<ImageLabel> labels) {
+    // Remove old categories for this asset
+    final oldCategories = _assetIdToCategories[assetId] ?? {};
+    for (var category in oldCategories) {
+      _categoryToAssetIds[category]?.remove(assetId);
+      if (_categoryToAssetIds[category]?.isEmpty ?? false) {
+        _categoryToAssetIds.remove(category);
+      }
+    }
+
+    // Map labels to our specific categories
+    final Set<String> newCategories = {};
+    for (var label in labels) {
+      for (var entry in _labelToCategory.entries) {
+        if (entry.value.any((keyword) =>
+            label.label.toLowerCase().contains(keyword.toLowerCase()))) {
+          newCategories.add(entry.key);
+        }
+      }
+    }
+
+    // Update the category mappings
+    _assetIdToCategories[assetId] = newCategories;
+    for (var category in newCategories) {
+      _categoryToAssetIds.putIfAbsent(category, () => {}).add(assetId);
+    }
+
+    notifyListeners();
+  }
+
+  // Add method to get assets by category
+  List<AssetEntity> getAssetsByCategory(String category) {
+    final assetIds = _categoryToAssetIds[category] ?? {};
+    return assetIds
+        .map((id) => _allMediaItems[id])
+        .where((asset) => asset != null)
+        .cast<AssetEntity>()
+        .toList();
+  }
+
+  // Add method to get all categories
+  List<String> getAllCategories() {
+    return _importantCategories
+        .where((category) => _categoryToAssetIds.containsKey(category))
+        .toList();
+  }
+
+  // Add method to get category icon
+  IconData getCategoryIcon(String category) {
+    switch (category) {
+      case 'People':
+        return Icons.people;
+      case 'Selfie':
+        return Icons.face;
+      case 'Nature':
+        return Icons.landscape;
+      case 'Food':
+        return Icons.restaurant;
+      case 'Screenshot':
+        return Icons.screenshot;
+      default:
+        return Icons.category;
+    }
+  }
+
+  // Add method to load cached labels
+  Future<void> _loadCachedLabels() async {
+    if (_prefs == null) {
+      await _initSharedPreferences();
+    }
+
+    try {
+      final labelsJson = _prefs?.getString(_labelsCacheKey);
+      final categoriesJson = _prefs?.getString(_categoriesCacheKey);
+
+      if (labelsJson != null) {
+        final Map<String, dynamic> labelsMap =
+            Map<String, dynamic>.from(json.decode(labelsJson));
+        _labelCache = labelsMap.map((key, value) => MapEntry(
+              key,
+              (value as List)
+                  .map((e) => ImageLabel(
+                        label: e['label'] as String,
+                        confidence: e['confidence'] as double,
+                        index: 0,
+                      ))
+                  .toList(),
+            ));
+      }
+
+      if (categoriesJson != null) {
+        final Map<String, dynamic> categoriesMap =
+            Map<String, dynamic>.from(json.decode(categoriesJson));
+        _categoryToAssetIds = categoriesMap.map((key, value) => MapEntry(
+              key,
+              Set<String>.from(value as List),
+            ));
+      }
+
+      _isInitialCategorizationDone = true;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading cached labels: $e');
+    }
+  }
+
+  // Add method to save labels to cache
+  Future<void> _saveLabelsToCache() async {
+    if (_prefs == null) return;
+
+    try {
+      final labelsMap = _labelCache.map((key, value) => MapEntry(
+            key,
+            value
+                .map((label) => {
+                      'label': label.label,
+                      'confidence': label.confidence,
+                    })
+                .toList(),
+          ));
+
+      final categoriesMap = _categoryToAssetIds.map((key, value) => MapEntry(
+            key,
+            value.toList(),
+          ));
+
+      await _prefs?.setString(_labelsCacheKey, json.encode(labelsMap));
+      await _prefs?.setString(_categoriesCacheKey, json.encode(categoriesMap));
+    } catch (e) {
+      debugPrint('Error saving labels to cache: $e');
     }
   }
 }

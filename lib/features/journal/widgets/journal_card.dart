@@ -84,39 +84,39 @@ class JournalCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (entry.mood != null && entry.mood!.isNotEmpty)
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                MediaUtils.getMoodIcon(entry.mood!),
-                                size: 16,
-                                color: _getMoodColor(entry.mood!),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                entry.mood!,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    // if (entry.mood != null && entry.mood!.isNotEmpty)
+                    //   Positioned(
+                    //     top: 8,
+                    //     right: 8,
+                    //     child: Container(
+                    //       padding: const EdgeInsets.symmetric(
+                    //         horizontal: 8,
+                    //         vertical: 4,
+                    //       ),
+                    //       decoration: BoxDecoration(
+                    //         color: Colors.black.withOpacity(0.5),
+                    //         borderRadius: BorderRadius.circular(8),
+                    //       ),
+                    //       child: Row(
+                    //         mainAxisSize: MainAxisSize.min,
+                    //         children: [
+                    //           Icon(
+                    //             MediaUtils.getMoodIcon(entry.mood!),
+                    //             size: 16,
+                    //             color: _getMoodColor(entry.mood!),
+                    //           ),
+                    //           const SizedBox(width: 4),
+                    //           Text(
+                    //             entry.mood!,
+                    //             style: theme.textTheme.bodySmall?.copyWith(
+                    //               color: Colors.white,
+                    //               fontWeight: FontWeight.w500,
+                    //             ),
+                    //           ),
+                    //         ],
+                    //       ),
+                    //     ),
+                    //   ),
                   ],
                 ),
               ),

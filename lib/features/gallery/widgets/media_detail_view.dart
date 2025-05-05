@@ -358,6 +358,9 @@ class _MediaDetailViewState extends State<MediaDetailView>
                       );
                     },
                   ),
+                  currentAsset: widget.assetList != null
+                      ? widget.assetList![_currentIndex]
+                      : widget.asset,
                 ),
 
                 // Info Panel
@@ -404,7 +407,7 @@ class _MediaDetailViewState extends State<MediaDetailView>
                   ),
 
                 // Object Detection Panel
-                if (_showObjectDetection)
+                if (_showObjectDetection && _detectedObjects != null)
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -1144,7 +1147,7 @@ class _MediaDetailViewState extends State<MediaDetailView>
       context: context,
       builder: (context) => JournalEntryForm(
         initialMediaIds: [asset!.id],
-        onSave: (title, content, mediaIds, mood, tags) {
+        onSave: (title, content, mediaIds, mood, tags, {DateTime? lastEdited}) {
           final entry = JournalEntry(
             id: const Uuid().v4(),
             title: title,
@@ -1333,6 +1336,7 @@ class _MediaControls extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onDetectObjects;
   final Widget Function(BuildContext) favoriteButtonBuilder;
+  final AssetEntity? currentAsset;
 
   const _MediaControls({
     required this.showControls,
@@ -1348,6 +1352,7 @@ class _MediaControls extends StatelessWidget {
     required this.onDelete,
     required this.onDetectObjects,
     required this.favoriteButtonBuilder,
+    required this.currentAsset,
   });
 
   @override
@@ -1417,10 +1422,11 @@ class _MediaControls extends StatelessWidget {
                     icon: const Icon(Icons.share, color: Colors.white),
                     onPressed: onShare,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.auto_awesome, color: Colors.white),
-                    onPressed: onDetectObjects,
-                  ),
+                  if (currentAsset?.type == AssetType.image)
+                    IconButton(
+                      icon: const Icon(Icons.auto_awesome, color: Colors.white),
+                      onPressed: onDetectObjects,
+                    ),
                   IconButton(
                     icon: const Icon(Icons.book, color: Colors.white),
                     onPressed: onToggleJournal,

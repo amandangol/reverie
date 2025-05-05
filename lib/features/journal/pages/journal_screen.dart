@@ -932,7 +932,8 @@ class _JournalScreenState extends State<JournalScreen> {
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             JournalEntryForm(
-          onSave: (title, content, mediaIds, mood, tags) async {
+          onSave: (title, content, mediaIds, mood, tags,
+              {DateTime? lastEdited}) async {
             final journalProvider = context.read<JournalProvider>();
             final newEntry = JournalEntry(
               id: DateTime.now().millisecondsSinceEpoch.toString(),

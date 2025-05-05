@@ -41,7 +41,7 @@ class JournalProvider with ChangeNotifier {
 
       _database = await openDatabase(
         path,
-        version: 1,
+        version: 2,
         onCreate: (Database db, int version) async {
           await db.execute('''
             CREATE TABLE journal_entries(
@@ -51,9 +51,16 @@ class JournalProvider with ChangeNotifier {
               date INTEGER NOT NULL,
               media_ids TEXT,
               mood TEXT,
-              tags TEXT
+              tags TEXT,
+              last_edited INTEGER
             )
           ''');
+        },
+        onUpgrade: (Database db, int oldVersion, int newVersion) async {
+          if (oldVersion < 2) {
+            await db.execute(
+                'ALTER TABLE journal_entries ADD COLUMN last_edited INTEGER');
+          }
         },
       );
 
@@ -135,6 +142,9 @@ class JournalProvider with ChangeNotifier {
           mediaIds: mediaIds,
           mood: map['mood'] as String?,
           tags: tags,
+          lastEdited: map['last_edited'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['last_edited'] as int)
+              : DateTime.fromMillisecondsSinceEpoch(map['date'] as int),
         );
 
         _entryCache[entry.id] = entry;
@@ -176,14 +186,16 @@ class JournalProvider with ChangeNotifier {
     }
 
     try {
+      final now = DateTime.now();
       final map = {
         'id': entry.id,
         'title': entry.title,
         'content': entry.content,
-        'date': entry.date.millisecondsSinceEpoch,
+        'date': now.millisecondsSinceEpoch,
         'media_ids': json.encode(entry.mediaIds),
         'mood': entry.mood,
         'tags': json.encode(entry.tags),
+        'last_edited': now.millisecondsSinceEpoch,
       };
 
       await _database!.insert(
@@ -192,8 +204,13 @@ class JournalProvider with ChangeNotifier {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
 
-      _entryCache[entry.id] = entry;
-      _entries.insert(0, entry);
+      final newEntry = entry.copyWith(
+        date: now,
+        lastEdited: now,
+      );
+
+      _entryCache[entry.id] = newEntry;
+      _entries.insert(0, newEntry);
       _updateCaches();
       notifyListeners();
       return true;
@@ -213,14 +230,20 @@ class JournalProvider with ChangeNotifier {
     }
 
     try {
+      final originalEntry = _entryCache[updatedEntry.id];
+      if (originalEntry == null) {
+        throw Exception('Entry not found in cache');
+      }
+
       final map = {
         'id': updatedEntry.id,
         'title': updatedEntry.title,
         'content': updatedEntry.content,
-        'date': updatedEntry.date.millisecondsSinceEpoch,
+        'date': originalEntry.date.millisecondsSinceEpoch,
         'media_ids': json.encode(updatedEntry.mediaIds),
         'mood': updatedEntry.mood,
         'tags': json.encode(updatedEntry.tags),
+        'last_edited': DateTime.now().millisecondsSinceEpoch,
       };
 
       await _database!.update(
@@ -230,11 +253,16 @@ class JournalProvider with ChangeNotifier {
         whereArgs: [updatedEntry.id],
       );
 
-      _entryCache[updatedEntry.id] = updatedEntry;
+      final finalEntry = updatedEntry.copyWith(
+        date: originalEntry.date,
+        lastEdited: DateTime.now(),
+      );
+
+      _entryCache[updatedEntry.id] = finalEntry;
       final index = _entries.indexWhere((e) => e.id == updatedEntry.id);
       if (index != -1) {
         _entries.removeAt(index);
-        _entries.insert(0, updatedEntry);
+        _entries.insert(0, finalEntry);
       }
       _updateCaches();
       notifyListeners();
@@ -313,6 +341,9 @@ class JournalProvider with ChangeNotifier {
           mediaIds: mediaIds,
           mood: map['mood'] as String?,
           tags: tags,
+          lastEdited: map['last_edited'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['last_edited'] as int)
+              : DateTime.fromMillisecondsSinceEpoch(map['date'] as int),
         );
       }).toList();
     } catch (e) {

@@ -17,7 +17,8 @@ class JournalEntryForm extends StatefulWidget {
   final List<String>? initialMediaIds;
   final String? initialMood;
   final List<String>? initialTags;
-  final Function(String, String, List<String>, String?, List<String>) onSave;
+  final Function(String, String, List<String>, String?, List<String>,
+      {DateTime? lastEdited}) onSave;
   final VoidCallback? onDelete;
 
   const JournalEntryForm({
@@ -198,17 +199,16 @@ class _JournalEntryFormState extends State<JournalEntryForm>
         title: _titleController.text,
         content: _contentController.text,
         date: DateTime.now(),
-        mediaIds: _selectedMedia.map((m) => m.id).toList(),
+        mediaIds: _selectedMedia.map((e) => e.id).toList(),
         mood: _mood,
         tags: _tags,
+        lastEdited: DateTime.now(),
       );
 
       if (widget.initialTitle != null) {
         await journalProvider.updateEntry(entry);
         if (mounted) {
           Navigator.pop(context);
-          SnackbarUtils.showSuccess(
-              context, 'Journal entry updated successfully');
         }
       } else {
         await journalProvider.addEntry(entry);
@@ -221,6 +221,15 @@ class _JournalEntryFormState extends State<JournalEntryForm>
           );
         }
       }
+
+      widget.onSave(
+        entry.title,
+        entry.content,
+        entry.mediaIds,
+        entry.mood,
+        entry.tags,
+        lastEdited: entry.lastEdited,
+      );
     } catch (e) {
       if (mounted) {
         SnackbarUtils.showError(context, 'Failed to save journal entry: $e');
