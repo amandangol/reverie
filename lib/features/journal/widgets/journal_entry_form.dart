@@ -6,7 +6,6 @@ import 'package:reverie/utils/media_utils.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../gallery/provider/media_provider.dart';
 import '../models/journal_entry.dart';
-import '../pages/journal_screen.dart';
 import '../providers/journal_provider.dart';
 import 'media_selection_screen.dart';
 import 'package:flutter/services.dart';
@@ -42,11 +41,13 @@ class _JournalEntryFormState extends State<JournalEntryForm>
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _tagController = TextEditingController();
+  final _contextController = TextEditingController();
   String? _mood;
   List<String> _tags = [];
   List<AssetEntity> _selectedMedia = [];
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isGenerating = false;
   final FocusNode _contentFocusNode = FocusNode();
   final FocusNode _tagFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
@@ -148,6 +149,7 @@ class _JournalEntryFormState extends State<JournalEntryForm>
     _titleController.dispose();
     _contentController.dispose();
     _tagController.dispose();
+    _contextController.dispose();
     _contentFocusNode.dispose();
     _tagFocusNode.dispose();
     _scrollController.dispose();
@@ -263,6 +265,155 @@ class _JournalEntryFormState extends State<JournalEntryForm>
       debugPrint('Error selecting media: $e');
       if (mounted) {
         SnackbarUtils.showError(context, 'Error selecting media: $e');
+      }
+    }
+  }
+
+  Future<void> _showContextDialog() async {
+    final theme = Theme.of(context);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Help AI Understand',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Tell us about these moments:',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'What happened? How did you feel? What made these moments special?',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _contextController,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  hintText: 'Share your thoughts...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    onPressed: () {
+                      if (_contextController.text.trim().isNotEmpty) {
+                        Navigator.pop(context, _contextController.text.trim());
+                      }
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('Generate'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (result != null) {
+      await _generateAIContent(result);
+    }
+  }
+
+  Future<void> _generateAIContent(String userContext) async {
+    if (_mood == null) {
+      SnackbarUtils.showError(context, 'Please select a mood first');
+      return;
+    }
+
+    setState(() {
+      _isGenerating = true;
+    });
+
+    try {
+      final journalProvider = context.read<JournalProvider>();
+
+      // Get media descriptions
+      final mediaDescriptions = await Future.wait(
+        _selectedMedia.map((media) async {
+          if (media.type == AssetType.video) {
+            return 'Video';
+          }
+          return 'Photo';
+        }),
+      );
+
+      final generatedContent = await journalProvider.generateJournalContent(
+        userContext: userContext,
+        mood: _mood!,
+        tags: _tags,
+        mediaDescriptions: mediaDescriptions,
+      );
+
+      if (mounted) {
+        setState(() {
+          _titleController.text = generatedContent['title'] ?? '';
+          _contentController.text = generatedContent['content'] ?? '';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarUtils.showError(context, 'Failed to generate content: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
       }
     }
   }
@@ -516,6 +667,70 @@ class _JournalEntryFormState extends State<JournalEntryForm>
     );
   }
 
+  Widget _buildAIGenerationButton(ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'AI Assistant',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ElevatedButton.icon(
+              onPressed: _isGenerating ? null : _showContextDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primaryContainer,
+                foregroundColor: theme.colorScheme.onPrimaryContainer,
+                elevation: 0,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              icon: _isGenerating
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    )
+                  : const Icon(Icons.auto_awesome_rounded),
+              label: Text(
+                _isGenerating ? 'Generating...' : 'Generate with AI',
+                style: TextStyle(
+                  color: theme.colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -651,6 +866,37 @@ class _JournalEntryFormState extends State<JournalEntryForm>
                   _buildMediaSection(theme),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: DropdownButtonFormField<String>(
+                      value: _mood,
+                      style: journalTextTheme.bodyLarge,
+                      decoration: InputDecoration(
+                        labelText: 'Mood',
+                        labelStyle: journalTextTheme.bodyMedium,
+                        prefixIcon: Icon(
+                          Icons.mood,
+                          color: colorScheme.primary,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      items: _availableMoods.map((mood) {
+                        return DropdownMenuItem(
+                          value: mood,
+                          child: Text(mood),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _mood = value;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildAIGenerationButton(theme),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -660,21 +906,27 @@ class _JournalEntryFormState extends State<JournalEntryForm>
                           decoration: InputDecoration(
                             labelText: 'Title',
                             hintText: 'Give your entry a title',
-                            labelStyle: journalTextTheme.bodyMedium,
-                            hintStyle: journalTextTheme.bodyMedium?.copyWith(
-                              color: colorScheme.onSurface.withOpacity(0.5),
-                            ),
-                            prefixIcon: Icon(
-                              Icons.title,
-                              color: colorScheme.primary,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
+                            suffixText: '${_titleController.text.length}/50',
+                            suffixStyle: TextStyle(
+                              color: _titleController.text.length > 40
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                             ),
                           ),
+                          maxLength: 40,
+                          buildCounter: (BuildContext context,
+                                  {required int currentLength,
+                                  required bool isFocused,
+                                  required int? maxLength}) =>
+                              null, // Hide the default counter
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please enter a title';
+                            }
+                            if (value.length > 50) {
+                              return 'Title must be 50 characters or less';
                             }
                             return null;
                           },
@@ -705,33 +957,7 @@ class _JournalEntryFormState extends State<JournalEntryForm>
                           },
                         ),
                         const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: _mood,
-                          style: journalTextTheme.bodyLarge,
-                          decoration: InputDecoration(
-                            labelText: 'Mood',
-                            labelStyle: journalTextTheme.bodyMedium,
-                            prefixIcon: Icon(
-                              Icons.mood,
-                              color: colorScheme.primary,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          items: _availableMoods.map((mood) {
-                            return DropdownMenuItem(
-                              value: mood,
-                              child: Text(mood),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _mood = value;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 24),
+
                         Row(
                           children: [
                             Icon(

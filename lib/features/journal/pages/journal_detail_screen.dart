@@ -256,14 +256,29 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
             pinned: true,
             stretch: true,
             backgroundColor: colorScheme.surface,
-            flexibleSpace: FlexibleSpaceBar(
-                title: Text(
-                  _currentEntry.title,
-                  style: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
+            title: Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: Text(
+                _currentEntry.title,
+                style: TextStyle(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  letterSpacing: 0.15,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            centerTitle: false,
+            titleSpacing: 16,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+                stretchModes: const [
+                  StretchMode.zoomBackground,
+                  StretchMode.blurBackground,
+                ],
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -291,7 +306,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                     BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
                       child: Container(
-                        color: Colors.black.withOpacity(0.6), // Optional tint
+                        color: Colors.black.withOpacity(0.6),
                       ),
                     ),
 
@@ -309,7 +324,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                         ).createShader(rect);
                       },
                       blendMode: BlendMode.srcOver,
-                      child: Container(), // You can place other UI here
+                      child: Container(),
                     ),
                   ],
                 )),
@@ -424,7 +439,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
+                  SelectableText(
                     _currentEntry.content,
                     style: textTheme.bodyLarge?.copyWith(
                       height: 1.6,

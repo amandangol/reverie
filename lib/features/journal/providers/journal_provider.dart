@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'dart:io';
 import '../models/journal_entry.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 class JournalProvider with ChangeNotifier {
   List<JournalEntry> _entries = [];
@@ -20,8 +21,10 @@ class JournalProvider with ChangeNotifier {
   Map<String, List<JournalEntry>> _tagCache = {};
   Map<String, List<JournalEntry>> _moodCache = {};
   Map<String, AssetEntity?> _imageCache = {};
+  GenerativeModel? _model;
 
   JournalProvider() {
+    _initializeModel();
     initialize();
   }
 
@@ -332,6 +335,23 @@ class JournalProvider with ChangeNotifier {
     return _moodCache[mood] ?? [];
   }
 
+  int getEntriesThisMonth() {
+    final now = DateTime.now();
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
+    return _entries
+        .where((entry) =>
+            entry.date.isAfter(firstDayOfMonth) ||
+            entry.date.isAtSameMomentAs(firstDayOfMonth))
+        .length;
+  }
+
+  double getAverageEntryLength() {
+    if (_entries.isEmpty) return 0;
+    final totalWords = _entries.fold<int>(
+        0, (sum, entry) => sum + entry.content.split(' ').length);
+    return totalWords / _entries.length;
+  }
+
   Future<void> refresh() async {
     await loadEntries();
   }
@@ -606,6 +626,79 @@ class JournalProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
       await _initDatabase();
+    }
+  }
+
+  void _initializeModel() {
+    try {
+      final apiKey = 'AIzaSyCyCzEzKjHpkacME7Y8wj1u2E787Q-NAu4';
+      _model = GenerativeModel(
+        model: 'gemini-2.0-flash',
+        apiKey: apiKey,
+      );
+    } catch (e) {
+      debugPrint('Error initializing Gemini model: $e');
+    }
+  }
+
+  Future<Map<String, String>> generateJournalContent({
+    required String userContext,
+    required String mood,
+    required List<String> tags,
+    required List<String> mediaDescriptions,
+  }) async {
+    try {
+      if (_model == null) {
+        throw Exception('AI model not initialized');
+      }
+
+      final prompt = '''
+        Create a journal entry based on the following context:
+        User's Context: $userContext
+        Mood: $mood
+        Tags: ${tags.join(", ")}
+        Media Context: ${mediaDescriptions.join(" | ")}
+
+        Generate:
+        1. A creative and engaging title (1-5 words) that captures the essence of the user's context
+        2. A thoughtful journal entry (2-3 paragraphs) that reflects the user's context, mood, and incorporates the tags naturally.
+        Make it personal and authentic, as if the user wrote it themselves.
+
+        Return ONLY a JSON object in this exact format, with no markdown formatting or additional text:
+        {
+          "title": "the generated title",
+          "content": "the generated content"
+        }
+      ''';
+
+      final content = [Content.text(prompt)];
+      final response = await _model!.generateContent(content);
+      final responseText = response.text ?? '{}';
+
+      try {
+        // Clean the response text to handle markdown formatting
+        String cleanJson =
+            responseText.replaceAll('```json', '').replaceAll('```', '').trim();
+
+        final Map<String, dynamic> jsonResponse = json.decode(cleanJson);
+        return {
+          'title': jsonResponse['title'] ?? '',
+          'content': jsonResponse['content'] ?? '',
+        };
+      } catch (e) {
+        debugPrint('Error parsing AI response: $e');
+        debugPrint('Raw response: $responseText');
+        return {
+          'title': 'AI Generation Failed',
+          'content': 'Please try again or write your own entry.',
+        };
+      }
+    } catch (e) {
+      debugPrint('Error generating journal content: $e');
+      return {
+        'title': 'AI Generation Failed',
+        'content': 'Please try again or write your own entry.',
+      };
     }
   }
 }

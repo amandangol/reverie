@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_view/photo_view.dart';
+import 'package:reverie/features/journal/pages/journal_detail_screen.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
@@ -1014,7 +1015,7 @@ class _MediaDetailViewState extends State<MediaDetailView>
                     margin: const EdgeInsets.only(bottom: 8),
                     color: Colors.black54,
                     child: InkWell(
-                      onTap: () => _showEditJournalEntryDialog(entry),
+                      onTap: () => _showJournalDetailDialog(entry),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
@@ -1050,24 +1051,25 @@ class _MediaDetailViewState extends State<MediaDetailView>
                                 ),
                               ],
                             ),
-                            if (entry.tags.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 4,
-                                runSpacing: 4,
-                                children: entry.tags
-                                    .map((tag) => Chip(
-                                          label: Text(tag),
-                                          backgroundColor:
-                                              Colors.blue.withOpacity(0.2),
-                                          labelStyle: const TextStyle(
-                                              color: Colors.white),
-                                          materialTapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                        ))
-                                    .toList(),
-                              ),
-                            ],
+
+                            // if (entry.tags.isNotEmpty) ...[
+                            //   const SizedBox(height: 8),
+                            //   Wrap(
+                            //     spacing: 4,
+                            //     runSpacing: 4,
+                            //     children: entry.tags
+                            //         .map((tag) => Chip(
+                            //               label: Text(tag),
+                            //               backgroundColor:
+                            //                   Colors.blue.withOpacity(0.2),
+                            //               labelStyle: const TextStyle(
+                            //                   color: Colors.white),
+                            //               materialTapTargetSize:
+                            //                   MaterialTapTargetSize.shrinkWrap,
+                            //             ))
+                            //         .toList(),
+                            //   ),
+                            // ],
                             const SizedBox(height: 8),
                             Text(
                               entry.content,
@@ -1159,33 +1161,13 @@ class _MediaDetailViewState extends State<MediaDetailView>
     );
   }
 
-  void _showEditJournalEntryDialog(JournalEntry entry) {
+  void _showJournalDetailDialog(JournalEntry entry) {
+    _videoController?.pause();
+
     showDialog(
       context: context,
-      builder: (context) => JournalEntryForm(
-        initialTitle: entry.title,
-        initialContent: entry.content,
-        initialMediaIds: entry.mediaIds,
-        initialMood: entry.mood,
-        initialTags: entry.tags,
-        onSave: (title, content, mediaIds, mood, tags) {
-          final updatedEntry = entry.copyWith(
-            title: title,
-            content: content,
-            mediaIds: mediaIds,
-            mood: mood,
-            tags: tags,
-          );
-          context.read<JournalProvider>().updateEntry(updatedEntry);
-        },
-        onDelete: () {
-          context.read<JournalProvider>().deleteEntry(entry.id);
-          Navigator.pop(context);
-          SnackbarUtils.showError(
-            context,
-            'Journal entry deleted',
-          );
-        },
+      builder: (context) => JournalDetailScreen(
+        entry: entry,
       ),
     );
   }

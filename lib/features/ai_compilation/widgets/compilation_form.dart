@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../gallery/provider/media_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
 class CompilationForm extends StatefulWidget {
   final Function(String title, String theme, List<String> mediaPaths) onSave;
@@ -18,10 +19,11 @@ class CompilationForm extends StatefulWidget {
 }
 
 class _CompilationFormState extends State<CompilationForm> {
+  final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _themeController = TextEditingController();
-  final List<AssetEntity> _selectedMedia = [];
-  final Map<String, File?> _mediaFiles = {};
+  List<String> _selectedMediaPaths = [];
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -30,129 +32,327 @@ class _CompilationFormState extends State<CompilationForm> {
     super.dispose();
   }
 
-  Future<void> _loadMediaFile(AssetEntity asset) async {
-    if (!_mediaFiles.containsKey(asset.id)) {
-      final file = await context.read<MediaProvider>().getFileForAsset(asset);
-      if (mounted) {
+  Future<void> _pickMedia() async {
+    try {
+      final permitted = await PhotoManager.requestPermissionExtend();
+      if (!permitted.isAuth) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permission denied')),
+          );
+        }
+        return;
+      }
+
+      final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
+        type: RequestType.all,
+      );
+
+      if (albums.isEmpty) return;
+
+      final List<AssetEntity> assets = await albums[0].getAssetListPaged(
+        page: 0,
+        size: 80,
+      );
+
+      if (!mounted) return;
+
+      final selectedAssets = await Navigator.push<List<AssetEntity>>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MediaPickerPage(assets: assets),
+        ),
+      );
+
+      if (selectedAssets != null) {
         setState(() {
-          _mediaFiles[asset.id] = file;
+          _selectedMediaPaths =
+              selectedAssets.map((asset) => asset.id).toList();
         });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking media: $e')),
+        );
+      }
+    }
+  }
+
+  void _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedMediaPaths.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one media item')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      widget.onSave(
+        _titleController.text,
+        _themeController.text,
+        _selectedMediaPaths,
+      );
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error creating compilation: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Create Compilation'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Create Compilation'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+        ),
+        actions: [
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            TextButton(
+              onPressed: _submit,
+              child: const Text('Create'),
+            ),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            TextField(
+            TextFormField(
               controller: _titleController,
               decoration: const InputDecoration(
                 labelText: 'Title',
-                border: OutlineInputBorder(),
+                hintText: 'Enter a title for your compilation',
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a title';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
-            TextField(
+            TextFormField(
               controller: _themeController,
               decoration: const InputDecoration(
                 labelText: 'Theme',
-                border: OutlineInputBorder(),
+                hintText: 'Enter a theme for your compilation',
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a theme';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Text(
+                  'Selected Media',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Spacer(),
+                Text(
+                  '${_selectedMediaPaths.length} selected',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
+                      ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            const Text('Select Media:'),
-            const SizedBox(height: 8),
-            Consumer<MediaProvider>(
-              builder: (context, mediaProvider, child) {
-                return SizedBox(
-                  height: 200,
-                  child: GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 4.0,
-                      mainAxisSpacing: 4.0,
+            if (_selectedMediaPaths.isEmpty)
+              Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.photo_library_outlined,
+                      size: 48,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
                     ),
-                    itemCount: mediaProvider.mediaItems.length,
-                    itemBuilder: (context, index) {
-                      final asset = mediaProvider.mediaItems[index];
-                      final isSelected = _selectedMedia.contains(asset);
-
-                      if (!_mediaFiles.containsKey(asset.id)) {
-                        _loadMediaFile(asset);
-                        return const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        );
-                      }
-
-                      final file = _mediaFiles[asset.id];
-                      if (file == null) {
-                        return const Center(child: Text('Error'));
-                      }
-
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            if (isSelected) {
-                              _selectedMedia.remove(asset);
-                            } else {
-                              _selectedMedia.add(asset);
-                            }
-                          });
-                        },
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Image.file(
-                              file,
+                    const SizedBox(height: 8),
+                    Text(
+                      'No media selected',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
+                          ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              SizedBox(
+                height: 120,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _selectedMediaPaths.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: AssetEntityImage(
+                              AssetEntity(
+                                id: _selectedMediaPaths[index],
+                                typeInt: 1,
+                                width: 0,
+                                height: 0,
+                              ),
+                              width: 120,
+                              height: 120,
                               fit: BoxFit.cover,
                             ),
-                            if (isSelected)
-                              Container(
-                                color: Colors.black.withOpacity(0.5),
-                                child: const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface,
+                                shape: BoxShape.circle,
                               ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
+                              child: IconButton(
+                                icon: const Icon(Icons.close, size: 20),
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedMediaPaths.removeAt(index);
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _isLoading ? null : _pickMedia,
+              icon: const Icon(Icons.add_photo_alternate),
+              label: const Text('Select Media'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
             ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+    );
+  }
+}
+
+class MediaPickerPage extends StatefulWidget {
+  final List<AssetEntity> assets;
+
+  const MediaPickerPage({
+    super.key,
+    required this.assets,
+  });
+
+  @override
+  State<MediaPickerPage> createState() => _MediaPickerPageState();
+}
+
+class _MediaPickerPageState extends State<MediaPickerPage> {
+  final Set<AssetEntity> _selectedAssets = {};
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Select Media'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, _selectedAssets.toList());
+            },
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(8),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
         ),
-        ElevatedButton(
-          onPressed: () async {
-            final title = _titleController.text.trim();
-            final theme = _themeController.text.trim();
-            if (title.isNotEmpty &&
-                theme.isNotEmpty &&
-                _selectedMedia.isNotEmpty) {
-              final mediaPaths = _selectedMedia
-                  .map((asset) => _mediaFiles[asset.id]?.path ?? '')
-                  .where((path) => path.isNotEmpty)
-                  .toList();
-              widget.onSave(title, theme, mediaPaths);
-            }
-          },
-          child: const Text('Create'),
-        ),
-      ],
+        itemCount: widget.assets.length,
+        itemBuilder: (context, index) {
+          final asset = widget.assets[index];
+          final isSelected = _selectedAssets.contains(asset);
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                if (isSelected) {
+                  _selectedAssets.remove(asset);
+                } else {
+                  _selectedAssets.add(asset);
+                }
+              });
+            },
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                AssetEntityImage(
+                  asset,
+                  fit: BoxFit.cover,
+                ),
+                if (isSelected)
+                  Container(
+                    color: Colors.black26,
+                    child: const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -199,6 +199,8 @@ class AssetThumbnail extends StatelessWidget {
             top: 4,
             right: 4,
             child: Container(
+              height: 28,
+              width: 28,
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.4),
                 shape: BoxShape.circle,

@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 import 'provider/ai_compilation_provider.dart';
 import 'widgets/compilation_card.dart';
 import 'widgets/compilation_form.dart';
+import 'widgets/compilation_slideshow.dart';
+import 'widgets/slideshow_with_collage.dart';
 
 class AICompilationPage extends StatelessWidget {
   const AICompilationPage({super.key});
@@ -14,6 +19,13 @@ class AICompilationPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI Compilations'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.slideshow),
+            onPressed: () => _startRandomSlideshow(context),
+            tooltip: 'Start Random Slideshow',
+          ),
+        ],
       ),
       body: Consumer<AICompilationProvider>(
         builder: (context, aiProvider, child) {
@@ -54,6 +66,7 @@ class AICompilationPage extends StatelessWidget {
               return CompilationCard(
                 compilation: compilation,
                 onDelete: () => _deleteCompilation(context, compilation.id),
+                onPlay: () => _playCompilation(context, compilation),
               );
             },
           );
@@ -62,6 +75,15 @@ class AICompilationPage extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateCompilationDialog(context),
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _startRandomSlideshow(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SlideshowWithCollage(),
       ),
     );
   }
@@ -108,6 +130,83 @@ class AICompilationPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _playCompilation(BuildContext context, AICompilation compilation) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CompilationSlideshow(
+          compilation: compilation,
+        ),
+      ),
+    );
+  }
+}
+
+class VideoPlayerWidget extends StatefulWidget {
+  final String videoPath;
+
+  const VideoPlayerWidget({
+    super.key,
+    required this.videoPath,
+  });
+
+  @override
+  State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
+}
+
+class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+  late VideoPlayerController _controller;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.file(File(widget.videoPath))
+      ..initialize().then((_) {
+        setState(() {
+          _isInitialized = true;
+        });
+        _controller.play();
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        AspectRatio(
+          aspectRatio: _controller.value.aspectRatio,
+          child: VideoPlayer(_controller),
+        ),
+        IconButton(
+          icon: Icon(
+            _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+            color: Colors.white,
+            size: 48,
+          ),
+          onPressed: () {
+            setState(() {
+              _controller.value.isPlaying
+                  ? _controller.pause()
+                  : _controller.play();
+            });
+          },
+        ),
+      ],
     );
   }
 }

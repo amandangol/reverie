@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import '../../gallery/provider/media_provider.dart';
 import '../../ai_compilation/provider/ai_compilation_provider.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import '../../permissions/provider/permission_provider.dart';
 import '../../permissions/widgets/permission_dialog.dart';
 import '../widgets/setting_widgets.dart';
@@ -21,14 +20,6 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _loadVersion();
-  }
-
-  Future<void> _loadVersion() async {
-    final packageInfo = await PackageInfo.fromPlatform();
-    setState(() {
-      _version = '${packageInfo.version} (${packageInfo.buildNumber})';
-    });
   }
 
   @override
