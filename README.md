@@ -1,4 +1,6 @@
-# Reverie  <img src="assets/icon/icon.png" alt="Reverie Logo" width="70" height="70">
+# Reverie  
+
+<img src="assets/icon/icon.png" alt="Reverie Logo" width="200" height="200">
 
 A new Flutter project.
 
