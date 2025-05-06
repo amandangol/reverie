@@ -250,84 +250,25 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // Sliver app bar with parallax effect for header
+          // Regular AppBar
           SliverAppBar(
-            expandedHeight: 200,
             pinned: true,
-            stretch: true,
             backgroundColor: colorScheme.surface,
-            title: Container(
-              margin: const EdgeInsets.only(right: 16),
-              child: Text(
-                "Journal",
-                style: TextStyle(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  letterSpacing: 0.15,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            title: Text(
+              _currentEntry.title,
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                letterSpacing: 0.15,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             centerTitle: false,
             titleSpacing: 16,
             elevation: 0,
             scrolledUnderElevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-                stretchModes: const [
-                  StretchMode.zoomBackground,
-                  StretchMode.blurBackground,
-                ],
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (loadedMediaItems.isNotEmpty)
-                      Image(
-                        image: AssetEntityImageProvider(
-                          loadedMediaItems.first,
-                          isOriginal: true,
-                        ),
-                        fit: BoxFit.cover,
-                      )
-                    else
-                      Container(
-                        color: colorScheme.primaryContainer,
-                        child: Center(
-                          child: Icon(
-                            Icons.auto_stories_rounded,
-                            size: 64,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                      ),
-
-                    // Blur layer
-                    BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                      child: Container(
-                        color: Colors.black.withOpacity(0.6),
-                      ),
-                    ),
-
-                    // ShaderMask on top of blur
-                    ShaderMask(
-                      shaderCallback: (rect) {
-                        return LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.7),
-                          ],
-                          stops: const [0.6, 1.0],
-                        ).createShader(rect);
-                      },
-                      blendMode: BlendMode.srcOver,
-                      child: Container(),
-                    ),
-                  ],
-                )),
             actions: [
               IconButton(
                 icon: const Icon(Icons.share_rounded),
@@ -342,387 +283,378 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
             ],
           ),
 
-          // Journal content
+          // Main content
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Date, mood, and tags in a more prominent position
-                  Card(
-                    elevation: 0,
-                    color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  // Date and mood section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color:
+                          colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Date and mood row
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.calendar_month_rounded,
+                                color: colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    DateFormat('EEEE, MMMM d, yyyy')
+                                        .format(_currentEntry.date),
+                                    style: textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (_currentEntry.lastEdited != null &&
+                                      _currentEntry.lastEdited !=
+                                          _currentEntry.date)
+                                    Text(
+                                      'Edited: ${DateFormat('MMM d • h:mm a').format(_currentEntry.lastEdited!)}',
+                                      style: textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurface
+                                            .withOpacity(0.7),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_currentEntry.mood != null) ...[
+                          const SizedBox(height: 16),
+                          Divider(height: 1, color: colorScheme.outlineVariant),
+                          const SizedBox(height: 16),
                           Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.primaryContainer,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Icon(
-                                  Icons.calendar_month_rounded,
-                                  color: colorScheme.onPrimaryContainer,
-                                ),
+                                child: _getMoodIcon(_currentEntry.mood!),
                               ),
                               const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      DateFormat('EEEE, MMMM d, yyyy')
-                                          .format(_currentEntry.date),
-                                      style: textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    if (_currentEntry.lastEdited != null &&
-                                        _currentEntry.lastEdited !=
-                                            _currentEntry.date)
-                                      Text(
-                                        'Edited: ${DateFormat('MMM d • h:mm a').format(_currentEntry.lastEdited!)}',
-                                        style: textTheme.bodySmall?.copyWith(
-                                          color: colorScheme.onSurface
-                                              .withOpacity(0.7),
-                                        ),
-                                      ),
-                                  ],
+                              Text(
+                                _currentEntry.mood!,
+                                style: textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
-
-                          // Divider between date and mood
-                          const SizedBox(height: 16),
-                          Divider(height: 1, color: colorScheme.outlineVariant),
-                          const SizedBox(height: 16),
-
-                          // Mood with more visual appeal
-                          if (_currentEntry.mood != null)
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: _getMoodIcon(
-                                    _currentEntry.mood!,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  _currentEntry.mood!,
-                                  style: textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
                         ],
-                      ),
+                      ],
                     ),
                   ),
 
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 16),
 
-                  // Content with styled typography
-                  Card(
-                    color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                    elevation: 1,
-                    margin: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                  // Media preview grid
+                  if (loadedMediaItems.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest
+                            .withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
                               Icon(
-                                Icons.book_rounded,
-                                color: colorScheme.primary,
+                                Icons.photo_library_rounded,
                                 size: 20,
+                                color: colorScheme.primary,
                               ),
                               const SizedBox(width: 8),
-                              Expanded(
+                              Text(
+                                'Media Gallery',
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 child: Text(
-                                  _currentEntry.title,
+                                  '${loadedMediaItems.length}',
                                   style: TextStyle(
-                                    color: colorScheme.primary,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                    letterSpacing: 0.15,
+                                    color: colorScheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 16),
-                          SelectableText(
-                            _currentEntry.content,
-                            style: textTheme.bodyLarge?.copyWith(
-                              height: 1.7,
-                              letterSpacing: 0.3,
-                              fontSize: 16,
+                          GridView.builder(
+                            padding: const EdgeInsets.all(8),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              childAspectRatio: 1,
                             ),
+                            itemCount: loadedMediaItems.length > 6
+                                ? 6
+                                : loadedMediaItems.length,
+                            itemBuilder: (context, index) {
+                              final asset = loadedMediaItems[index];
+                              return GestureDetector(
+                                onTap: () => _showFullScreenImage(
+                                  context,
+                                  asset,
+                                  index,
+                                  loadedMediaItems,
+                                ),
+                                child: Hero(
+                                  tag:
+                                      'journal_media_${_currentEntry.id}_$index',
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image(
+                                          image: AssetEntityImageProvider(
+                                            asset,
+                                            isOriginal: false,
+                                            thumbnailSize:
+                                                const ThumbnailSize(300, 300),
+                                          ),
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      if (index == 5 &&
+                                          loadedMediaItems.length > 6)
+                                        GestureDetector(
+                                          onTap: () => _showAllMedia(
+                                              context, loadedMediaItems),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  Colors.black.withOpacity(0.6),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                '+${loadedMediaItems.length - 6}',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      if (asset.type == AssetType.video)
+                                        Positioned(
+                                          bottom: 8,
+                                          right: 8,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  Colors.black.withOpacity(0.6),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  MediaUtils.getMediaTypeIcon(
+                                                      asset.type),
+                                                  color: Colors.white,
+                                                  size: 16,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Consumer<MediaProvider>(
+                                                  builder: (context,
+                                                      mediaProvider, _) {
+                                                    final duration =
+                                                        mediaProvider
+                                                            .getDuration(
+                                                                asset.id);
+                                                    if (duration == null) {
+                                                      return const SizedBox();
+                                                    }
+                                                    return Text(
+                                                      MediaUtils.formatDuration(
+                                                          duration),
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
 
-          // Media gallery (if there are media items)
-          if (loadedMediaItems.isNotEmpty) ...[
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Card(
+                  const SizedBox(height: 16),
+
+                  // Content section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
                       color:
                           colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.photo_library_rounded,
-                                  size: 20,
-                                  color: colorScheme.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Media Gallery',
-                                  style: textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: colorScheme.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.primaryContainer,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${loadedMediaItems.length}',
-                                    style: TextStyle(
-                                      color: colorScheme.onPrimaryContainer,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            GridView.builder(
-                              padding: const EdgeInsets.all(8),
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                mainAxisSpacing: 8,
-                                crossAxisSpacing: 8,
-                                childAspectRatio: 1,
-                              ),
-                              itemCount: loadedMediaItems.length,
-                              itemBuilder: (context, index) {
-                                final asset = loadedMediaItems[index];
-                                return GestureDetector(
-                                  onTap: () => _showFullScreenImage(
-                                    context,
-                                    asset,
-                                    index,
-                                    loadedMediaItems,
-                                  ),
-                                  child: Hero(
-                                    tag:
-                                        'journal_media_${_currentEntry.id}_$index',
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        children: [
-                                          Image(
-                                            image: AssetEntityImageProvider(
-                                              asset,
-                                              isOriginal: false,
-                                              thumbnailSize:
-                                                  const ThumbnailSize(300, 300),
-                                            ),
-                                            fit: BoxFit.cover,
-                                          ),
-                                          if (asset.type == AssetType.video)
-                                            Positioned(
-                                              bottom: 8,
-                                              right: 8,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 4,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.black
-                                                      .withOpacity(0.6),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      MediaUtils
-                                                          .getMediaTypeIcon(
-                                                              asset.type),
-                                                      color: Colors.white,
-                                                      size: 16,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Consumer<MediaProvider>(
-                                                      builder: (context,
-                                                          mediaProvider, _) {
-                                                        final duration =
-                                                            mediaProvider
-                                                                .getDuration(
-                                                                    asset.id);
-                                                        if (duration == null) {
-                                                          return const SizedBox();
-                                                        }
-                                                        return Text(
-                                                          MediaUtils
-                                                              .formatDuration(
-                                                                  duration),
-                                                          style:
-                                                              const TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 12,
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-
-          // Tags section at the bottom
-          if (_currentEntry.tags.isNotEmpty) ...[
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Card(
-                  color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             Icon(
-                              Icons.tag_rounded,
-                              size: 20,
+                              Icons.book_rounded,
                               color: colorScheme.primary,
+                              size: 20,
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              'Tags',
-                              style: textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.primary,
+                            Expanded(
+                              child: Text(
+                                _currentEntry.title,
+                                style: textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _currentEntry.tags.map((tag) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              child: Text(
-                                tag,
-                                style: TextStyle(
-                                  color: colorScheme.onPrimaryContainer,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                        const SizedBox(height: 16),
+                        SelectableText(
+                          _currentEntry.content,
+                          style: textTheme.bodyLarge?.copyWith(
+                            height: 1.7,
+                            letterSpacing: 0.3,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
+
+                  // Tags section
+                  if (_currentEntry.tags.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest
+                            .withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.tag_rounded,
+                                size: 20,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Tags',
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _currentEntry.tags.map((tag) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                child: Text(
+                                  tag,
+                                  style: TextStyle(
+                                    color: colorScheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
-          ],
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -747,6 +679,109 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
           asset: asset,
           assetList: mediaItems,
           heroTag: 'journal_media_${_currentEntry.id}_$initialIndex',
+        ),
+      ),
+    );
+  }
+
+  void _showAllMedia(BuildContext context, List<AssetEntity> mediaItems) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text(
+              'Media Gallery',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            centerTitle: false,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+          ),
+          body: GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 1,
+            ),
+            itemCount: mediaItems.length,
+            itemBuilder: (context, index) {
+              final asset = mediaItems[index];
+              return GestureDetector(
+                onTap: () => _showFullScreenImage(
+                  context,
+                  asset,
+                  index,
+                  mediaItems,
+                ),
+                child: Hero(
+                  tag: 'journal_media_${_currentEntry.id}_$index',
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image(
+                          image: AssetEntityImageProvider(
+                            asset,
+                            isOriginal: false,
+                            thumbnailSize: const ThumbnailSize(300, 300),
+                          ),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      if (asset.type == AssetType.video)
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  MediaUtils.getMediaTypeIcon(asset.type),
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Consumer<MediaProvider>(
+                                  builder: (context, mediaProvider, _) {
+                                    final duration =
+                                        mediaProvider.getDuration(asset.id);
+                                    if (duration == null) {
+                                      return const SizedBox();
+                                    }
+                                    return Text(
+                                      MediaUtils.formatDuration(duration),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
