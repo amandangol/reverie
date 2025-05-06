@@ -259,7 +259,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
             title: Container(
               margin: const EdgeInsets.only(right: 16),
               child: Text(
-                _currentEntry.title,
+                "Journal",
                 style: TextStyle(
                   color: colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
@@ -349,7 +349,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Date and mood card
+                  // Date, mood, and tags in a more prominent position
                   Card(
                     elevation: 0,
                     color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
@@ -358,28 +358,70 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.calendar_month_rounded),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          // Date and mood row
+                          Row(
                             children: [
-                              Text(
-                                DateFormat('EEEE, MMMM d, yyyy')
-                                    .format(_currentEntry.date),
-                                style: textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.calendar_month_rounded,
+                                  color: colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      DateFormat('EEEE, MMMM d, yyyy')
+                                          .format(_currentEntry.date),
+                                      style: textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    if (_currentEntry.lastEdited != null &&
+                                        _currentEntry.lastEdited !=
+                                            _currentEntry.date)
+                                      Text(
+                                        'Edited: ${DateFormat('MMM d • h:mm a').format(_currentEntry.lastEdited!)}',
+                                        style: textTheme.bodySmall?.copyWith(
+                                          color: colorScheme.onSurface
+                                              .withOpacity(0.7),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          const Spacer(),
+
+                          // Divider between date and mood
+                          const SizedBox(height: 16),
+                          Divider(height: 1, color: colorScheme.outlineVariant),
+                          const SizedBox(height: 16),
+
+                          // Mood with more visual appeal
                           if (_currentEntry.mood != null)
                             Row(
                               children: [
-                                _getMoodIcon(_currentEntry.mood!),
-                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: _getMoodIcon(
+                                    _currentEntry.mood!,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
                                 Text(
                                   _currentEntry.mood!,
                                   style: textTheme.titleMedium?.copyWith(
@@ -392,218 +434,300 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                       ),
                     ),
                   ),
-                  if (_currentEntry.lastEdited != null &&
-                      _currentEntry.lastEdited != _currentEntry.date)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2.0, left: 16),
-                      child: Text(
-                        'Last edited: ${DateFormat('MMM d, yyyy • h:mm a').format(_currentEntry.lastEdited!)}',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurface.withOpacity(0.6),
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
 
-                  const SizedBox(height: 24),
-
-                  // Tags section with improved styling
-                  if (_currentEntry.tags.isNotEmpty) ...[
-                    Text(
-                      'Tags',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: _currentEntry.tags
-                            .map((tag) => Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: Chip(
-                                    label: Text(tag),
-                                    backgroundColor: colorScheme.primary,
-                                    labelStyle: TextStyle(
-                                      color: colorScheme.onPrimaryContainer,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 4,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                ))
-                            .toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                  const SizedBox(height: 15),
 
                   // Content with styled typography
-                  Text(
-                    'Journal Entry',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Card(
+                    color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                    elevation: 1,
+                    margin: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.book_rounded,
+                                color: colorScheme.primary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _currentEntry.title,
+                                  style: TextStyle(
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                    letterSpacing: 0.15,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          SelectableText(
+                            _currentEntry.content,
+                            style: textTheme.bodyLarge?.copyWith(
+                              height: 1.7,
+                              letterSpacing: 0.3,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SelectableText(
-                    _currentEntry.content,
-                    style: textTheme.bodyLarge?.copyWith(
-                      height: 1.6,
-                      letterSpacing: 0.15,
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
 
           // Media gallery (if there are media items)
-          if (loadedMediaItems.isNotEmpty)
+          if (loadedMediaItems.isNotEmpty) ...[
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Media',
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${loadedMediaItems.length}',
-                            style: TextStyle(
-                              color: colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
+                    Card(
+                      color:
+                          colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.photo_library_rounded,
+                                  size: 20,
+                                  color: colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Media Gallery',
+                                  style: textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${loadedMediaItems.length}',
+                                    style: TextStyle(
+                                      color: colorScheme.onPrimaryContainer,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
+                            const SizedBox(height: 16),
+                            GridView.builder(
+                              padding: const EdgeInsets.all(8),
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                mainAxisSpacing: 8,
+                                crossAxisSpacing: 8,
+                                childAspectRatio: 1,
+                              ),
+                              itemCount: loadedMediaItems.length,
+                              itemBuilder: (context, index) {
+                                final asset = loadedMediaItems[index];
+                                return GestureDetector(
+                                  onTap: () => _showFullScreenImage(
+                                    context,
+                                    asset,
+                                    index,
+                                    loadedMediaItems,
+                                  ),
+                                  child: Hero(
+                                    tag:
+                                        'journal_media_${_currentEntry.id}_$index',
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          Image(
+                                            image: AssetEntityImageProvider(
+                                              asset,
+                                              isOriginal: false,
+                                              thumbnailSize:
+                                                  const ThumbnailSize(300, 300),
+                                            ),
+                                            fit: BoxFit.cover,
+                                          ),
+                                          if (asset.type == AssetType.video)
+                                            Positioned(
+                                              bottom: 8,
+                                              right: 8,
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black
+                                                      .withOpacity(0.6),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      MediaUtils
+                                                          .getMediaTypeIcon(
+                                                              asset.type),
+                                                      color: Colors.white,
+                                                      size: 16,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Consumer<MediaProvider>(
+                                                      builder: (context,
+                                                          mediaProvider, _) {
+                                                        final duration =
+                                                            mediaProvider
+                                                                .getDuration(
+                                                                    asset.id);
+                                                        if (duration == null) {
+                                                          return const SizedBox();
+                                                        }
+                                                        return Text(
+                                                          MediaUtils
+                                                              .formatDuration(
+                                                                  duration),
+                                                          style:
+                                                              const TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
                   ],
                 ),
               ),
             ),
+          ],
 
-          // Staggered grid view for media
-          if (loadedMediaItems.isNotEmpty)
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-              sliver: _buildMediaGrid(context, loadedMediaItems),
+          // Tags section at the bottom
+          if (_currentEntry.tags.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Card(
+                  color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.tag_rounded,
+                              size: 20,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Tags',
+                              style: textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _currentEntry.tags.map((tag) {
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              child: Text(
+                                tag,
+                                style: TextStyle(
+                                  color: colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
+          ],
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showEditJournalEntryDialog(context),
         child: const Icon(Icons.edit),
-      ),
-    );
-  }
-
-  Widget _buildMediaGrid(BuildContext context, List<AssetEntity> mediaItems) {
-    return SliverGrid(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        childAspectRatio: 1,
-      ),
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          if (index >= mediaItems.length) return null;
-
-          final asset = mediaItems[index];
-
-          return GestureDetector(
-            onTap: () =>
-                _showFullScreenImage(context, asset, index, mediaItems),
-            child: Hero(
-              tag: 'journal_media_${_currentEntry.id}_$index',
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image(
-                      image: AssetEntityImageProvider(
-                        asset,
-                        isOriginal: false,
-                        thumbnailSize: const ThumbnailSize(300, 300),
-                      ),
-                      fit: BoxFit.cover,
-                    ),
-                    if (asset.type == AssetType.video)
-                      Positioned(
-                        bottom: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.6),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                MediaUtils.getMediaTypeIcon(asset.type),
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Consumer<MediaProvider>(
-                                builder: (context, mediaProvider, _) {
-                                  final duration =
-                                      mediaProvider.getDuration(asset.id);
-                                  if (duration == null) {
-                                    return const SizedBox();
-                                  }
-                                  return Text(
-                                    MediaUtils.formatDuration(duration),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-        childCount: mediaItems.length,
       ),
     );
   }
