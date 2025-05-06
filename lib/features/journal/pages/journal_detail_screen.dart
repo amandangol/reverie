@@ -254,16 +254,25 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
           SliverAppBar(
             pinned: true,
             backgroundColor: colorScheme.surface,
-            title: Text(
-              _currentEntry.title,
-              style: TextStyle(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-                letterSpacing: 0.15,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  DateFormat('EEEE, MMMM d, yyyy').format(_currentEntry.date),
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (_currentEntry.lastEdited != null &&
+                    _currentEntry.lastEdited != _currentEntry.date)
+                  Text(
+                    'Edited: ${DateFormat('MMM d • h:mm a').format(_currentEntry.lastEdited!)}',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
+              ],
             ),
             centerTitle: false,
             titleSpacing: 16,
@@ -290,83 +299,35 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Date and mood section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color:
-                          colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.calendar_month_rounded,
-                                color: colorScheme.onPrimaryContainer,
-                              ),
+                  // Mood section
+                  if (_currentEntry.mood != null)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest
+                            .withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    DateFormat('EEEE, MMMM d, yyyy')
-                                        .format(_currentEntry.date),
-                                    style: textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  if (_currentEntry.lastEdited != null &&
-                                      _currentEntry.lastEdited !=
-                                          _currentEntry.date)
-                                    Text(
-                                      'Edited: ${DateFormat('MMM d • h:mm a').format(_currentEntry.lastEdited!)}',
-                                      style: textTheme.bodySmall?.copyWith(
-                                        color: colorScheme.onSurface
-                                            .withOpacity(0.7),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                            child: _getMoodIcon(_currentEntry.mood!),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            _currentEntry.mood!,
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
                             ),
-                          ],
-                        ),
-                        if (_currentEntry.mood != null) ...[
-                          const SizedBox(height: 16),
-                          Divider(height: 1, color: colorScheme.outlineVariant),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: _getMoodIcon(_currentEntry.mood!),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                _currentEntry.mood!,
-                                style: textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
                           ),
                         ],
-                      ],
+                      ),
                     ),
-                  ),
 
                   const SizedBox(height: 16),
 
