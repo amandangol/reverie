@@ -686,7 +686,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
         builder: (context) => Scaffold(
           appBar: AppBar(
             title: Text(
-              'Media Gallery',
+              "Journal Gallery",
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

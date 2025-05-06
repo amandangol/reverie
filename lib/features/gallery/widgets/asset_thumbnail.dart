@@ -343,7 +343,8 @@ class AssetThumbnail extends StatelessWidget {
       context: context,
       builder: (context) => JournalEntryForm(
         initialMediaIds: [asset.id],
-        onSave: (title, content, mediaIds, mood, tags, {DateTime? lastEdited}) {
+        onSave: (title, content, mediaIds, mood, tags,
+            {DateTime? lastEdited, backgr}) {
           final entry = JournalEntry(
             id: const Uuid().v4(),
             title: title,

@@ -9,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
 
 class MediaProvider extends ChangeNotifier {
   List<AssetEntity> _mediaItems = [];
@@ -56,6 +58,11 @@ class MediaProvider extends ChangeNotifier {
     options: ImageLabelerOptions(confidenceThreshold: 0.7),
   );
   final Map<String, List<ImageLabel>> _labelCache = {};
+
+  final _model = GenerativeModel(
+    model: 'gemini-2.0-flash',
+    apiKey: 'AIzaSyCyCzEzKjHpkacME7Y8wj1u2E787Q-NAu4',
+  );
 
   @override
   void dispose() {
@@ -152,12 +159,34 @@ class MediaProvider extends ChangeNotifier {
   }
 
   Future<int?> getFileSize(String assetId) async {
-    final asset = _mediaItems.firstWhere((item) => item.id == assetId);
-    final file = await asset.file;
-    if (file != null) {
-      return await file.length();
+    try {
+      final asset = _allMediaItems[assetId];
+      if (asset == null) {
+        debugPrint('Asset not found for ID: $assetId');
+        return null;
+      }
+
+      // First try to get the file
+      final file = await asset.file;
+      if (file == null) {
+        debugPrint('File not found for asset: $assetId');
+        return null;
+      }
+
+      // Check if file exists
+      if (!await file.exists()) {
+        debugPrint('File does not exist: ${file.path}');
+        return null;
+      }
+
+      // Get file size in bytes
+      final fileSize = await file.length();
+      debugPrint('File size for $assetId: $fileSize bytes (${file.path})');
+      return fileSize;
+    } catch (e) {
+      debugPrint('Error getting file size for $assetId: $e');
+      return null;
     }
-    return null;
   }
 
   Future<void> preloadAdjacentMedia(
@@ -866,6 +895,50 @@ class MediaProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error detecting objects: $e');
       return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> analyzeImage(AssetEntity asset) async {
+    try {
+      final file = await asset.file;
+      if (file == null) throw Exception('Could not load image file');
+
+      final bytes = await file.readAsBytes();
+
+      final prompt = '''
+Analyze this image and provide the following information in a structured format:
+1. Main subject/objects
+2. Colors and visual elements
+3. Mood/atmosphere
+4. Notable details
+5. Potential context or setting
+6. Any text visible in the image
+7. Overall composition and style
+
+Please provide a detailed analysis that would be helpful for understanding and describing the image.
+''';
+
+      final content = [
+        Content.multi([
+          TextPart(prompt),
+          DataPart('image/jpeg', bytes),
+        ])
+      ];
+
+      final response = await _model.generateContent(content);
+      final text = response.text;
+
+      // Parse the response into structured data
+      final analysis = {
+        'rawResponse': text,
+        'timestamp': DateTime.now().toIso8601String(),
+        'assetId': asset.id,
+      };
+
+      return analysis;
+    } catch (e) {
+      debugPrint('Error analyzing image: $e');
+      rethrow;
     }
   }
 }

@@ -52,6 +52,9 @@ class _MediaDetailViewState extends State<MediaDetailView>
   bool _showObjectDetection = false;
   List<ImageLabel>? _detectedLabels;
   List<ImageLabel>? _detectedObjects;
+  bool _showAnalysis = false;
+  Map<String, dynamic>? _imageAnalysis;
+  bool _isAnalyzing = false;
 
   Timer? _controlsTimer;
   AnimationController? _animationController;
@@ -262,6 +265,50 @@ class _MediaDetailViewState extends State<MediaDetailView>
     }
   }
 
+  void _showImageAnalysis() async {
+    final asset = widget.assetList != null
+        ? widget.assetList![_currentIndex]
+        : widget.asset;
+
+    if (asset == null || asset.type == AssetType.video) return;
+
+    setState(() {
+      _showAnalysis = true;
+      _showInfo = false;
+      _showJournal = false;
+      _showLabels = false;
+      _showObjectDetection = false;
+      _isAnalyzing = true;
+      _toggleControls(true);
+      _controlsTimer?.cancel();
+    });
+
+    try {
+      final mediaProvider = context.read<MediaProvider>();
+      final analysis = await mediaProvider.analyzeImage(asset);
+
+      if (mounted) {
+        setState(() {
+          _imageAnalysis = analysis;
+          _isAnalyzing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to analyze image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _showAnalysis = false;
+          _isAnalyzing = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -340,6 +387,7 @@ class _MediaDetailViewState extends State<MediaDetailView>
                   onShare: _shareMedia,
                   onDelete: _deleteMedia,
                   onDetectObjects: _showObjectDetectionResults,
+                  onAnalyzeImage: _showImageAnalysis,
                   favoriteButtonBuilder: (context) => Consumer<MediaProvider>(
                     builder: (context, mediaProvider, _) {
                       final asset = widget.assetList != null
@@ -414,6 +462,17 @@ class _MediaDetailViewState extends State<MediaDetailView>
                     right: 0,
                     child: SafeArea(
                       child: _buildObjectDetectionPanel(),
+                    ),
+                  ),
+
+                // Analysis Panel
+                if (_showAnalysis)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(
+                      child: _buildAnalysisPanel(),
                     ),
                   ),
               ],
@@ -1315,6 +1374,86 @@ class _MediaDetailViewState extends State<MediaDetailView>
       ),
     );
   }
+
+  Widget _buildAnalysisPanel() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Image Analysis',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () {
+                  setState(() {
+                    _showAnalysis = false;
+                    _startControlsTimer();
+                  });
+                },
+              ),
+            ],
+          ),
+          const Divider(color: Colors.white30),
+          const SizedBox(height: 8),
+          if (_isAnalyzing)
+            const Center(
+              child: Column(
+                children: [
+                  CircularProgressIndicator(
+                    color: Colors.white,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Analyzing image...',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            )
+          else if (_imageAnalysis != null)
+            SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _imageAnalysis!['rawResponse'],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Analyzed on: ${DateTime.parse(_imageAnalysis!['timestamp']).toString()}',
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _MediaControls extends StatelessWidget {
@@ -1330,6 +1469,7 @@ class _MediaControls extends StatelessWidget {
   final VoidCallback onShare;
   final VoidCallback onDelete;
   final VoidCallback onDetectObjects;
+  final VoidCallback onAnalyzeImage;
   final Widget Function(BuildContext) favoriteButtonBuilder;
   final AssetEntity? currentAsset;
 
@@ -1346,6 +1486,7 @@ class _MediaControls extends StatelessWidget {
     required this.onShare,
     required this.onDelete,
     required this.onDetectObjects,
+    required this.onAnalyzeImage,
     required this.favoriteButtonBuilder,
     required this.currentAsset,
   });
@@ -1417,11 +1558,16 @@ class _MediaControls extends StatelessWidget {
                     icon: const Icon(Icons.share, color: Colors.white),
                     onPressed: onShare,
                   ),
-                  if (currentAsset?.type == AssetType.image)
+                  if (currentAsset?.type == AssetType.image) ...[
                     IconButton(
                       icon: const Icon(Icons.auto_awesome, color: Colors.white),
                       onPressed: onDetectObjects,
                     ),
+                    IconButton(
+                      icon: const Icon(Icons.analytics, color: Colors.white),
+                      onPressed: onAnalyzeImage,
+                    ),
+                  ],
                   IconButton(
                     icon: const Icon(Icons.book, color: Colors.white),
                     onPressed: onToggleJournal,
@@ -1474,7 +1620,7 @@ class _InfoPanel extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Details',
+                'Media Information',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -1489,59 +1635,133 @@ class _InfoPanel extends StatelessWidget {
           ),
           const Divider(color: Colors.white30),
           const SizedBox(height: 16),
-          Consumer<MediaProvider>(
-            builder: (context, mediaProvider, _) {
-              final date = mediaProvider.getCreateDate(asset.id);
-              if (date == null) return const SizedBox();
-              return _buildInfoRow(
-                'Date',
-                MediaUtils.formatDate(date),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          Consumer<MediaProvider>(
-            builder: (context, mediaProvider, _) {
-              final size = mediaProvider.getSize(asset.id);
-              if (size == null) return const SizedBox();
-              return _buildInfoRow(
-                'Size',
-                MediaUtils.formatDimensions(size),
-              );
-            },
-          ),
-          if (asset.type == AssetType.video) ...[
-            const SizedBox(height: 12),
-            Consumer<MediaProvider>(
-              builder: (context, mediaProvider, _) {
-                final duration = mediaProvider.getDuration(asset.id);
-                if (duration == null) return const SizedBox();
-                return _buildInfoRow(
-                  'Duration',
-                  MediaUtils.formatDuration(duration),
+          FutureBuilder<Map<String, dynamic>>(
+            future: _getMediaDetails(context.read<MediaProvider>()),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(),
                 );
-              },
-            ),
-          ],
-          const SizedBox(height: 12),
-          Consumer<MediaProvider>(
-            builder: (context, mediaProvider, _) {
-              return FutureBuilder<int?>(
-                future: mediaProvider.getFileSize(asset.id),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const SizedBox();
-                  final fileSize = snapshot.data!;
-                  return _buildInfoRow(
-                    'File Size',
-                    MediaUtils.formatFileSize(fileSize),
-                  );
-                },
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error loading details: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                );
+              }
+
+              final details = snapshot.data ?? {};
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInfoRow('Type',
+                      asset.type == AssetType.video ? 'Video' : 'Image'),
+                  const SizedBox(height: 12),
+                  if (details['date'] != null)
+                    _buildInfoRow(
+                        'Date', MediaUtils.formatDate(details['date'])),
+                  const SizedBox(height: 12),
+                  if (details['size'] != null)
+                    _buildInfoRow('Dimensions',
+                        MediaUtils.formatDimensions(details['size'])),
+                  const SizedBox(height: 12),
+                  if (details['fileSize'] != null)
+                    _buildInfoRow('File Size',
+                        MediaUtils.formatFileSize(details['fileSize'])),
+                  const SizedBox(height: 12),
+                  if (details['filePath'] != null)
+                    _buildInfoRow('File Path', details['filePath']),
+                  const SizedBox(height: 12),
+                  if (asset.type == AssetType.video &&
+                      details['duration'] != null)
+                    _buildInfoRow('Duration',
+                        MediaUtils.formatDuration(details['duration'])),
+                  // const SizedBox(height: 12),
+                  // if (details['location'] != null)
+                  //   _buildInfoRow('Location', details['location']),
+                  // const SizedBox(height: 12),
+                  if (details['device'] != null)
+                    _buildInfoRow('Device', details['device']),
+                  // const SizedBox(height: 12),
+                  // if (details['modifiedDate'] != null)
+                  //   _buildInfoRow('Modified',
+                  //       MediaUtils.formatDate(details['modifiedDate'])),
+                ],
               );
             },
-          )
+          ),
         ],
       ),
     );
+  }
+
+  Future<Map<String, dynamic>> _getMediaDetails(
+      MediaProvider mediaProvider) async {
+    final details = <String, dynamic>{};
+
+    // Get creation date
+    details['date'] = mediaProvider.getCreateDate(asset.id);
+
+    // Get dimensions
+    details['size'] = mediaProvider.getSize(asset.id);
+
+    // Get file size
+    try {
+      final fileSize = await mediaProvider.getFileSize(asset.id);
+      if (fileSize != null) {
+        details['fileSize'] = fileSize;
+        debugPrint('File size retrieved: $fileSize bytes');
+      } else {
+        debugPrint('File size is null for asset: ${asset.id}');
+      }
+    } catch (e) {
+      debugPrint('Error getting file size: $e');
+    }
+
+    // Get file path
+    try {
+      final file = await asset.file;
+      if (file != null) {
+        details['filePath'] = file.path;
+        // Try to get file size directly if not available from provider
+        if (details['fileSize'] == null) {
+          try {
+            final fileSize = await file.length();
+            details['fileSize'] = fileSize;
+            debugPrint('File size retrieved directly: $fileSize bytes');
+          } catch (e) {
+            debugPrint('Error getting file size directly: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting file path: $e');
+    }
+
+    // Get duration for videos
+    if (asset.type == AssetType.video) {
+      details['duration'] = mediaProvider.getDuration(asset.id);
+    }
+
+    // Get location if available
+    if (asset.latitude != null && asset.longitude != null) {
+      details['location'] = '${asset.latitude}, ${asset.longitude}';
+    }
+
+    // Get device info
+    if (asset.title != null) {
+      details['device'] = asset.title;
+    }
+
+    // Get modified date
+    if (asset.modifiedDateTime != null) {
+      details['modifiedDate'] = asset.modifiedDateTime;
+    }
+
+    return details;
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -1551,7 +1771,7 @@ class _InfoPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 80,
+            width: 100,
             child: Text(
               label,
               style: const TextStyle(
