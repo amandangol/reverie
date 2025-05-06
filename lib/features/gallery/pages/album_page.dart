@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:reverie/utils/media_utils.dart';
-import 'package:share_plus/share_plus.dart';
-import 'dart:io';
 import '../../../commonwidgets/empty_state.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../provider/media_provider.dart';
+import '../provider/photo_operations_provider.dart';
 import '../widgets/asset_thumbnail.dart';
 import '../widgets/media_detail_view.dart';
 import '../../../commonwidgets/shimmer_loading.dart';
-import '../../journal/widgets/journal_entry_form.dart';
 import '../../journal/providers/journal_provider.dart';
-import '../../journal/models/journal_entry.dart';
-import 'package:uuid/uuid.dart';
 
 class AlbumPage extends StatefulWidget {
   final AssetPathEntity album;
@@ -45,8 +40,6 @@ class _AlbumPageState extends State<AlbumPage> {
   static const int _pageSize = 100;
   bool _mounted = true;
   bool _isInitialized = false;
-  bool _isSelectionMode = false;
-  final Set<String> _selectedItems = {};
 
   @override
   void initState() {
@@ -69,192 +62,6 @@ class _AlbumPageState extends State<AlbumPage> {
   void dispose() {
     _mounted = false;
     super.dispose();
-  }
-
-  void _toggleSelectionMode() {
-    HapticFeedback.lightImpact();
-    setState(() {
-      _isSelectionMode = !_isSelectionMode;
-      if (!_isSelectionMode) {
-        _selectedItems.clear();
-      }
-    });
-  }
-
-  void _toggleItemSelection(String itemId) {
-    HapticFeedback.lightImpact();
-    setState(() {
-      if (_selectedItems.contains(itemId)) {
-        _selectedItems.remove(itemId);
-      } else {
-        _selectedItems.add(itemId);
-      }
-      if (_selectedItems.isEmpty) {
-        _isSelectionMode = false;
-      }
-    });
-  }
-
-  Future<void> _shareSelectedItems() async {
-    final selectedAssets = _mediaItems
-        .where((asset) => _selectedItems.contains(asset.id))
-        .toList();
-
-    if (selectedAssets.isEmpty) return;
-
-    try {
-      final files = await Future.wait(
-        selectedAssets.map((asset) => asset.file),
-      );
-      final validFiles = files.where((file) => file != null).cast<File>();
-
-      if (validFiles.isNotEmpty) {
-        await Share.shareXFiles(
-          validFiles.map((file) => XFile(file.path)).toList(),
-          text: 'Check out these photos!',
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        SnackbarUtils.showError(context, 'Failed to share: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> _deleteSelectedItems() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Selected Items'),
-        content: Text(
-          'Are you sure you want to delete ${_selectedItems.length} item${_selectedItems.length == 1 ? '' : 's'}? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      final mediaProvider = context.read<MediaProvider>();
-      final selectedAssets = _mediaItems
-          .where((asset) => _selectedItems.contains(asset.id))
-          .toList();
-
-      for (var asset in selectedAssets) {
-        await mediaProvider.deleteMedia(asset);
-      }
-
-      setState(() {
-        _selectedItems.clear();
-        _isSelectionMode = false;
-        _mediaItems.removeWhere((asset) => selectedAssets.contains(asset));
-      });
-    }
-  }
-
-  Future<void> _toggleFavoriteSelected() async {
-    final mediaProvider = context.read<MediaProvider>();
-    final selectedAssets = _mediaItems
-        .where((asset) => _selectedItems.contains(asset.id))
-        .toList();
-
-    int addedCount = 0;
-    int removedCount = 0;
-
-    for (var asset in selectedAssets) {
-      final wasFavorite = mediaProvider.isFavorite(asset.id);
-      await mediaProvider.toggleFavorite(asset);
-      if (wasFavorite) {
-        removedCount++;
-      } else {
-        addedCount++;
-      }
-    }
-
-    setState(() {
-      _selectedItems.clear();
-      _isSelectionMode = false;
-    });
-
-    if (mounted) {
-      if (addedCount > 0) {
-        SnackbarUtils.showMediaAddedToFavorites(
-          context,
-          count: addedCount,
-          onView: () {
-            // Navigate to favorites album
-            Navigator.pushNamed(context, '/albums/favorites');
-          },
-        );
-      }
-      if (removedCount > 0) {
-        SnackbarUtils.showMediaRemovedFromFavorites(
-          context,
-          count: removedCount,
-        );
-      }
-    }
-  }
-
-  Future<void> _addToJournalSelected() async {
-    final selectedAssets = _mediaItems
-        .where((asset) => _selectedItems.contains(asset.id))
-        .toList();
-
-    if (selectedAssets.isEmpty) return;
-
-    final mediaIds = selectedAssets.map((asset) => asset.id).toList();
-
-    // Ensure media is loaded in the provider
-    final mediaProvider = context.read<MediaProvider>();
-    for (var asset in selectedAssets) {
-      await mediaProvider.cacheAssetData(asset);
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => JournalEntryForm(
-        initialMediaIds: mediaIds,
-        onSave: (title, content, mediaIds, mood, tags,
-            {DateTime? lastEdited}) async {
-          final journalProvider = context.read<JournalProvider>();
-          final entry = JournalEntry(
-            id: const Uuid().v4(),
-            title: title,
-            content: content,
-            mediaIds: mediaIds,
-            mood: mood,
-            tags: tags,
-            date: DateTime.now(),
-          );
-
-          final success = await journalProvider.addEntry(entry);
-          if (success) {
-            Navigator.pop(context);
-            SnackbarUtils.showSuccess(
-                context, 'Journal entry added successfully');
-          } else {
-            SnackbarUtils.showError(context, 'Failed to add journal entry');
-          }
-        },
-      ),
-    );
-
-    setState(() {
-      _selectedItems.clear();
-      _isSelectionMode = false;
-    });
   }
 
   Future<void> _loadAlbumContents() async {
@@ -463,75 +270,175 @@ class _AlbumPageState extends State<AlbumPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.isFavoritesAlbum
-              ? 'Favorites'
-              : widget.isVideosAlbum
-                  ? 'Videos'
-                  : widget.album.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          if (_isSelectionMode) ...[
-            IconButton(
-              icon: const Icon(Icons.share),
-              onPressed: _selectedItems.isEmpty ? null : _shareSelectedItems,
-              tooltip: 'Share selected',
+    return Consumer2<MediaProvider, PhotoOperationsProvider>(
+      builder: (context, mediaProvider, photoOps, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              widget.isFavoritesAlbum
+                  ? 'Favorites'
+                  : widget.isVideosAlbum
+                      ? 'Videos'
+                      : widget.album.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: _selectedItems.isEmpty ? null : _deleteSelectedItems,
-              tooltip: 'Delete selected',
-            ),
-            IconButton(
-              icon: const Icon(Icons.favorite),
-              onPressed:
-                  _selectedItems.isEmpty ? null : _toggleFavoriteSelected,
-              tooltip: 'Add to favorites',
-            ),
-            IconButton(
-              icon: const Icon(Icons.book),
-              onPressed: _selectedItems.isEmpty ? null : _addToJournalSelected,
-              tooltip: 'Add to journal',
-            ),
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: _toggleSelectionMode,
-              tooltip: 'Exit selection mode',
-            ),
-          ],
-          IconButton(
-            icon: _isSelectionMode
-                ? const Icon(Icons.check_box)
-                : const Icon(Icons.select_all),
-            onPressed: _toggleSelectionMode,
-            tooltip: 'Select items',
+            actions: [
+              if (photoOps.isSelectionMode) ...[
+                IconButton(
+                  icon: const Icon(Icons.share),
+                  onPressed: photoOps.selectedItems.isEmpty
+                      ? null
+                      : () => _handleShareSelected(photoOps),
+                  tooltip: 'Share selected',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: photoOps.selectedItems.isEmpty
+                      ? null
+                      : () => _handleDeleteSelected(photoOps),
+                  tooltip: 'Delete selected',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.favorite),
+                  onPressed: photoOps.selectedItems.isEmpty
+                      ? null
+                      : () => _handleFavoriteSelected(photoOps),
+                  tooltip: 'Add to favorites',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.book),
+                  onPressed: photoOps.selectedItems.isEmpty
+                      ? null
+                      : () => _handleJournalSelected(photoOps),
+                  tooltip: 'Add to journal',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: photoOps.toggleSelectionMode,
+                  tooltip: 'Exit selection mode',
+                ),
+              ],
+              IconButton(
+                icon: photoOps.isSelectionMode
+                    ? const Icon(Icons.check_box)
+                    : const Icon(Icons.select_all),
+                onPressed: photoOps.toggleSelectionMode,
+                tooltip: 'Select items',
+              ),
+            ],
           ),
-        ],
-      ),
-      body: _isLoading
-          ? ShimmerLoading(
-              isGridView: widget.isGridView,
-              gridCrossAxisCount: widget.gridCrossAxisCount,
-            )
-          : _mediaItems.isEmpty
-              ? EmptyState(
-                  title: 'No media found',
-                  subtitle: 'There are no photos or videos in this album',
-                  onRefresh: _loadAlbumContents,
+          body: _isLoading
+              ? ShimmerLoading(
+                  isGridView: widget.isGridView,
+                  gridCrossAxisCount: widget.gridCrossAxisCount,
                 )
-              : widget.isGridView
-                  ? _buildPhotoGridByDate()
-                  : _buildPhotoListByDate(),
+              : _mediaItems.isEmpty
+                  ? EmptyState(
+                      title: 'No media found',
+                      subtitle: 'There are no photos or videos in this album',
+                      onRefresh: _loadAlbumContents,
+                    )
+                  : widget.isGridView
+                      ? _buildPhotoGridByDate(mediaProvider, photoOps)
+                      : _buildPhotoListByDate(mediaProvider, photoOps),
+        );
+      },
     );
   }
 
-  Widget _buildPhotoGridByDate() {
-    final mediaProvider = context.watch<MediaProvider>();
+  Future<void> _handleShareSelected(PhotoOperationsProvider photoOps) async {
+    try {
+      await photoOps.shareSelectedItems(_mediaItems);
+    } catch (e) {
+      if (mounted) {
+        SnackbarUtils.showError(context, 'Failed to share: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _handleDeleteSelected(PhotoOperationsProvider photoOps) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Selected Items'),
+        content: Text(
+          'Are you sure you want to delete ${photoOps.selectedCount} item${photoOps.selectedCount == 1 ? '' : 's'}? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await photoOps.deleteSelectedItems(_mediaItems);
+        if (mounted) {
+          SnackbarUtils.showMediaDeleted(context,
+              count: photoOps.selectedCount);
+        }
+      } catch (e) {
+        if (mounted) {
+          SnackbarUtils.showError(context, 'Failed to delete: ${e.toString()}');
+        }
+      }
+    }
+  }
+
+  Future<void> _handleFavoriteSelected(PhotoOperationsProvider photoOps) async {
+    try {
+      await photoOps.toggleFavoriteSelected(_mediaItems);
+      if (mounted) {
+        SnackbarUtils.showMediaAddedToFavorites(
+          context,
+          count: photoOps.selectedCount,
+          onView: () {
+            Navigator.pushNamed(context, '/albums/favorites');
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarUtils.showError(
+            context, 'Failed to update favorites: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _handleJournalSelected(PhotoOperationsProvider photoOps) async {
+    try {
+      await photoOps.addToJournalSelected(_mediaItems);
+      if (mounted) {
+        SnackbarUtils.showJournalEntryCreated(
+          context,
+          title: 'New Journal Entry',
+          onView: () {
+            Navigator.pushNamed(context, '/journal');
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarUtils.showError(
+            context, 'Failed to add to journal: ${e.toString()}');
+      }
+    }
+  }
+
+  Widget _buildPhotoGridByDate(
+    MediaProvider mediaProvider,
+    PhotoOperationsProvider photoOps,
+  ) {
     final groupedPhotos = widget.isFavoritesAlbum
         ? _groupPhotosByDate(_mediaItems)
         : widget.isVideosAlbum
@@ -587,15 +494,15 @@ class _AlbumPageState extends State<AlbumPage> {
                   final asset = photos[photoIndex];
                   return _MediaGridItem(
                     asset: asset,
-                    isSelectionMode: _isSelectionMode,
-                    isSelected: _selectedItems.contains(asset.id),
-                    onTap: _isSelectionMode
-                        ? () => _toggleItemSelection(asset.id)
+                    isSelectionMode: photoOps.isSelectionMode,
+                    isSelected: photoOps.selectedItems.contains(asset.id),
+                    onTap: photoOps.isSelectionMode
+                        ? () => photoOps.toggleItemSelection(asset.id)
                         : () => _showMediaDetail(context, asset),
                     onLongPress: () {
-                      if (!_isSelectionMode) {
-                        _toggleSelectionMode();
-                        _toggleItemSelection(asset.id);
+                      if (!photoOps.isSelectionMode) {
+                        photoOps.toggleSelectionMode();
+                        photoOps.toggleItemSelection(asset.id);
                       }
                     },
                     heroTag: 'media_${asset.id}',
@@ -610,8 +517,10 @@ class _AlbumPageState extends State<AlbumPage> {
     );
   }
 
-  Widget _buildPhotoListByDate() {
-    final mediaProvider = context.watch<MediaProvider>();
+  Widget _buildPhotoListByDate(
+    MediaProvider mediaProvider,
+    PhotoOperationsProvider photoOps,
+  ) {
     final groupedPhotos = widget.isFavoritesAlbum
         ? _groupPhotosByDate(_mediaItems)
         : mediaProvider.getGroupedPhotosForAlbum(widget.album.id);
@@ -652,15 +561,15 @@ class _AlbumPageState extends State<AlbumPage> {
               ),
               ...photos.map((asset) => _MediaListItem(
                     asset: asset,
-                    isSelectionMode: _isSelectionMode,
-                    isSelected: _selectedItems.contains(asset.id),
-                    onTap: _isSelectionMode
-                        ? () => _toggleItemSelection(asset.id)
+                    isSelectionMode: photoOps.isSelectionMode,
+                    isSelected: photoOps.selectedItems.contains(asset.id),
+                    onTap: photoOps.isSelectionMode
+                        ? () => photoOps.toggleItemSelection(asset.id)
                         : () => _showMediaDetail(context, asset),
                     onLongPress: () {
-                      if (!_isSelectionMode) {
-                        _toggleSelectionMode();
-                        _toggleItemSelection(asset.id);
+                      if (!photoOps.isSelectionMode) {
+                        photoOps.toggleSelectionMode();
+                        photoOps.toggleItemSelection(asset.id);
                       }
                     },
                     heroTag: 'media_${asset.id}',
@@ -818,91 +727,6 @@ class _MediaGridItem extends StatelessWidget {
       ],
     );
   }
-
-  void _showQuickJournalEntryDialog(BuildContext context, AssetEntity asset) {
-    showDialog(
-      context: context,
-      builder: (context) => JournalEntryForm(
-        initialMediaIds: [asset.id],
-        onSave: (title, content, mediaIds, mood, tags, {DateTime? lastEdited}) {
-          final entry = JournalEntry(
-            id: const Uuid().v4(),
-            title: title,
-            content: content,
-            mediaIds: mediaIds,
-            mood: mood,
-            tags: tags,
-            date: DateTime.now(),
-          );
-          context.read<JournalProvider>().addEntry(entry);
-          Navigator.pop(context);
-          SnackbarUtils.showJournalEntryCreated(
-            context,
-            title: title,
-            onView: () {},
-          );
-        },
-      ),
-    );
-  }
-
-  void _shareMedia(BuildContext context, AssetEntity asset) async {
-    try {
-      final file = await asset.file;
-      if (file != null) {
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text:
-              'Check out this ${asset.type == AssetType.video ? 'video' : 'photo'}!',
-        );
-        if (context.mounted) {
-          SnackbarUtils.showMediaShared(context, count: 1);
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        SnackbarUtils.showError(context, 'Failed to share: ${e.toString()}');
-      }
-    }
-  }
-
-  void _deleteMedia(BuildContext context, AssetEntity asset) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Media'),
-        content: const Text(
-          'Are you sure you want to delete this item? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      try {
-        final mediaProvider = context.read<MediaProvider>();
-        await mediaProvider.deleteMedia(asset);
-        if (context.mounted) {
-          SnackbarUtils.showMediaDeleted(context, count: 1);
-        }
-      } catch (e) {
-        if (context.mounted) {
-          SnackbarUtils.showError(context, 'Failed to delete: ${e.toString()}');
-        }
-      }
-    }
-  }
 }
 
 class _MediaListItem extends StatelessWidget {
@@ -925,6 +749,7 @@ class _MediaListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mediaProvider = context.watch<MediaProvider>();
+    final photoOps = context.watch<PhotoOperationsProvider>();
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1027,16 +852,13 @@ class _MediaListItem extends StatelessWidget {
                 onSelected: (value) async {
                   switch (value) {
                     case 'journal':
-                      _showQuickJournalEntryDialog(context, asset);
+                      await photoOps.addToJournal(asset);
                       break;
                     case 'favorite':
-                      mediaProvider.toggleFavorite(asset);
+                      await photoOps.toggleFavorite(asset);
                       break;
                     case 'share':
-                      _shareMedia(context, asset);
-                      break;
-                    case 'delete':
-                      _deleteMedia(context, asset);
+                      await photoOps.shareMedia(asset);
                       break;
                   }
                 },
@@ -1093,109 +915,11 @@ class _MediaListItem extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const PopupMenuItem<String>(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, size: 16, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
                 ],
               ),
           ],
         ),
       ),
     );
-  }
-
-  void _showQuickJournalEntryDialog(BuildContext context, AssetEntity asset) {
-    showDialog(
-      context: context,
-      builder: (context) => JournalEntryForm(
-        initialMediaIds: [asset.id],
-        onSave: (title, content, mediaIds, mood, tags, {DateTime? lastEdited}) {
-          final entry = JournalEntry(
-            id: const Uuid().v4(),
-            title: title,
-            content: content,
-            mediaIds: mediaIds,
-            mood: mood,
-            tags: tags,
-            date: DateTime.now(),
-          );
-          context.read<JournalProvider>().addEntry(entry);
-          Navigator.pop(context);
-          SnackbarUtils.showJournalEntryCreated(
-            context,
-            title: title,
-            onView: () {
-              // Navigate to journal entry
-              Navigator.pushNamed(context, '/journal');
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  void _shareMedia(BuildContext context, AssetEntity asset) async {
-    try {
-      final file = await asset.file;
-      if (file != null) {
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text:
-              'Check out this ${asset.type == AssetType.video ? 'video' : 'photo'}!',
-        );
-        if (context.mounted) {
-          SnackbarUtils.showMediaShared(context, count: 1);
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        SnackbarUtils.showError(context, 'Failed to share: ${e.toString()}');
-      }
-    }
-  }
-
-  void _deleteMedia(BuildContext context, AssetEntity asset) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Media'),
-        content: const Text(
-          'Are you sure you want to delete this item? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      try {
-        final mediaProvider = context.read<MediaProvider>();
-        await mediaProvider.deleteMedia(asset);
-        if (context.mounted) {
-          SnackbarUtils.showMediaDeleted(context, count: 1);
-        }
-      } catch (e) {
-        if (context.mounted) {
-          SnackbarUtils.showError(context, 'Failed to delete: ${e.toString()}');
-        }
-      }
-    }
   }
 }

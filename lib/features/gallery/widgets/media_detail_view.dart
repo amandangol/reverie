@@ -861,10 +861,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
   }
 
   Widget _buildJournalPanel() {
-    final asset = widget.assetList != null
-        ? widget.assetList![_currentIndex]
-        : widget.asset;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1097,7 +1093,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
   Future<void> _toggleFavorite(AssetEntity asset) async {
     try {
       final mediaProvider = context.read<MediaProvider>();
-      final wasFavorite = mediaProvider.isFavorite(asset.id);
       await mediaProvider.toggleFavorite(asset);
 
       if (mounted) {

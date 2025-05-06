@@ -10,8 +10,9 @@ import 'dart:io';
 import '../models/journal_entry.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter/material.dart';
 
-class JournalProvider with ChangeNotifier {
+class JournalProvider extends ChangeNotifier {
   List<JournalEntry> _entries = [];
   bool _isLoading = true;
   String? _error;
@@ -355,10 +356,8 @@ class JournalProvider with ChangeNotifier {
 
   List<JournalEntry> getEntriesByDateRange(DateTime start, DateTime end) {
     return _entries.where((entry) {
-      final date = entry.date;
-      return date.isAfter(start) && date.isBefore(end) ||
-          date.isAtSameMomentAs(start) ||
-          date.isAtSameMomentAs(end);
+      return entry.date.isAfter(start.subtract(const Duration(days: 1))) &&
+          entry.date.isBefore(end.add(const Duration(days: 1)));
     }).toList();
   }
 

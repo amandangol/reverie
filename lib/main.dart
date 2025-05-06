@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:reverie/features/ai_compilation/provider/ai_compilation_provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'features/gallery/pages/gallery_page.dart';
-import 'features/ai_compilation/ai_compilation_page.dart';
 import 'features/permissions/provider/permission_provider.dart';
 import 'features/settings/pages/settings_page.dart';
 import 'features/gallery/provider/media_provider.dart';
+import 'features/gallery/provider/photo_operations_provider.dart';
 import 'theme/app_theme.dart';
 import 'features/journal/pages/journal_screen.dart';
 import 'features/splash/splash_screen.dart';
@@ -20,7 +19,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => MediaProvider()),
         ChangeNotifierProvider(create: (_) => JournalProvider()),
         ChangeNotifierProvider(create: (_) => GalleryPreferencesProvider()),
-        ChangeNotifierProvider(create: (_) => AICompilationProvider())
+        ChangeNotifierProvider(create: (_) => PhotoOperationsProvider()),
       ],
       child: const MyApp(),
     ),
@@ -59,7 +58,6 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const GalleryPage(),
     const JournalScreen(),
-    const AICompilationPage(),
     const SettingsPage(),
   ];
 
@@ -82,10 +80,6 @@ class _MainScreenState extends State<MainScreen> {
           NavigationDestination(
             icon: Icon(Icons.book),
             label: 'Journal',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome),
-            label: 'AI Compilation',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings),

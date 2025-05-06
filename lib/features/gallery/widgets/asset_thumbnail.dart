@@ -403,9 +403,6 @@ class AssetThumbnail extends StatelessWidget {
           text:
               'Check out this ${asset.type == AssetType.video ? 'video' : 'photo'}!',
         );
-        if (context.mounted) {
-          SnackbarUtils.showMediaShared(context, count: 1);
-        }
       }
     } catch (e) {
       if (context.mounted) {

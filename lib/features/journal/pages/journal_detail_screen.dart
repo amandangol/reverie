@@ -567,18 +567,35 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Icon(
-                                Icons.tag_rounded,
-                                size: 20,
-                                color: colorScheme.primary,
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.tag_rounded,
+                                    size: 20,
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Tags',
+                                    style: textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Tags',
-                                style: textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.primary,
+                              TextButton.icon(
+                                onPressed: () {
+                                  // Show entries with similar tags
+                                  _showSimilarEntries(context);
+                                },
+                                icon:
+                                    const Icon(Icons.search_rounded, size: 18),
+                                label: const Text('Find Similar'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: colorScheme.primary,
                                 ),
                               ),
                             ],
@@ -588,20 +605,38 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             children: _currentEntry.tags.map((tag) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                child: Text(
-                                  tag,
-                                  style: TextStyle(
-                                    color: colorScheme.onPrimaryContainer,
-                                    fontWeight: FontWeight.w500,
+                              return GestureDetector(
+                                onTap: () {
+                                  // Show entries with this specific tag
+                                  _showEntriesWithTag(context, tag);
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        tag,
+                                        style: TextStyle(
+                                          color: colorScheme.onPrimaryContainer,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 14,
+                                        color: colorScheme.onPrimaryContainer
+                                            .withOpacity(0.7),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );
@@ -827,6 +862,145 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
               });
             }
           },
+        ),
+      ),
+    );
+  }
+
+  void _showSimilarEntries(BuildContext context) {
+    final journalProvider = context.read<JournalProvider>();
+    final similarEntries = journalProvider.entries
+        .where((entry) =>
+            entry.id != _currentEntry.id &&
+            entry.tags.any((tag) => _currentEntry.tags.contains(tag)))
+        .toList();
+
+    if (similarEntries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No similar entries found')),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Similar Entries',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: similarEntries.length,
+                itemBuilder: (context, index) {
+                  final entry = similarEntries[index];
+                  return ListTile(
+                    title: Text(entry.title),
+                    subtitle: Text(
+                      DateFormat('MMMM d, yyyy').format(entry.date),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              JournalDetailScreen(entry: entry),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEntriesWithTag(BuildContext context, String tag) {
+    final journalProvider = context.read<JournalProvider>();
+    final entriesWithTag = journalProvider.entries
+        .where((entry) => entry.tags.contains(tag))
+        .toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Entries with #$tag',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: entriesWithTag.length,
+                itemBuilder: (context, index) {
+                  final entry = entriesWithTag[index];
+                  return ListTile(
+                    title: Text(entry.title),
+                    subtitle: Text(
+                      DateFormat('MMMM d, yyyy').format(entry.date),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              JournalDetailScreen(entry: entry),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

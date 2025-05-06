@@ -6,20 +6,20 @@ class JournalEntry {
   final String id;
   final String title;
   final String content;
-  final DateTime date;
   final List<String> mediaIds;
   final String? mood;
   final List<String> tags;
+  final DateTime date;
   final DateTime? lastEdited;
 
   const JournalEntry({
     required this.id,
     required this.title,
     required this.content,
-    required this.date,
     required this.mediaIds,
     this.mood,
-    this.tags = const [],
+    required this.tags,
+    required this.date,
     this.lastEdited,
   });
 
@@ -27,20 +27,20 @@ class JournalEntry {
     String? id,
     String? title,
     String? content,
-    DateTime? date,
     List<String>? mediaIds,
     String? mood,
     List<String>? tags,
+    DateTime? date,
     DateTime? lastEdited,
   }) {
     return JournalEntry(
       id: id ?? this.id,
       title: title ?? this.title,
       content: content ?? this.content,
-      date: date ?? this.date,
       mediaIds: mediaIds ?? this.mediaIds,
       mood: mood ?? this.mood,
       tags: tags ?? this.tags,
+      date: date ?? this.date,
       lastEdited: lastEdited ?? this.lastEdited,
     );
   }
@@ -50,11 +50,11 @@ class JournalEntry {
       'id': id,
       'title': title,
       'content': content,
-      'date': date.millisecondsSinceEpoch,
-      'media_ids': jsonEncode(mediaIds),
+      'mediaIds': mediaIds,
       'mood': mood,
-      'tags': jsonEncode(tags),
-      'last_edited': lastEdited?.millisecondsSinceEpoch,
+      'tags': tags,
+      'date': date.toIso8601String(),
+      'lastEdited': lastEdited?.toIso8601String(),
     };
   }
 
@@ -63,18 +63,12 @@ class JournalEntry {
       id: json['id'] as String,
       title: json['title'] as String,
       content: json['content'] as String,
-      date: DateTime.fromMillisecondsSinceEpoch(json['date'] as int),
-      mediaIds: (jsonDecode(json['media_ids'] as String) as List)
-          .map((e) => e as String)
-          .toList(),
+      mediaIds: List<String>.from(json['mediaIds'] as List),
       mood: json['mood'] as String?,
-      tags: json['tags'] != null
-          ? (jsonDecode(json['tags'] as String) as List)
-              .map((e) => e as String)
-              .toList()
-          : [],
-      lastEdited: json['last_edited'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(json['last_edited'] as int)
+      tags: List<String>.from(json['tags'] as List),
+      date: DateTime.parse(json['date'] as String),
+      lastEdited: json['lastEdited'] != null
+          ? DateTime.parse(json['lastEdited'] as String)
           : null,
     );
   }
@@ -86,10 +80,10 @@ class JournalEntry {
         other.id == id &&
         other.title == title &&
         other.content == content &&
-        other.date == date &&
         listEquals(other.mediaIds, mediaIds) &&
         other.mood == mood &&
         listEquals(other.tags, tags) &&
+        other.date == date &&
         other.lastEdited == lastEdited;
   }
 
@@ -99,10 +93,10 @@ class JournalEntry {
       id,
       title,
       content,
-      date,
       Object.hashAll(mediaIds),
       mood,
       Object.hashAll(tags),
+      date,
       lastEdited,
     );
   }

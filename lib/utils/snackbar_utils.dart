@@ -180,16 +180,6 @@ class SnackbarUtils {
     );
   }
 
-  static void showMediaShared(
-    BuildContext context, {
-    required int count,
-  }) {
-    showSuccess(
-      context,
-      '$count item${count == 1 ? '' : 's'} shared successfully',
-    );
-  }
-
   static void showMediaDeleted(
     BuildContext context, {
     required int count,

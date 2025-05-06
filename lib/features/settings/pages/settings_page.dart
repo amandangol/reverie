@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import '../../gallery/provider/media_provider.dart';
-import '../../ai_compilation/provider/ai_compilation_provider.dart';
 import '../../permissions/provider/permission_provider.dart';
 import '../../permissions/widgets/permission_dialog.dart';
 import '../widgets/setting_widgets.dart';
@@ -15,7 +14,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  String _version = '1.0.0';
+  final String _version = '1.0.0';
 
   @override
   void initState() {
@@ -24,9 +23,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -79,8 +75,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   content:
                       'Are you sure you want to delete all AI compilations?',
                   onConfirm: () {
-                    context.read<AICompilationProvider>().clearAll();
-                    _showSnackBar(context, 'AI compilations cleared');
+                    // context.read<AICompilationProvider>().clearAll();
+                    // _showSnackBar(context, 'AI compilations cleared');
                   },
                 ),
               ),
