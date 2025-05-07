@@ -272,41 +272,176 @@ class _MediaDetailViewState extends State<MediaDetailView>
 
     if (asset == null || asset.type == AssetType.video) return;
 
-    setState(() {
-      _showAnalysis = true;
-      _showInfo = false;
-      _showJournal = false;
-      _showLabels = false;
-      _showObjectDetection = false;
-      _isAnalyzing = true;
-      _toggleControls(true);
-      _controlsTimer?.cancel();
-    });
+    // Check if analysis is already in progress
+    if (context.read<MediaProvider>().isAnalysisInProgress(asset.id)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Analysis is already in progress'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Show loading bottom sheet first
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black.withOpacity(0.9),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[600],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(
+              color: Colors.white,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Analyzing image...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'This may take a few moments',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
 
     try {
       final mediaProvider = context.read<MediaProvider>();
       final analysis = await mediaProvider.analyzeImage(asset);
 
       if (mounted) {
-        setState(() {
-          _imageAnalysis = analysis;
-          _isAnalyzing = false;
-        });
+        // Pop the loading sheet
+        Navigator.pop(context);
+
+        // Show the analysis sheet
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.black.withOpacity(0.9),
+          isScrollControlled: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          builder: (context) => DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.9,
+            expand: false,
+            builder: (context, scrollController) => Column(
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Image Analysis',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(color: Colors.white30),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFormattedAnalysis(analysis['rawResponse']),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Analyzed on: ${DateTime.parse(analysis['timestamp']).toString()}',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
+        // Pop the loading sheet
+        Navigator.pop(context);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to analyze image: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
-        setState(() {
-          _showAnalysis = false;
-          _isAnalyzing = false;
-        });
       }
     }
+  }
+
+  Widget _buildFormattedAnalysis(String text) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: MediaUtils.formatMarkdownText(
+          text,
+          fontSize: 14,
+          textColor: Colors.white,
+          headingColor: Colors.amberAccent,
+          headingFontSize: 18,
+          lineSpacing: 8,
+          paragraphSpacing: 16,
+        ),
+      ),
+    );
   }
 
   @override
@@ -462,17 +597,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
                     right: 0,
                     child: SafeArea(
                       child: _buildObjectDetectionPanel(),
-                    ),
-                  ),
-
-                // Analysis Panel
-                if (_showAnalysis)
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: SafeArea(
-                      child: _buildAnalysisPanel(),
                     ),
                   ),
               ],
@@ -1374,86 +1498,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
       ),
     );
   }
-
-  Widget _buildAnalysisPanel() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Image Analysis',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () {
-                  setState(() {
-                    _showAnalysis = false;
-                    _startControlsTimer();
-                  });
-                },
-              ),
-            ],
-          ),
-          const Divider(color: Colors.white30),
-          const SizedBox(height: 8),
-          if (_isAnalyzing)
-            const Center(
-              child: Column(
-                children: [
-                  CircularProgressIndicator(
-                    color: Colors.white,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Analyzing image...',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ],
-              ),
-            )
-          else if (_imageAnalysis != null)
-            SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _imageAnalysis!['rawResponse'],
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Analyzed on: ${DateTime.parse(_imageAnalysis!['timestamp']).toString()}',
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 class _MediaControls extends StatelessWidget {
@@ -1553,35 +1597,70 @@ class _MediaControls extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                  // Essential icons
                   favoriteButtonBuilder(context),
                   IconButton(
-                    icon: const Icon(Icons.share, color: Colors.white),
-                    onPressed: onShare,
+                    icon: const Icon(Icons.book_outlined, color: Colors.white),
+                    onPressed: onToggleJournal,
                   ),
                   if (currentAsset?.type == AssetType.image) ...[
                     IconButton(
-                      icon: const Icon(Icons.auto_awesome, color: Colors.white),
+                      icon: const Icon(Icons.search, color: Colors.white),
                       onPressed: onDetectObjects,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.analytics, color: Colors.white),
+                      icon: const Icon(Icons.auto_awesome, color: Colors.white),
                       onPressed: onAnalyzeImage,
                     ),
                   ],
-                  IconButton(
-                    icon: const Icon(Icons.book, color: Colors.white),
-                    onPressed: onToggleJournal,
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      showInfo ? Icons.info : Icons.info_outline,
-                      color: Colors.white,
-                    ),
-                    onPressed: onToggleInfo,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: onDelete,
+                  // More options menu
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: Colors.white),
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'share':
+                          onShare();
+                          break;
+                        case 'info':
+                          onToggleInfo();
+                          break;
+                        case 'delete':
+                          onDelete();
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'share',
+                        child: Row(
+                          children: [
+                            Icon(Icons.share, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text('Share'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'info',
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text('Info'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Delete', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

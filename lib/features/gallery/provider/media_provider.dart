@@ -64,6 +64,11 @@ class MediaProvider extends ChangeNotifier {
     apiKey: 'AIzaSyCyCzEzKjHpkacME7Y8wj1u2E787Q-NAu4',
   );
 
+  // Add this with other cache maps at the top of the class
+  final Map<String, Map<String, dynamic>> _analysisCache = {};
+  // Add this map to track analysis state
+  final Map<String, bool> _analysisInProgress = {};
+
   @override
   void dispose() {
     _mounted = false;
@@ -899,23 +904,37 @@ class MediaProvider extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> analyzeImage(AssetEntity asset) async {
+    // Check if analysis is already in progress
+    if (_analysisInProgress[asset.id] == true) {
+      throw Exception('Analysis already in progress');
+    }
+
+    // Check cache first
+    if (_analysisCache.containsKey(asset.id)) {
+      debugPrint('Using cached analysis for ${asset.id}');
+      return _analysisCache[asset.id]!;
+    }
+
     try {
+      // Set analysis in progress
+      _analysisInProgress[asset.id] = true;
+      notifyListeners();
+
       final file = await asset.file;
       if (file == null) throw Exception('Could not load image file');
 
       final bytes = await file.readAsBytes();
 
       final prompt = '''
-Analyze this image and provide the following information in a structured format:
-1. Main subject/objects
-2. Colors and visual elements
-3. Mood/atmosphere
-4. Notable details
-5. Potential context or setting
-6. Any text visible in the image
-7. Overall composition and style
+Analyze this image and provide a concise, structured analysis with the following key points:
 
-Please provide a detailed analysis that would be helpful for understanding and describing the image.
+1. Main Subject: What is the primary focus or subject of the image?
+2. Visual Elements: Key colors, lighting, and composition elements
+3. Context: Where was this taken? What's happening?
+4. Notable Details: Any interesting or unique features
+5. Style: Overall aesthetic and mood
+
+Keep each point brief and to the point. Focus on the most important aspects only.
 ''';
 
       final content = [
@@ -928,17 +947,37 @@ Please provide a detailed analysis that would be helpful for understanding and d
       final response = await _model.generateContent(content);
       final text = response.text;
 
-      // Parse the response into structured data
+      // Create analysis result
       final analysis = {
         'rawResponse': text,
         'timestamp': DateTime.now().toIso8601String(),
         'assetId': asset.id,
       };
 
+      // Cache the result
+      _analysisCache[asset.id] = analysis;
+      debugPrint('Cached analysis for ${asset.id}');
+
       return analysis;
     } catch (e) {
       debugPrint('Error analyzing image: $e');
       rethrow;
+    } finally {
+      // Clear analysis in progress state
+      _analysisInProgress[asset.id] = false;
+      notifyListeners();
     }
+  }
+
+  // Add method to check if analysis is in progress
+  bool isAnalysisInProgress(String assetId) {
+    return _analysisInProgress[assetId] ?? false;
+  }
+
+  // Modify clearAnalysisCache to also clear progress state
+  void clearAnalysisCache() {
+    _analysisCache.clear();
+    _analysisInProgress.clear();
+    notifyListeners();
   }
 }

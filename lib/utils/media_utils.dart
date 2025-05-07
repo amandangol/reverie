@@ -249,4 +249,139 @@ class MediaUtils {
       return {};
     }
   }
+
+  /// Formats markdown text into a list of styled Text widgets
+  static List<Widget> formatMarkdownText(
+    String text, {
+    double fontSize = 13,
+    Color textColor = Colors.white,
+    Color headingColor = Colors.amber,
+    double headingFontSize = 18,
+    double subheadingFontSize = 16,
+    double lineSpacing = 6,
+    double paragraphSpacing = 8,
+  }) {
+    final lines = text.split('\n');
+    final formattedWidgets = <Widget>[];
+    var isInList = false;
+    var listItems = <Widget>[];
+
+    for (var line in lines) {
+      line = line.trim();
+
+      if (line.isEmpty) {
+        if (isInList && listItems.isNotEmpty) {
+          formattedWidgets.add(
+            Padding(
+              padding: EdgeInsets.only(left: 12, bottom: paragraphSpacing),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: listItems,
+              ),
+            ),
+          );
+          listItems.clear();
+          isInList = false;
+        }
+        formattedWidgets.add(SizedBox(height: lineSpacing));
+        continue;
+      }
+
+      final textStyle = TextStyle(color: textColor, fontSize: fontSize);
+      final boldStyle = textStyle.copyWith(fontWeight: FontWeight.bold);
+
+      // Markdown-style headings
+      if (line.startsWith('##')) {
+        formattedWidgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text(
+              line.replaceFirst('##', '').trim(),
+              style: TextStyle(
+                color: headingColor,
+                fontSize: subheadingFontSize,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        );
+        continue;
+      } else if (line.startsWith('#')) {
+        formattedWidgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text(
+              line.replaceFirst('#', '').trim(),
+              style: TextStyle(
+                color: headingColor,
+                fontSize: headingFontSize,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+        continue;
+      }
+
+      // Numbered list
+      if (RegExp(r'^\d+\.').hasMatch(line)) {
+        isInList = true;
+        listItems.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Text(
+              line,
+              style: boldStyle,
+            ),
+          ),
+        );
+        continue;
+      }
+
+      // Bold text
+      if (line.contains('**')) {
+        final parts = line.split('**');
+        final spans = <TextSpan>[];
+
+        for (var j = 0; j < parts.length; j++) {
+          if (parts[j].isEmpty) continue;
+          spans.add(TextSpan(
+            text: parts[j],
+            style: j.isEven ? textStyle : boldStyle,
+          ));
+        }
+
+        final richText = Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: RichText(text: TextSpan(children: spans)),
+        );
+
+        isInList ? listItems.add(richText) : formattedWidgets.add(richText);
+        continue;
+      }
+
+      // Regular text
+      final paragraph = Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Text(line, style: textStyle),
+      );
+
+      isInList ? listItems.add(paragraph) : formattedWidgets.add(paragraph);
+    }
+
+    // Add remaining list items
+    if (isInList && listItems.isNotEmpty) {
+      formattedWidgets.add(
+        Padding(
+          padding: EdgeInsets.only(left: 12, bottom: paragraphSpacing),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: listItems,
+          ),
+        ),
+      );
+    }
+
+    return formattedWidgets;
+  }
 }
