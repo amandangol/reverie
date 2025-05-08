@@ -106,6 +106,32 @@ class MediaUtils {
         return '🥳';
       case 'frustrated':
         return '😤';
+      case 'anxious':
+        return '😰';
+      case 'grateful':
+        return '🙏';
+      case 'inspired':
+        return '✨';
+      case 'nostalgic':
+        return '🕰️';
+      case 'peaceful':
+        return '☮️';
+      case 'energetic':
+        return '⚡';
+      case 'curious':
+        return '🤓';
+      case 'proud':
+        return '🦁';
+      case 'hopeful':
+        return '🌈';
+      case 'relaxed':
+        return '🧘';
+      case 'motivated':
+        return '💪';
+      case 'creative':
+        return '🎨';
+      case 'adventurous':
+        return '🏃';
       default:
         return '😊';
     }
@@ -141,6 +167,32 @@ class MediaUtils {
         return Icons.celebration;
       case 'frustrated':
         return Icons.sentiment_very_dissatisfied;
+      case 'anxious':
+        return Icons.sentiment_very_dissatisfied;
+      case 'grateful':
+        return Icons.favorite;
+      case 'inspired':
+        return Icons.auto_awesome;
+      case 'nostalgic':
+        return Icons.history;
+      case 'peaceful':
+        return Icons.spa;
+      case 'energetic':
+        return Icons.bolt;
+      case 'curious':
+        return Icons.psychology;
+      case 'proud':
+        return Icons.emoji_events;
+      case 'hopeful':
+        return Icons.emoji_emotions;
+      case 'relaxed':
+        return Icons.self_improvement;
+      case 'motivated':
+        return Icons.trending_up;
+      case 'creative':
+        return Icons.palette;
+      case 'adventurous':
+        return Icons.explore;
       default:
         return Icons.emoji_emotions_outlined;
     }
@@ -176,6 +228,32 @@ class MediaUtils {
         return Colors.pink;
       case 'frustrated':
         return Colors.deepOrange;
+      case 'anxious':
+        return Colors.deepPurple;
+      case 'grateful':
+        return Colors.teal;
+      case 'inspired':
+        return Colors.cyan;
+      case 'nostalgic':
+        return Colors.amber.shade700;
+      case 'peaceful':
+        return Colors.lightGreen;
+      case 'energetic':
+        return Colors.orange.shade700;
+      case 'curious':
+        return Colors.purple.shade300;
+      case 'proud':
+        return Colors.amber.shade800;
+      case 'hopeful':
+        return Colors.lightBlue.shade300;
+      case 'relaxed':
+        return Colors.green.shade300;
+      case 'motivated':
+        return Colors.red.shade400;
+      case 'creative':
+        return Colors.purple.shade400;
+      case 'adventurous':
+        return Colors.orange.shade400;
       default:
         return Colors.blue;
     }
@@ -248,140 +326,5 @@ class MediaUtils {
       debugPrint('Error getting media metadata: $e');
       return {};
     }
-  }
-
-  /// Formats markdown text into a list of styled Text widgets
-  static List<Widget> formatMarkdownText(
-    String text, {
-    double fontSize = 13,
-    Color textColor = Colors.white,
-    Color headingColor = Colors.amber,
-    double headingFontSize = 18,
-    double subheadingFontSize = 16,
-    double lineSpacing = 6,
-    double paragraphSpacing = 8,
-  }) {
-    final lines = text.split('\n');
-    final formattedWidgets = <Widget>[];
-    var isInList = false;
-    var listItems = <Widget>[];
-
-    for (var line in lines) {
-      line = line.trim();
-
-      if (line.isEmpty) {
-        if (isInList && listItems.isNotEmpty) {
-          formattedWidgets.add(
-            Padding(
-              padding: EdgeInsets.only(left: 12, bottom: paragraphSpacing),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: listItems,
-              ),
-            ),
-          );
-          listItems.clear();
-          isInList = false;
-        }
-        formattedWidgets.add(SizedBox(height: lineSpacing));
-        continue;
-      }
-
-      final textStyle = TextStyle(color: textColor, fontSize: fontSize);
-      final boldStyle = textStyle.copyWith(fontWeight: FontWeight.bold);
-
-      // Markdown-style headings
-      if (line.startsWith('##')) {
-        formattedWidgets.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              line.replaceFirst('##', '').trim(),
-              style: TextStyle(
-                color: headingColor,
-                fontSize: subheadingFontSize,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        );
-        continue;
-      } else if (line.startsWith('#')) {
-        formattedWidgets.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text(
-              line.replaceFirst('#', '').trim(),
-              style: TextStyle(
-                color: headingColor,
-                fontSize: headingFontSize,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        );
-        continue;
-      }
-
-      // Numbered list
-      if (RegExp(r'^\d+\.').hasMatch(line)) {
-        isInList = true;
-        listItems.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Text(
-              line,
-              style: boldStyle,
-            ),
-          ),
-        );
-        continue;
-      }
-
-      // Bold text
-      if (line.contains('**')) {
-        final parts = line.split('**');
-        final spans = <TextSpan>[];
-
-        for (var j = 0; j < parts.length; j++) {
-          if (parts[j].isEmpty) continue;
-          spans.add(TextSpan(
-            text: parts[j],
-            style: j.isEven ? textStyle : boldStyle,
-          ));
-        }
-
-        final richText = Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: RichText(text: TextSpan(children: spans)),
-        );
-
-        isInList ? listItems.add(richText) : formattedWidgets.add(richText);
-        continue;
-      }
-
-      // Regular text
-      final paragraph = Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Text(line, style: textStyle),
-      );
-
-      isInList ? listItems.add(paragraph) : formattedWidgets.add(paragraph);
-    }
-
-    // Add remaining list items
-    if (isInList && listItems.isNotEmpty) {
-      formattedWidgets.add(
-        Padding(
-          padding: EdgeInsets.only(left: 12, bottom: paragraphSpacing),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: listItems,
-          ),
-        ),
-      );
-    }
-
-    return formattedWidgets;
   }
 }

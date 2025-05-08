@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
@@ -11,7 +13,9 @@ import 'features/journal/pages/journal_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'providers/gallery_preferences_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(
     MultiProvider(
       providers: [

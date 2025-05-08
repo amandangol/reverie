@@ -68,6 +68,19 @@ class _JournalEntryFormState extends State<JournalEntryForm>
     'Disappointed',
     'Celebratory',
     'Frustrated',
+    'Anxious',
+    'Grateful',
+    'Inspired',
+    'Nostalgic',
+    'Peaceful',
+    'Energetic',
+    'Curious',
+    'Proud',
+    'Hopeful',
+    'Relaxed',
+    'Motivated',
+    'Creative',
+    'Adventurous',
   ].map((mood) => '${MediaUtils.getMoodEmoji(mood)} $mood').toList();
 
   @override

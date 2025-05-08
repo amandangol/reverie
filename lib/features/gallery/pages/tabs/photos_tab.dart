@@ -11,6 +11,7 @@ import '../../widgets/media_detail_view.dart';
 import 'package:reverie/utils/media_utils.dart';
 import '../../../permissions/provider/permission_provider.dart';
 import '../../../../commonwidgets/shimmer_loading.dart';
+import '../../widgets/flashbacks_section.dart';
 
 class PhotosTab extends StatefulWidget {
   final bool isGridView;
@@ -31,9 +32,11 @@ class _PhotosTabState extends State<PhotosTab> {
   Widget build(BuildContext context) {
     return Consumer2<MediaProvider, PhotoOperationsProvider>(
       builder: (context, mediaProvider, photoOps, child) {
-        if (mediaProvider.isLoading) {
+        if (mediaProvider.isLoading && !mediaProvider.isInitialized) {
           return Column(
             children: [
+              const SizedBox.shrink(),
+              const Divider(),
               Expanded(
                 child: ShimmerLoading(
                   isGridView: widget.isGridView,
@@ -56,10 +59,18 @@ class _PhotosTabState extends State<PhotosTab> {
         }
 
         if (mediaProvider.mediaItems.isEmpty) {
-          return EmptyState(
-            title: 'No media found',
-            subtitle: 'There are no photos in your gallery',
-            onRefresh: () => _checkAndRequestPermission(context),
+          return Column(
+            children: [
+              const SizedBox.shrink(),
+              const Divider(),
+              Expanded(
+                child: EmptyState(
+                  title: 'No media found',
+                  subtitle: 'There are no photos in your gallery',
+                  onRefresh: () => _checkAndRequestPermission(context),
+                ),
+              ),
+            ],
           );
         }
 
@@ -67,6 +78,8 @@ class _PhotosTabState extends State<PhotosTab> {
 
         return Column(
           children: [
+            const FlashbacksSection(),
+            const Divider(),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(

@@ -69,6 +69,17 @@ class MediaProvider extends ChangeNotifier {
   // Add this map to track analysis state
   final Map<String, bool> _analysisInProgress = {};
 
+  // Add new properties for flashbacks and captions
+  final Map<String, String> _captionCache = {};
+  List<AssetEntity> _flashbackPhotos = [];
+  bool _isLoadingFlashbacks = false;
+  String? _flashbackError;
+
+  // Weekly flashback properties
+  List<AssetEntity> _weeklyFlashbackPhotos = [];
+  bool _isLoadingWeeklyFlashbacks = false;
+  String? _weeklyFlashbackError;
+
   @override
   void dispose() {
     _mounted = false;
@@ -447,6 +458,9 @@ class MediaProvider extends ChangeNotifier {
           notifyListeners();
         }
       }
+
+      // Load flashbacks after all media is loaded
+      await loadWeeklyFlashbackPhotos();
     } catch (e) {
       _isLoading = false;
       _error = e.toString();
@@ -926,15 +940,28 @@ class MediaProvider extends ChangeNotifier {
       final bytes = await file.readAsBytes();
 
       final prompt = '''
-Analyze this image and provide a concise, structured analysis with the following key points:
+You are an AI visual analyst. Analyze the following gallery image and provide a structured, concise analysis under these headings:
 
-1. Main Subject: What is the primary focus or subject of the image?
-2. Visual Elements: Key colors, lighting, and composition elements
-3. Context: Where was this taken? What's happening?
-4. Notable Details: Any interesting or unique features
-5. Style: Overall aesthetic and mood
+1. **Main Subject**: What is the central object, person, or scene in the image? Be specific.
+2. **Visual Composition**:
+   - Dominant colors
+   - Lighting type (e.g., natural, artificial, low-light, overexposed)
+   - Framing or perspective (e.g., wide shot, close-up, top-down)
+3. **Scene Context**:
+   - Likely setting (e.g., indoor, outdoor, event, nature, city)
+   - Time of day if possible
+   - Any activity or action happening
+4. **Notable Features**:
+   - Unusual objects, fashion, facial expressions, landmarks, or text in the image
+   - Any emotional cues or symbolic elements
+5. **Style & Mood**:
+   - Artistic style or filter (e.g., candid, posed, edited, vintage)
+   - Mood conveyed (e.g., joyful, eerie, serene, chaotic)
+6. **Tags (comma-separated)**:
+   Generate 5–10 concise keywords or tags relevant for search or categorization.
 
-Keep each point brief and to the point. Focus on the most important aspects only.
+Avoid repetition. Use clear and simple language. Return only the structured output. Do not describe the image as an AI; focus on insights as if summarizing for a user-facing gallery.
+
 ''';
 
       final content = [
@@ -978,6 +1005,147 @@ Keep each point brief and to the point. Focus on the most important aspects only
   void clearAnalysisCache() {
     _analysisCache.clear();
     _analysisInProgress.clear();
+    notifyListeners();
+  }
+
+  // Add getters for flashbacks
+  List<AssetEntity> get flashbackPhotos => _flashbackPhotos;
+  bool get isLoadingFlashbacks => _isLoadingFlashbacks;
+  String? get flashbackError => _flashbackError;
+
+  // Update loadFlashbackPhotos to handle daily flashbacks
+  Future<void> loadFlashbackPhotos() async {
+    if (_isLoadingFlashbacks) return;
+
+    try {
+      _isLoadingFlashbacks = true;
+      _flashbackError = null;
+      notifyListeners();
+
+      final today = DateTime.now();
+      final currentDay = today.day;
+      final currentMonth = today.month;
+
+      // Get all photos from previous years for the same day
+      final allPhotos = _allMediaList.where((asset) {
+        final date = asset.createDateTime;
+        return date.day == currentDay &&
+            date.month == currentMonth &&
+            date.year < today.year;
+      }).toList();
+
+      // Sort by year in descending order
+      allPhotos.sort(
+          (a, b) => b.createDateTime.year.compareTo(a.createDateTime.year));
+
+      _flashbackPhotos = allPhotos;
+      _isLoadingFlashbacks = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoadingFlashbacks = false;
+      _flashbackError = e.toString();
+      notifyListeners();
+    }
+  }
+
+  // Weekly flashback getters
+  List<AssetEntity> get weeklyFlashbackPhotos => _weeklyFlashbackPhotos;
+  bool get isLoadingWeeklyFlashbacks => _isLoadingWeeklyFlashbacks;
+  String? get weeklyFlashbackError => _weeklyFlashbackError;
+
+  // Load weekly flashback photos
+  Future<void> loadWeeklyFlashbackPhotos() async {
+    if (_isLoadingWeeklyFlashbacks) return;
+
+    try {
+      _isLoadingWeeklyFlashbacks = true;
+      _weeklyFlashbackError = null;
+      notifyListeners();
+
+      final now = DateTime.now();
+      final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
+      final currentWeekEnd = currentWeekStart.add(const Duration(days: 6));
+
+      final weeklyPhotos = <AssetEntity>[];
+
+      for (final photo in _allMediaList) {
+        final photoDate = photo.createDateTime;
+        if (photoDate.month == currentWeekStart.month &&
+            photoDate.day >= currentWeekStart.day &&
+            photoDate.day <= currentWeekEnd.day &&
+            photoDate.year != now.year) {
+          weeklyPhotos.add(photo);
+        }
+      }
+
+      // Sort by year and date in descending order
+      weeklyPhotos.sort((a, b) {
+        final yearCompare =
+            b.createDateTime.year.compareTo(a.createDateTime.year);
+        if (yearCompare != 0) return yearCompare;
+        return b.createDateTime.compareTo(a.createDateTime);
+      });
+
+      _weeklyFlashbackPhotos = weeklyPhotos;
+    } catch (e) {
+      _weeklyFlashbackError = e.toString();
+    } finally {
+      _isLoadingWeeklyFlashbacks = false;
+      notifyListeners();
+    }
+  }
+
+  // Add method to generate caption
+  Future<String> generateCaption(AssetEntity asset) async {
+    // Check cache first
+    if (_captionCache.containsKey(asset.id)) {
+      return _captionCache[asset.id]!;
+    }
+
+    try {
+      final file = await asset.file;
+      if (file == null) throw Exception('Could not load image file');
+
+      final bytes = await file.readAsBytes();
+
+      final prompt = '''
+You are a memory caption generator. Create a short, engaging caption (max 2 sentences) for this photo that captures the essence of the moment. Focus on:
+- The main subject or scene
+- The mood or feeling
+- Any notable details that make this moment special
+
+Keep it personal and nostalgic, as if reminiscing about a past memory. Be concise but evocative.
+''';
+
+      final content = [
+        Content.multi([
+          TextPart(prompt),
+          DataPart('image/jpeg', bytes),
+        ])
+      ];
+
+      final response = await _model.generateContent(content);
+      final caption = response.text;
+
+      // Cache the caption
+      _captionCache[asset.id] = caption!;
+      notifyListeners();
+
+      return caption;
+    } catch (e) {
+      debugPrint('Error generating caption: $e');
+      return 'Unable to generate caption';
+    }
+  }
+
+  // Add method to get caption
+  String? getCaption(String assetId) {
+    return _captionCache[assetId];
+  }
+
+  // Add method to clear caption cache
+  void clearCaptionCache() {
+    _captionCache.clear();
     notifyListeners();
   }
 }

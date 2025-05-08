@@ -436,23 +436,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
     }
   }
 
-  Widget _buildFormattedAnalysis(String text) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: MediaUtils.formatMarkdownText(
-          text,
-          fontSize: 14,
-          textColor: Colors.white,
-          headingColor: Colors.amberAccent,
-          headingFontSize: 18,
-          lineSpacing: 8,
-          paragraphSpacing: 16,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -1704,6 +1687,77 @@ class _InfoPanel extends StatelessWidget {
     required this.onClose,
   });
 
+  Future<Map<String, dynamic>> _getMediaDetails(
+      MediaProvider mediaProvider) async {
+    final details = <String, dynamic>{};
+
+    // Get creation date
+    details['date'] = mediaProvider.getCreateDate(asset.id);
+
+    // Get dimensions
+    details['size'] = mediaProvider.getSize(asset.id);
+
+    // Get file size
+    try {
+      final file = await asset.file;
+      if (file != null) {
+        details['filePath'] = file.path;
+        // Try to get file size
+        try {
+          final fileSize = await file.length();
+          details['fileSize'] = fileSize;
+        } catch (e) {}
+      }
+    } catch (e) {}
+
+    // Get duration for videos
+    if (asset.type == AssetType.video) {
+      details['duration'] = mediaProvider.getDuration(asset.id);
+    }
+
+    // Get device info
+    if (asset.title != null) {
+      details['device'] = asset.title;
+    }
+
+    // Get modified date
+    if (asset.modifiedDateTime != null) {
+      details['modifiedDate'] = asset.modifiedDateTime;
+    }
+
+    return details;
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1781,115 +1835,16 @@ class _InfoPanel extends StatelessWidget {
                       details['duration'] != null)
                     _buildInfoRow('Duration',
                         MediaUtils.formatDuration(details['duration'])),
-                  // const SizedBox(height: 12),
-                  // if (details['location'] != null)
-                  //   _buildInfoRow('Location', details['location']),
-                  // const SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   if (details['device'] != null)
                     _buildInfoRow('Device', details['device']),
-                  // const SizedBox(height: 12),
-                  // if (details['modifiedDate'] != null)
-                  //   _buildInfoRow('Modified',
-                  //       MediaUtils.formatDate(details['modifiedDate'])),
+                  const SizedBox(height: 12),
+                  if (details['modifiedDate'] != null)
+                    _buildInfoRow('Modified',
+                        MediaUtils.formatDate(details['modifiedDate'])),
                 ],
               );
             },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<Map<String, dynamic>> _getMediaDetails(
-      MediaProvider mediaProvider) async {
-    final details = <String, dynamic>{};
-
-    // Get creation date
-    details['date'] = mediaProvider.getCreateDate(asset.id);
-
-    // Get dimensions
-    details['size'] = mediaProvider.getSize(asset.id);
-
-    // Get file size
-    try {
-      final fileSize = await mediaProvider.getFileSize(asset.id);
-      if (fileSize != null) {
-        details['fileSize'] = fileSize;
-        debugPrint('File size retrieved: $fileSize bytes');
-      } else {
-        debugPrint('File size is null for asset: ${asset.id}');
-      }
-    } catch (e) {
-      debugPrint('Error getting file size: $e');
-    }
-
-    // Get file path
-    try {
-      final file = await asset.file;
-      if (file != null) {
-        details['filePath'] = file.path;
-        // Try to get file size directly if not available from provider
-        if (details['fileSize'] == null) {
-          try {
-            final fileSize = await file.length();
-            details['fileSize'] = fileSize;
-            debugPrint('File size retrieved directly: $fileSize bytes');
-          } catch (e) {
-            debugPrint('Error getting file size directly: $e');
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Error getting file path: $e');
-    }
-
-    // Get duration for videos
-    if (asset.type == AssetType.video) {
-      details['duration'] = mediaProvider.getDuration(asset.id);
-    }
-
-    // Get location if available
-    if (asset.latitude != null && asset.longitude != null) {
-      details['location'] = '${asset.latitude}, ${asset.longitude}';
-    }
-
-    // Get device info
-    if (asset.title != null) {
-      details['device'] = asset.title;
-    }
-
-    // Get modified date
-    if (asset.modifiedDateTime != null) {
-      details['modifiedDate'] = asset.modifiedDateTime;
-    }
-
-    return details;
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
           ),
         ],
       ),
