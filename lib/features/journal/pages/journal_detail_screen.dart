@@ -9,10 +9,11 @@ import 'package:reverie/utils/media_utils.dart';
 import 'package:reverie/features/journal/models/journal_entry.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../../commonwidgets/custom_markdown.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../gallery/provider/media_provider.dart';
-import '../../gallery/widgets/media_detail_view.dart';
 import '../widgets/journal_entry_form.dart';
+import 'package:reverie/features/gallery/widgets/media_detail_view.dart';
 
 class JournalDetailScreen extends StatefulWidget {
   final JournalEntry entry;
@@ -541,13 +542,14 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        SelectableText(
-                          _currentEntry.content,
-                          style: textTheme.bodyLarge?.copyWith(
-                            height: 1.7,
-                            letterSpacing: 0.3,
-                            fontSize: 16,
-                          ),
+                        CustomMarkdown(
+                          data: _currentEntry.content,
+                          textColor: colorScheme.onSurface,
+                          headingColor: colorScheme.primary,
+                          fontSize: 16,
+                          headingFontSize: 20,
+                          lineSpacing: 1.7,
+                          paragraphSpacing: 16,
                         ),
                       ],
                     ),

@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
+import '../../../commonwidgets/custom_markdown.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../provider/media_provider.dart';
 import '../../../utils/media_utils.dart';
@@ -394,7 +395,15 @@ class _MediaDetailViewState extends State<MediaDetailView>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildFormattedAnalysis(analysis['rawResponse']),
+                        CustomMarkdown(
+                          data: analysis['rawResponse'],
+                          textColor: Colors.white,
+                          headingColor: Colors.amberAccent,
+                          fontSize: 14,
+                          headingFontSize: 18,
+                          lineSpacing: 1.5,
+                          paragraphSpacing: 16,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'Analyzed on: ${DateTime.parse(analysis['timestamp']).toString()}',
@@ -1491,6 +1500,20 @@ class _MediaDetailViewState extends State<MediaDetailView>
                       },
                     );
                   }).toList(),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Tap on a detected object to search it on Google.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white70,
+                        ),
+                  ),
                 ),
               ],
             ),
