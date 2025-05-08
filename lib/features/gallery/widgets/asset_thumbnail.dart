@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -207,6 +208,7 @@ class AssetThumbnail extends StatelessWidget {
               ),
               child: Builder(
                 builder: (context) => PopupMenuButton<String>(
+                  onOpened: HapticFeedback.mediumImpact,
                   icon: const Icon(
                     Icons.more_vert,
                     color: Colors.white,

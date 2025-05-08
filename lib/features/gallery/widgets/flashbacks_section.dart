@@ -27,12 +27,9 @@ class _FlashbacksSectionState extends State<FlashbacksSection> {
   Widget build(BuildContext context) {
     return Consumer<MediaProvider>(
       builder: (context, mediaProvider, _) {
-        // Don't show anything if media is still loading
-        if (!mediaProvider.isInitialized) {
-          return const SizedBox.shrink();
-        }
-
-        if (mediaProvider.isLoadingWeeklyFlashbacks) {
+        // Show loading state when media is loading or flashbacks are loading
+        if (mediaProvider.isLoading ||
+            mediaProvider.isLoadingWeeklyFlashbacks) {
           return Container(
             height: 220,
             padding: const EdgeInsets.all(16),
@@ -91,7 +88,7 @@ class _FlashbacksSectionState extends State<FlashbacksSection> {
                       size: 48, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
-                    'No memories found for this week',
+                    'Flashback memories will appear here soon. Just wait.',
                     style: TextStyle(color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
@@ -101,54 +98,52 @@ class _FlashbacksSectionState extends State<FlashbacksSection> {
           );
         }
 
-        return Container(
-          height: 220,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_view_week, size: 20),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'On This Week',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_view_week, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'On This Week',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      onPressed: () =>
-                          mediaProvider.loadWeeklyFlashbackPhotos(),
-                      tooltip: 'Refresh memories',
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => mediaProvider.loadWeeklyFlashbackPhotos(),
+                    tooltip: 'Refresh memories',
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 180,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                itemCount: groupedPhotos.length,
+                itemBuilder: (context, index) {
+                  final date = groupedPhotos.keys.elementAt(index);
+                  final photos = groupedPhotos[date]!;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FlashbackCard(
+                      asset: photos.first,
+                      assetList: photos,
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
-              Expanded(
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  itemCount: groupedPhotos.length,
-                  itemBuilder: (context, index) {
-                    final date = groupedPhotos.keys.elementAt(index);
-                    final photos = groupedPhotos[date]!;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: FlashbackCard(
-                        asset: photos.first,
-                        assetList: photos,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );

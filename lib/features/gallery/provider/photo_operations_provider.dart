@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
@@ -16,6 +17,7 @@ class PhotoOperationsProvider extends ChangeNotifier {
   int get selectedCount => _selectedItems.length;
 
   void toggleSelectionMode() {
+    HapticFeedback.selectionClick();
     _isSelectionMode = !_isSelectionMode;
     if (!_isSelectionMode) {
       _selectedItems.clear();
@@ -28,6 +30,7 @@ class PhotoOperationsProvider extends ChangeNotifier {
       _selectedItems.remove(itemId);
     } else {
       _selectedItems.add(itemId);
+      HapticFeedback.lightImpact();
     }
     if (_selectedItems.isEmpty) {
       _isSelectionMode = false;
