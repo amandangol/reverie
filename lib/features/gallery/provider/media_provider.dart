@@ -80,6 +80,13 @@ class MediaProvider extends ChangeNotifier {
   bool _isLoadingWeeklyFlashbacks = false;
   String? _weeklyFlashbackError;
 
+  // Add new properties for enhanced flashback features
+  final Map<String, Map<String, dynamic>> _memoryAnalysisCache = {};
+  final Map<String, bool> _memoryAnalysisInProgress = {};
+  List<AssetEntity> _monthlyFlashbackPhotos = [];
+  bool _isLoadingMonthlyFlashbacks = false;
+  String? _monthlyFlashbackError;
+
   @override
   void dispose() {
     _mounted = false;
@@ -460,7 +467,7 @@ class MediaProvider extends ChangeNotifier {
       }
 
       // Load flashbacks after all media is loaded
-      await loadWeeklyFlashbackPhotos();
+      await loadFlashbackPhotos();
     } catch (e) {
       _isLoading = false;
       _error = e.toString();
@@ -1147,5 +1154,171 @@ Keep it personal and nostalgic, as if reminiscing about a past memory. Be concis
   void clearCaptionCache() {
     _captionCache.clear();
     notifyListeners();
+  }
+
+  // Add getters for monthly flashbacks
+  List<AssetEntity> get monthlyFlashbackPhotos => _monthlyFlashbackPhotos;
+  bool get isLoadingMonthlyFlashbacks => _isLoadingMonthlyFlashbacks;
+  String? get monthlyFlashbackError => _monthlyFlashbackError;
+
+  // Load monthly flashback photos
+  Future<void> loadMonthlyFlashbackPhotos() async {
+    if (_isLoadingMonthlyFlashbacks) return;
+
+    try {
+      _isLoadingMonthlyFlashbacks = true;
+      _monthlyFlashbackError = null;
+      notifyListeners();
+
+      final now = DateTime.now();
+      final currentMonth = now.month;
+
+      final monthlyPhotos = <AssetEntity>[];
+
+      for (final photo in _allMediaList) {
+        final photoDate = photo.createDateTime;
+        if (photoDate.month == currentMonth && photoDate.year != now.year) {
+          monthlyPhotos.add(photo);
+        }
+      }
+
+      // Sort by year and date in descending order
+      monthlyPhotos.sort((a, b) {
+        final yearCompare =
+            b.createDateTime.year.compareTo(a.createDateTime.year);
+        if (yearCompare != 0) return yearCompare;
+        return b.createDateTime.compareTo(a.createDateTime);
+      });
+
+      _monthlyFlashbackPhotos = monthlyPhotos;
+    } catch (e) {
+      _monthlyFlashbackError = e.toString();
+    } finally {
+      _isLoadingMonthlyFlashbacks = false;
+      notifyListeners();
+    }
+  }
+
+  // Add method to analyze memory
+  Future<Map<String, dynamic>> analyzeMemory(AssetEntity asset) async {
+    if (_memoryAnalysisInProgress[asset.id] == true) {
+      throw Exception('Memory analysis already in progress');
+    }
+
+    if (_memoryAnalysisCache.containsKey(asset.id)) {
+      return _memoryAnalysisCache[asset.id]!;
+    }
+
+    try {
+      _memoryAnalysisInProgress[asset.id] = true;
+      notifyListeners();
+
+      final file = await asset.file;
+      if (file == null) throw Exception('Could not load image file');
+
+      final bytes = await file.readAsBytes();
+
+      final prompt = '''
+You are a memory analyst. Analyze this photo and provide insights about the memory it captures:
+
+1. **Memory Context**:
+   - What kind of moment or event is captured?
+   - What emotions or feelings does it evoke?
+   - What makes this memory special or significant?
+
+2. **Memory Details**:
+   - Key people, places, or objects in the memory
+   - Notable activities or events happening
+   - Any unique or memorable elements
+
+3. **Memory Impact**:
+   - Why might this memory be important to the person?
+   - What story or narrative does it tell?
+   - How might it connect to other memories?
+
+4. **Memory Tags**:
+   Generate 5-10 emotional or thematic tags that capture the essence of this memory.
+
+Keep the analysis personal and nostalgic, focusing on the emotional and narrative aspects of the memory.
+''';
+
+      final content = [
+        Content.multi([
+          TextPart(prompt),
+          DataPart('image/jpeg', bytes),
+        ])
+      ];
+
+      final response = await _model.generateContent(content);
+      final text = response.text;
+
+      final analysis = {
+        'rawResponse': text,
+        'timestamp': DateTime.now().toIso8601String(),
+        'assetId': asset.id,
+      };
+
+      _memoryAnalysisCache[asset.id] = analysis;
+      return analysis;
+    } catch (e) {
+      debugPrint('Error analyzing memory: $e');
+      rethrow;
+    } finally {
+      _memoryAnalysisInProgress[asset.id] = false;
+      notifyListeners();
+    }
+  }
+
+  // Add method to check if memory analysis is in progress
+  bool isMemoryAnalysisInProgress(String assetId) {
+    return _memoryAnalysisInProgress[assetId] ?? false;
+  }
+
+  // Add method to clear memory analysis cache
+  void clearMemoryAnalysisCache() {
+    _memoryAnalysisCache.clear();
+    _memoryAnalysisInProgress.clear();
+    notifyListeners();
+  }
+
+  // Add method to get memory analysis
+  Map<String, dynamic>? getMemoryAnalysis(String assetId) {
+    return _memoryAnalysisCache[assetId];
+  }
+
+  // Add method to get similar memories
+  List<AssetEntity> getSimilarMemories(AssetEntity asset, {int limit = 5}) {
+    final analysis = _memoryAnalysisCache[asset.id];
+    if (analysis == null) return [];
+
+    // Get all memories with analysis
+    final memoriesWithAnalysis = _allMediaItems.values
+        .where((a) => _memoryAnalysisCache.containsKey(a.id))
+        .toList();
+
+    // Sort by similarity (this is a simple implementation - you might want to use more sophisticated similarity metrics)
+    memoriesWithAnalysis.sort((a, b) {
+      final aAnalysis = _memoryAnalysisCache[a.id]!;
+      final bAnalysis = _memoryAnalysisCache[b.id]!;
+
+      // Compare timestamps to get more recent memories first
+      return bAnalysis['timestamp'].compareTo(aAnalysis['timestamp']);
+    });
+
+    // Return top N similar memories
+    return memoriesWithAnalysis.take(limit).toList();
+  }
+
+  // Add method to get memory timeline
+  List<AssetEntity> getMemoryTimeline({int limit = 10}) {
+    final memoriesWithAnalysis = _allMediaItems.values
+        .where((a) => _memoryAnalysisCache.containsKey(a.id))
+        .toList();
+
+    // Sort by creation date
+    memoriesWithAnalysis
+        .sort((a, b) => b.createDateTime.compareTo(a.createDateTime));
+
+    return memoriesWithAnalysis.take(limit).toList();
   }
 }

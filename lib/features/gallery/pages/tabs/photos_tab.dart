@@ -35,8 +35,6 @@ class _PhotosTabState extends State<PhotosTab> {
         if (mediaProvider.isLoading && !mediaProvider.isInitialized) {
           return Column(
             children: [
-              const FlashbacksSection(),
-              const Divider(),
               Expanded(
                 child: ShimmerLoading(
                   isGridView: widget.isGridView,
@@ -61,7 +59,6 @@ class _PhotosTabState extends State<PhotosTab> {
         if (mediaProvider.mediaItems.isEmpty) {
           return Column(
             children: [
-              const FlashbacksSection(),
               const Divider(),
               Expanded(
                 child: EmptyState(
@@ -78,12 +75,6 @@ class _PhotosTabState extends State<PhotosTab> {
 
         return CustomScrollView(
           slivers: [
-            const SliverToBoxAdapter(
-              child: FlashbacksSection(),
-            ),
-            const SliverToBoxAdapter(
-              child: Divider(),
-            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -96,6 +87,14 @@ class _PhotosTabState extends State<PhotosTab> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                     const Spacer(),
+                    if (!photoOps.isSelectionMode)
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/flashbacks');
+                        },
+                        icon: const Icon(Icons.history),
+                        label: const Text('Flashbacks'),
+                      ),
                     if (photoOps.isSelectionMode) ...[
                       IconButton(
                         icon: const Icon(Icons.share),

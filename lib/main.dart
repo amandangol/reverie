@@ -12,6 +12,8 @@ import 'theme/app_theme.dart';
 import 'features/journal/pages/journal_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'providers/gallery_preferences_provider.dart';
+import 'features/gallery/pages/flashbacks_screen.dart';
+import 'features/journal/widgets/journal_entry_form.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +46,28 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/main': (context) => const MainScreen(),
+        '/flashbacks': (context) => const FlashbacksScreen(),
+        '/journal/new': (context) => JournalEntryForm(
+              onSave: (title, content, mediaIds, mood, tags, {lastEdited}) {
+                // Handle saving new journal entry
+                Navigator.pop(context);
+              },
+            ),
+        '/journal/edit': (context) => JournalEntryForm(
+              initialTitle: '', // Pass the entry to edit
+              initialContent: '',
+              initialMediaIds: const [],
+              initialMood: '',
+              initialTags: const [],
+              onSave: (title, content, mediaIds, mood, tags, {lastEdited}) {
+                // Handle updating journal entry
+                Navigator.pop(context);
+              },
+              onDelete: () {
+                // Handle deleting journal entry
+                Navigator.pop(context);
+              },
+            ),
       },
     );
   }

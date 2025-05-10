@@ -221,28 +221,37 @@ class _JournalEntryFormState extends State<JournalEntryForm>
       if (widget.initialTitle != null) {
         await journalProvider.updateEntry(entry);
         if (mounted) {
+          widget.onSave(
+            entry.title,
+            entry.content,
+            entry.mediaIds,
+            entry.mood,
+            entry.tags,
+            lastEdited: entry.lastEdited,
+          );
           Navigator.pop(context);
         }
       } else {
         await journalProvider.addEntry(entry);
         if (mounted) {
+          widget.onSave(
+            entry.title,
+            entry.content,
+            entry.mediaIds,
+            entry.mood,
+            entry.tags,
+            lastEdited: entry.lastEdited,
+          );
           Navigator.pop(context);
           SnackbarUtils.showJournalEntryCreated(
             context,
             title: entry.title,
-            onView: () {},
+            onView: () {
+              Navigator.pushNamed(context, '/journal');
+            },
           );
         }
       }
-
-      widget.onSave(
-        entry.title,
-        entry.content,
-        entry.mediaIds,
-        entry.mood,
-        entry.tags,
-        lastEdited: entry.lastEdited,
-      );
     } catch (e) {
       if (mounted) {
         SnackbarUtils.showError(context, 'Failed to save journal entry: $e');
@@ -784,7 +793,7 @@ class _JournalEntryFormState extends State<JournalEntryForm>
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              if (widget.onDelete != null && !isEditing)
+              if (widget.onDelete != null && isEditing)
                 IconButton(
                   icon: const Icon(Icons.delete_outline_rounded,
                       color: Colors.red, size: 20),
