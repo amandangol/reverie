@@ -395,7 +395,7 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      '${memories.length} memory${memories.length == 1 ? '' : 'ies'}',
+                      '${memories.length} ${memories.length == 1 ? 'memory' : 'memories'}',
                       style: TextStyle(
                         color: Colors.grey[700],
                         fontSize: 14,
@@ -478,12 +478,30 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   }
 
   void _showMediaDetail(BuildContext context, AssetEntity asset) {
+    // Get all memories for the current tab
+    final mediaProvider = context.read<MediaProvider>();
+    final memories = _getMemoriesForCurrentTab(mediaProvider);
+    final filteredMemories = _filterMemoriesByYear(memories);
+
+    // Group memories by date
+    final groupedMemories = _groupMemoriesByDate(filteredMemories);
+
+    // Find the date group that contains the selected asset
+    final selectedDate = DateTime(
+      asset.createDateTime.year,
+      asset.createDateTime.month,
+      asset.createDateTime.day,
+    );
+
+    // Get only the memories from the same date
+    final sameDayMemories = groupedMemories[selectedDate] ?? [];
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MediaDetailView(
           asset: asset,
-          assetList: context.read<MediaProvider>().mediaItems,
+          assetList: sameDayMemories,
           heroTag: 'flashback_${asset.id}',
         ),
         fullscreenDialog: true,

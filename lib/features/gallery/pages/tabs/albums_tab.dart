@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../commonwidgets/empty_state.dart';
 import '../../provider/media_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
+import '../../widgets/flashbacks_preview.dart';
 import '../album_page.dart';
 import '../video_albums_page.dart';
 import '../../../permissions/provider/permission_provider.dart';
@@ -110,115 +111,68 @@ class _AlbumsTabState extends State<AlbumsTab> {
             children: [
               // Favorites and Videos section
               if (widget.isGridView)
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  padding: const EdgeInsets.all(8),
+                Column(
                   children: [
-                    // Favorites card
-                    Card(
-                      clipBehavior: Clip.antiAlias,
-                      elevation: 0.5,
-                      color: Colors.black.withOpacity(0.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: InkWell(
-                        onTap: _cachedFavoriteCount > 0
-                            ? () {
+                    // First row: Favorites and Videos
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                      padding: const EdgeInsets.all(8),
+                      children: [
+                        // Favorites card
+                        Card(
+                          clipBehavior: Clip.antiAlias,
+                          elevation: 0.5,
+                          color: Colors.black.withOpacity(0.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: InkWell(
+                            onTap: _cachedFavoriteCount > 0
+                                ? () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => AlbumPage(
+                                          album: _cachedAlbums.first,
+                                          isGridView: widget.isGridView,
+                                          gridCrossAxisCount:
+                                              widget.gridCrossAxisCount,
+                                          isFavoritesAlbum: true,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                : null,
+                            child:
+                                _buildFavoritesAlbumCard(_cachedFavoriteCount),
+                          ),
+                        ),
+                        // Videos card
+                        if (_cachedVideoAlbums.isNotEmpty)
+                          Card(
+                            clipBehavior: Clip.antiAlias,
+                            elevation: 0.5,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: InkWell(
+                              onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => AlbumPage(
-                                      album: _cachedAlbums.first,
-                                      isGridView: widget.isGridView,
-                                      gridCrossAxisCount:
-                                          widget.gridCrossAxisCount,
-                                      isFavoritesAlbum: true,
-                                    ),
+                                    builder: (context) => VideoAlbumsPage(),
                                   ),
                                 );
-                              }
-                            : null,
-                        child: _buildFavoritesAlbumCard(_cachedFavoriteCount),
-                      ),
-                    ),
-                    // Videos card
-                    if (_cachedVideoAlbums.isNotEmpty)
-                      Card(
-                        clipBehavior: Clip.antiAlias,
-                        elevation: 0.5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VideoAlbumsPage(),
-                              ),
-                            );
-                          },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.1),
-                                  ),
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.video_library,
-                                      color: Colors.red,
-                                      size: 48,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Videos',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    FutureBuilder<int>(
-                                      future: Future.wait(_cachedVideoAlbums
-                                          .where(
-                                              (album) => album.name != 'Recent')
-                                          .map((album) =>
-                                              album.assetCountAsync)).then(
-                                          (counts) =>
-                                              counts.reduce((a, b) => a + b)),
-                                      builder: (context, snapshot) {
-                                        final count = snapshot.data ?? 0;
-                                        return Text(
-                                          '$count video${count == 1 ? '' : 's'}',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                              },
+                              child: _buildVideosCard(),
+                            ),
                           ),
-                        ),
-                      ),
+                      ],
+                    ),
                   ],
                 )
               else
@@ -269,68 +223,18 @@ class _AlbumsTabState extends State<AlbumsTab> {
                               ),
                             );
                           },
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(8),
-                                    bottomLeft: Radius.circular(8),
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.video_library,
-                                  color: Colors.red,
-                                  size: 32,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Videos',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    FutureBuilder<int>(
-                                      future: Future.wait(_cachedVideoAlbums
-                                          .where(
-                                              (album) => album.name != 'Recent')
-                                          .map((album) =>
-                                              album.assetCountAsync)).then(
-                                          (counts) =>
-                                              counts.reduce((a, b) => a + b)),
-                                      builder: (context, snapshot) {
-                                        final count = snapshot.data ?? 0;
-                                        return Text(
-                                          '$count video${count == 1 ? '' : 's'}',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Icon(Icons.chevron_right,
-                                  color: Colors.grey),
-                              const SizedBox(width: 8),
-                            ],
-                          ),
+                          child: _buildVideosListItem(),
                         ),
                       ),
+                    // Flashbacks Preview (full width)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: FlashbacksPreview(
+                        onTap: () {
+                          Navigator.pushNamed(context, '/flashbacks');
+                        },
+                      ),
+                    ),
                   ],
                 ),
 
@@ -518,68 +422,67 @@ class _AlbumsTabState extends State<AlbumsTab> {
   }
 
   Widget _buildFavoritesAlbumCard(int favoriteCount) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.favorite,
-                color: Colors.white,
-                size: 48,
-              ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.primary.withOpacity(0.5),
+              ],
             ),
           ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.7),
-                  ],
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Favorites',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$favoriteCount item${favoriteCount == 1 ? '' : 's'}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
-                  ),
+          child: const Center(
+            child: Icon(
+              Icons.favorite,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.7),
                 ],
               ),
             ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Favorites',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  '$favoriteCount item${favoriteCount == 1 ? '' : 's'}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -590,7 +493,14 @@ class _AlbumsTabState extends State<AlbumsTab> {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.primary.withOpacity(0.5),
+              ],
+            ),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(8),
               bottomLeft: Radius.circular(8),
@@ -779,6 +689,148 @@ class _AlbumsTabState extends State<AlbumsTab> {
                 );
               },
             ),
+    );
+  }
+
+  Widget _buildVideosCard() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.red[700]!,
+                Colors.red[900]!,
+              ],
+            ),
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.video_library,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.7),
+                ],
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Videos',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                FutureBuilder<int>(
+                  future: Future.wait(_cachedVideoAlbums
+                          .where((album) => album.name != 'Recent')
+                          .map((album) => album.assetCountAsync))
+                      .then((counts) => counts.reduce((a, b) => a + b)),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    return Text(
+                      '$count video${count == 1 ? '' : 's'}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVideosListItem() {
+    return Row(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.red[700]!,
+                Colors.red[900]!,
+              ],
+            ),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(8),
+              bottomLeft: Radius.circular(8),
+            ),
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.video_library,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Videos',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              FutureBuilder<int>(
+                future: Future.wait(_cachedVideoAlbums
+                        .where((album) => album.name != 'Recent')
+                        .map((album) => album.assetCountAsync))
+                    .then((counts) => counts.reduce((a, b) => a + b)),
+                builder: (context, snapshot) {
+                  final count = snapshot.data ?? 0;
+                  return Text(
+                    '$count video${count == 1 ? '' : 's'}',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        const Icon(Icons.chevron_right, color: Colors.grey),
+        const SizedBox(width: 8),
+      ],
     );
   }
 

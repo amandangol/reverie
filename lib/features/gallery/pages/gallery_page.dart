@@ -4,6 +4,7 @@ import '../../../providers/gallery_preferences_provider.dart';
 import '../../permissions/provider/permission_provider.dart';
 import '../../permissions/widgets/permission_aware_widget.dart';
 import '../provider/media_provider.dart';
+import '../widgets/flashbacks_preview.dart';
 import 'tabs/photos_tab.dart';
 import 'tabs/albums_tab.dart';
 
@@ -88,15 +89,38 @@ class _GalleryPageState extends State<GalleryPage>
           onPermissionGranted: () {
             context.read<MediaProvider>().requestPermission();
           },
-          child: TabBarView(
+          child: Column(
             children: [
-              PhotosTab(
-                isGridView: preferences.isGridView,
-                gridCrossAxisCount: preferences.gridCrossAxisCount,
+              // Flashbacks Preview
+              Consumer<MediaProvider>(
+                builder: (context, mediaProvider, _) {
+                  if (mediaProvider.isLoading) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: FlashbacksPreview(
+                      onTap: () {
+                        Navigator.pushNamed(context, '/flashbacks');
+                      },
+                    ),
+                  );
+                },
               ),
-              AlbumsTab(
-                isGridView: preferences.isGridView,
-                gridCrossAxisCount: preferences.gridCrossAxisCount,
+              // TabBarView
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    PhotosTab(
+                      isGridView: preferences.isGridView,
+                      gridCrossAxisCount: preferences.gridCrossAxisCount,
+                    ),
+                    AlbumsTab(
+                      isGridView: preferences.isGridView,
+                      gridCrossAxisCount: preferences.gridCrossAxisCount,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

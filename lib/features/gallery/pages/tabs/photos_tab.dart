@@ -11,7 +11,6 @@ import '../../widgets/media_detail_view.dart';
 import 'package:reverie/utils/media_utils.dart';
 import '../../../permissions/provider/permission_provider.dart';
 import '../../../../commonwidgets/shimmer_loading.dart';
-import '../../widgets/flashbacks_section.dart';
 
 class PhotosTab extends StatefulWidget {
   final bool isGridView;
@@ -87,14 +86,6 @@ class _PhotosTabState extends State<PhotosTab> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                     const Spacer(),
-                    if (!photoOps.isSelectionMode)
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/flashbacks');
-                        },
-                        icon: const Icon(Icons.history),
-                        label: const Text('Flashbacks'),
-                      ),
                     if (photoOps.isSelectionMode) ...[
                       IconButton(
                         icon: const Icon(Icons.share),
