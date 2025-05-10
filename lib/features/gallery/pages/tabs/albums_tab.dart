@@ -219,7 +219,7 @@ class _AlbumsTabState extends State<AlbumsTab> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => VideoAlbumsPage(),
+                                builder: (context) => const VideoAlbumsPage(),
                               ),
                             );
                           },
@@ -227,13 +227,9 @@ class _AlbumsTabState extends State<AlbumsTab> {
                         ),
                       ),
                     // Flashbacks Preview (full width)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: FlashbacksPreview(
-                        onTap: () {
-                          Navigator.pushNamed(context, '/flashbacks');
-                        },
-                      ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: FlashbacksPreview(),
                     ),
                   ],
                 ),

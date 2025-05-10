@@ -87,6 +87,15 @@ class MediaProvider extends ChangeNotifier {
   bool _isLoadingMonthlyFlashbacks = false;
   String? _monthlyFlashbackError;
 
+  // Add new properties for flashbacks initialization and caching
+  bool _isFlashbacksInitialized = false;
+  static const String _flashbacksCacheKey = 'flashbacks_cache';
+  static const String _weeklyFlashbacksCacheKey = 'weekly_flashbacks_cache';
+  static const String _monthlyFlashbacksCacheKey = 'monthly_flashbacks_cache';
+
+  // Add getter for flashbacks initialization state
+  bool get isFlashbacksInitialized => _isFlashbacksInitialized;
+
   @override
   void dispose() {
     _mounted = false;
@@ -882,7 +891,9 @@ class MediaProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   Future<void> refreshMedia() async {
+    await clearFlashbacksCache();
     _isInitialized = false;
     _mediaItems.clear();
     _videoItems.clear();
@@ -1070,7 +1081,7 @@ Avoid repetition. Use clear and simple language. Return only the structured outp
   bool get isLoadingFlashbacks => _isLoadingFlashbacks;
   String? get flashbackError => _flashbackError;
 
-  // Update loadFlashbackPhotos to handle daily flashbacks
+  // Update loadFlashbackPhotos to include caching
   Future<void> loadFlashbackPhotos() async {
     if (_isLoadingFlashbacks) return;
 
@@ -1078,6 +1089,22 @@ Avoid repetition. Use clear and simple language. Return only the structured outp
       _isLoadingFlashbacks = true;
       _flashbackError = null;
       notifyListeners();
+
+      // Try to load from cache first
+      if (_prefs != null) {
+        final cachedIds = _prefs?.getStringList(_flashbacksCacheKey);
+        if (cachedIds != null && cachedIds.isNotEmpty) {
+          _flashbackPhotos = cachedIds
+              .map((id) => _allMediaItems[id])
+              .where((asset) => asset != null)
+              .cast<AssetEntity>()
+              .toList();
+          _isLoadingFlashbacks = false;
+          _isFlashbacksInitialized = true;
+          notifyListeners();
+          return;
+        }
+      }
 
       final today = DateTime.now();
       final currentDay = today.day;
@@ -1096,7 +1123,15 @@ Avoid repetition. Use clear and simple language. Return only the structured outp
           (a, b) => b.createDateTime.year.compareTo(a.createDateTime.year));
 
       _flashbackPhotos = allPhotos;
+
+      // Cache the results
+      if (_prefs != null) {
+        await _prefs?.setStringList(
+            _flashbacksCacheKey, allPhotos.map((a) => a.id).toList());
+      }
+
       _isLoadingFlashbacks = false;
+      _isFlashbacksInitialized = true;
       notifyListeners();
     } catch (e) {
       _isLoadingFlashbacks = false;
@@ -1110,7 +1145,7 @@ Avoid repetition. Use clear and simple language. Return only the structured outp
   bool get isLoadingWeeklyFlashbacks => _isLoadingWeeklyFlashbacks;
   String? get weeklyFlashbackError => _weeklyFlashbackError;
 
-  // Load weekly flashback photos
+  // Update loadWeeklyFlashbackPhotos to include caching
   Future<void> loadWeeklyFlashbackPhotos() async {
     if (_isLoadingWeeklyFlashbacks) return;
 
@@ -1118,6 +1153,21 @@ Avoid repetition. Use clear and simple language. Return only the structured outp
       _isLoadingWeeklyFlashbacks = true;
       _weeklyFlashbackError = null;
       notifyListeners();
+
+      // Try to load from cache first
+      if (_prefs != null) {
+        final cachedIds = _prefs?.getStringList(_weeklyFlashbacksCacheKey);
+        if (cachedIds != null && cachedIds.isNotEmpty) {
+          _weeklyFlashbackPhotos = cachedIds
+              .map((id) => _allMediaItems[id])
+              .where((asset) => asset != null)
+              .cast<AssetEntity>()
+              .toList();
+          _isLoadingWeeklyFlashbacks = false;
+          notifyListeners();
+          return;
+        }
+      }
 
       final now = DateTime.now();
       final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
@@ -1144,9 +1194,17 @@ Avoid repetition. Use clear and simple language. Return only the structured outp
       });
 
       _weeklyFlashbackPhotos = weeklyPhotos;
+
+      // Cache the results
+      if (_prefs != null) {
+        await _prefs?.setStringList(
+            _weeklyFlashbacksCacheKey, weeklyPhotos.map((a) => a.id).toList());
+      }
+
+      _isLoadingWeeklyFlashbacks = false;
+      notifyListeners();
     } catch (e) {
       _weeklyFlashbackError = e.toString();
-    } finally {
       _isLoadingWeeklyFlashbacks = false;
       notifyListeners();
     }
@@ -1211,7 +1269,7 @@ Keep it personal and nostalgic, as if reminiscing about a past memory. Be concis
   bool get isLoadingMonthlyFlashbacks => _isLoadingMonthlyFlashbacks;
   String? get monthlyFlashbackError => _monthlyFlashbackError;
 
-  // Load monthly flashback photos
+  // Update loadMonthlyFlashbackPhotos to include caching
   Future<void> loadMonthlyFlashbackPhotos() async {
     if (_isLoadingMonthlyFlashbacks) return;
 
@@ -1219,6 +1277,21 @@ Keep it personal and nostalgic, as if reminiscing about a past memory. Be concis
       _isLoadingMonthlyFlashbacks = true;
       _monthlyFlashbackError = null;
       notifyListeners();
+
+      // Try to load from cache first
+      if (_prefs != null) {
+        final cachedIds = _prefs?.getStringList(_monthlyFlashbacksCacheKey);
+        if (cachedIds != null && cachedIds.isNotEmpty) {
+          _monthlyFlashbackPhotos = cachedIds
+              .map((id) => _allMediaItems[id])
+              .where((asset) => asset != null)
+              .cast<AssetEntity>()
+              .toList();
+          _isLoadingMonthlyFlashbacks = false;
+          notifyListeners();
+          return;
+        }
+      }
 
       final now = DateTime.now();
       final currentMonth = now.month;
@@ -1241,9 +1314,17 @@ Keep it personal and nostalgic, as if reminiscing about a past memory. Be concis
       });
 
       _monthlyFlashbackPhotos = monthlyPhotos;
+
+      // Cache the results
+      if (_prefs != null) {
+        await _prefs?.setStringList(_monthlyFlashbacksCacheKey,
+            monthlyPhotos.map((a) => a.id).toList());
+      }
+
+      _isLoadingMonthlyFlashbacks = false;
+      notifyListeners();
     } catch (e) {
       _monthlyFlashbackError = e.toString();
-    } finally {
       _isLoadingMonthlyFlashbacks = false;
       notifyListeners();
     }
@@ -1370,5 +1451,19 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
         .sort((a, b) => b.createDateTime.compareTo(a.createDateTime));
 
     return memoriesWithAnalysis.take(limit).toList();
+  }
+
+  // Add method to clear flashbacks cache
+  Future<void> clearFlashbacksCache() async {
+    if (_prefs != null) {
+      await _prefs?.remove(_flashbacksCacheKey);
+      await _prefs?.remove(_weeklyFlashbacksCacheKey);
+      await _prefs?.remove(_monthlyFlashbacksCacheKey);
+    }
+    _isFlashbacksInitialized = false;
+    _flashbackPhotos.clear();
+    _weeklyFlashbackPhotos.clear();
+    _monthlyFlashbackPhotos.clear();
+    notifyListeners();
   }
 }

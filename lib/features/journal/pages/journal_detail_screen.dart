@@ -789,6 +789,18 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    // Store entry data for potential undo
+    final entryData = {
+      'id': _currentEntry.id,
+      'title': _currentEntry.title,
+      'content': _currentEntry.content,
+      'date': _currentEntry.date,
+      'mediaIds': _currentEntry.mediaIds,
+      'mood': _currentEntry.mood,
+      'tags': _currentEntry.tags,
+      'lastEdited': _currentEntry.lastEdited,
+    };
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -804,15 +816,41 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final journalProvider = context.read<JournalProvider>();
-              journalProvider.deleteEntry(_currentEntry.id);
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to journal list
-              SnackbarUtils.showError(
-                context,
-                'Journal entry deleted',
-              );
+              final success =
+                  await journalProvider.deleteEntry(_currentEntry.id);
+
+              if (success && mounted) {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Go back to journal list
+
+                // Show snackbar with undo option
+                SnackbarUtils.showJournalEntryDeleted(
+                  context,
+                  title: _currentEntry.title,
+                  onUndo: () async {
+                    // Restore the entry
+                    final restoredEntry = JournalEntry(
+                      id: entryData['id'] as String,
+                      title: entryData['title'] as String,
+                      content: entryData['content'] as String,
+                      date: entryData['date'] as DateTime,
+                      mediaIds:
+                          List<String>.from(entryData['mediaIds'] as List),
+                      mood: entryData['mood'] as String?,
+                      tags: List<String>.from(entryData['tags'] as List),
+                      lastEdited: entryData['lastEdited'] as DateTime,
+                    );
+
+                    await journalProvider.addEntry(restoredEntry);
+                  },
+                );
+              } else if (mounted) {
+                Navigator.pop(context); // Close dialog
+                SnackbarUtils.showError(
+                    context, 'Failed to delete journal entry');
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.error,

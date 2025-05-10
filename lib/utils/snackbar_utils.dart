@@ -190,4 +190,20 @@ class SnackbarUtils {
       isSuccess: true,
     );
   }
+
+  static void showJournalEntryDeleted(
+    BuildContext context, {
+    required String title,
+    required VoidCallback onUndo,
+  }) {
+    showWithAction(
+      context,
+      message: 'Journal entry "$title" deleted',
+      actionLabel: 'Undo',
+      onAction: onUndo,
+      icon: Icons.delete_outline,
+      backgroundColor: Colors.red.shade700,
+      isError: true,
+    );
+  }
 }

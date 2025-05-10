@@ -187,6 +187,14 @@ class JournalProvider extends ChangeNotifier {
     }
 
     try {
+      // Check if entry with same ID already exists
+      final existingEntry = _entryCache[entry.id];
+      if (existingEntry != null) {
+        _error = 'Entry already exists';
+        notifyListeners();
+        return false;
+      }
+
       final now = DateTime.now();
       final map = {
         'id': entry.id,

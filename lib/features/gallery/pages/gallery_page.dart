@@ -97,13 +97,9 @@ class _GalleryPageState extends State<GalleryPage>
                   if (mediaProvider.isLoading) {
                     return const SizedBox.shrink();
                   }
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: FlashbacksPreview(
-                      onTap: () {
-                        Navigator.pushNamed(context, '/flashbacks');
-                      },
-                    ),
+                  return const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: FlashbacksPreview(),
                   );
                 },
               ),

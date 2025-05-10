@@ -197,6 +197,8 @@ class _JournalEntryFormState extends State<JournalEntryForm>
       return;
     }
 
+    if (_isSaving) return; // Prevent multiple saves
+
     setState(() {
       _isSaving = true;
     });
@@ -218,31 +220,25 @@ class _JournalEntryFormState extends State<JournalEntryForm>
         lastEdited: DateTime.now(),
       );
 
+      bool success = false;
       if (widget.initialTitle != null) {
-        await journalProvider.updateEntry(entry);
-        if (mounted) {
-          widget.onSave(
-            entry.title,
-            entry.content,
-            entry.mediaIds,
-            entry.mood,
-            entry.tags,
-            lastEdited: entry.lastEdited,
-          );
-          Navigator.pop(context);
-        }
+        success = await journalProvider.updateEntry(entry);
       } else {
-        await journalProvider.addEntry(entry);
-        if (mounted) {
-          widget.onSave(
-            entry.title,
-            entry.content,
-            entry.mediaIds,
-            entry.mood,
-            entry.tags,
-            lastEdited: entry.lastEdited,
-          );
-          Navigator.pop(context);
+        success = await journalProvider.addEntry(entry);
+      }
+
+      if (success && mounted) {
+        widget.onSave(
+          entry.title,
+          entry.content,
+          entry.mediaIds,
+          entry.mood,
+          entry.tags,
+          lastEdited: entry.lastEdited,
+        );
+        Navigator.pop(context);
+
+        if (widget.initialTitle == null) {
           SnackbarUtils.showJournalEntryCreated(
             context,
             title: entry.title,
@@ -251,6 +247,8 @@ class _JournalEntryFormState extends State<JournalEntryForm>
             },
           );
         }
+      } else if (mounted) {
+        SnackbarUtils.showError(context, 'Failed to save journal entry');
       }
     } catch (e) {
       if (mounted) {

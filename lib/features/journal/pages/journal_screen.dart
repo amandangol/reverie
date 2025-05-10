@@ -934,31 +934,15 @@ class _JournalScreenState extends State<JournalScreen> {
             JournalEntryForm(
           onSave: (title, content, mediaIds, mood, tags,
               {DateTime? lastEdited}) async {
-            final journalProvider = context.read<JournalProvider>();
-            final newEntry = JournalEntry(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              title: title,
-              content: content,
-              date: DateTime.now(),
-              mediaIds: mediaIds,
-              mood: mood,
-              tags: tags,
-            );
-
-            final success = await journalProvider.addEntry(newEntry);
-            if (success) {
-              if (!mounted) return;
-              SnackbarUtils.showSuccess(
-                context,
-                'Journal entry added successfully',
-              );
+            // The entry creation is now handled entirely in the JournalEntryForm
+            // We just need to refresh the entries list when returning
+            if (mounted) {
+              final journalProvider = context.read<JournalProvider>();
+              await journalProvider.loadEntries();
               // Clear cache on new entry
               setState(() {
                 _entryWidgetCache.clear();
               });
-            } else {
-              if (!mounted) return;
-              SnackbarUtils.showError(context, 'Failed to add journal entry');
             }
           },
         ),
@@ -980,6 +964,11 @@ class _JournalScreenState extends State<JournalScreen> {
         },
         transitionDuration: const Duration(milliseconds: 300),
       ),
-    );
+    ).then((_) {
+      // Refresh entries when returning from form
+      final journalProvider =
+          Provider.of<JournalProvider>(context, listen: false);
+      journalProvider.loadEntries();
+    });
   }
 }
