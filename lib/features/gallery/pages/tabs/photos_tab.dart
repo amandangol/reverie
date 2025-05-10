@@ -193,7 +193,8 @@ class _PhotosTabState extends State<PhotosTab> {
 
     if (confirmed == true) {
       try {
-        await photoOps.deleteSelectedItems(mediaProvider.mediaItems);
+        await photoOps.deleteSelectedItems(
+            mediaProvider.mediaItems, mediaProvider);
         if (mounted) {
           SnackbarUtils.showMediaDeleted(context,
               count: photoOps.selectedCount);

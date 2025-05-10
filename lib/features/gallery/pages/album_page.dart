@@ -382,7 +382,8 @@ class _AlbumPageState extends State<AlbumPage> {
 
     if (confirmed == true) {
       try {
-        await photoOps.deleteSelectedItems(_mediaItems);
+        final mediaProvider = context.read<MediaProvider>();
+        await photoOps.deleteSelectedItems(_mediaItems, mediaProvider);
         if (mounted) {
           SnackbarUtils.showMediaDeleted(context,
               count: photoOps.selectedCount);

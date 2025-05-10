@@ -789,11 +789,61 @@ class MediaProvider extends ChangeNotifier {
   Future<void> deleteMedia(AssetEntity asset) async {
     try {
       await PhotoManager.editor.deleteWithIds([asset.id]);
+
+      // Remove from all relevant lists and caches
       _mediaItems.remove(asset);
+      _videoItems.remove(asset);
+      _allMediaList.remove(asset);
+      _currentAlbumItems.remove(asset);
+      _allMediaItems.remove(asset.id);
+      _fileCache.remove(asset.id);
+      _thumbnailCache.remove(asset.id);
+      _createDateCache.remove(asset.id);
+      _sizeCache.remove(asset.id);
+      _durationCache.remove(asset.id);
+      _labelCache.remove(asset.id);
+      _analysisCache.remove(asset.id);
+      _captionCache.remove(asset.id);
+      _memoryAnalysisCache.remove(asset.id);
+
+      // Update grouped photos
+      for (var date in _groupedPhotos.keys.toList()) {
+        _groupedPhotos[date]?.remove(asset);
+        if (_groupedPhotos[date]?.isEmpty ?? false) {
+          _groupedPhotos.remove(date);
+        }
+      }
+
+      // Update album grouped photos
+      for (var albumId in _albumGroupedPhotos.keys) {
+        for (var date in _albumGroupedPhotos[albumId]!.keys.toList()) {
+          _albumGroupedPhotos[albumId]![date]?.remove(asset);
+          if (_albumGroupedPhotos[albumId]![date]?.isEmpty ?? false) {
+            _albumGroupedPhotos[albumId]!.remove(date);
+          }
+        }
+      }
+
+      // Update video album grouped photos
+      for (var albumId in _videoAlbumGroupedPhotos.keys) {
+        for (var date in _videoAlbumGroupedPhotos[albumId]!.keys.toList()) {
+          _videoAlbumGroupedPhotos[albumId]![date]?.remove(asset);
+          if (_videoAlbumGroupedPhotos[albumId]![date]?.isEmpty ?? false) {
+            _videoAlbumGroupedPhotos[albumId]!.remove(date);
+          }
+        }
+      }
+
+      // Update video album contents
+      for (var albumId in _videoAlbumContents.keys) {
+        _videoAlbumContents[albumId]?.remove(asset);
+      }
+
       notifyListeners();
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+      rethrow;
     }
   }
 

@@ -57,20 +57,27 @@ class PhotoOperationsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteSelectedItems(List<AssetEntity> assets) async {
+  Future<void> deleteSelectedItems(
+      List<AssetEntity> assets, MediaProvider mediaProvider) async {
     final selectedAssets =
         assets.where((asset) => _selectedItems.contains(asset.id)).toList();
 
     if (selectedAssets.isEmpty) return;
 
-    final mediaProvider = MediaProvider();
-    for (var asset in selectedAssets) {
-      await mediaProvider.deleteMedia(asset);
-    }
+    try {
+      // Delete each asset
+      for (var asset in selectedAssets) {
+        await mediaProvider.deleteMedia(asset);
+      }
 
-    _selectedItems.clear();
-    _isSelectionMode = false;
-    notifyListeners();
+      // Clear selection mode and selected items
+      _selectedItems.clear();
+      _isSelectionMode = false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting items: $e');
+      rethrow;
+    }
   }
 
   Future<void> toggleFavoriteSelected(List<AssetEntity> assets) async {
