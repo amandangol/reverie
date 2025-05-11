@@ -112,6 +112,8 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
 
   Future<void> _loadFlashbacks() async {
     final mediaProvider = context.read<MediaProvider>();
+    // Always reload flashbacks when screen is shown
+    await mediaProvider.clearFlashbacksCache();
     await Future.wait([
       mediaProvider.loadFlashbackPhotos(),
       mediaProvider.loadWeeklyFlashbackPhotos(),

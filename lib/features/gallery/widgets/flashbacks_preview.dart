@@ -23,17 +23,20 @@ class _FlashbacksPreviewState extends State<FlashbacksPreview> {
 
   Future<void> _loadFlashbacks() async {
     final mediaProvider = context.read<MediaProvider>();
-    if (!mediaProvider.isFlashbacksInitialized) {
-      await mediaProvider.loadFlashbackPhotos();
-      await mediaProvider.loadWeeklyFlashbackPhotos();
-      await mediaProvider.loadMonthlyFlashbackPhotos();
-    }
+    // Always reload flashbacks when preview is shown
+    await mediaProvider.clearFlashbacksCache();
+    await Future.wait([
+      mediaProvider.loadFlashbackPhotos(),
+      mediaProvider.loadWeeklyFlashbackPhotos(),
+      mediaProvider.loadMonthlyFlashbackPhotos(),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<MediaProvider>(
       builder: (context, mediaProvider, child) {
+        // Show loading state if any of the flashback types are loading
         if (mediaProvider.isLoadingFlashbacks ||
             mediaProvider.isLoadingWeeklyFlashbacks ||
             mediaProvider.isLoadingMonthlyFlashbacks) {
@@ -41,21 +44,6 @@ class _FlashbacksPreviewState extends State<FlashbacksPreview> {
             padding: EdgeInsets.all(16.0),
             child: Center(
               child: CircularProgressIndicator(),
-            ),
-          );
-        }
-
-        if (!mediaProvider.isFlashbacksInitialized) {
-          return const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(
-              child: Text(
-                'Loading memories...',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                ),
-              ),
             ),
           );
         }

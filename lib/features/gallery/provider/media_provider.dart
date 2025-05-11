@@ -93,8 +93,17 @@ class MediaProvider extends ChangeNotifier {
   static const String _weeklyFlashbacksCacheKey = 'weekly_flashbacks_cache';
   static const String _monthlyFlashbacksCacheKey = 'monthly_flashbacks_cache';
 
-  // Add getter for flashbacks initialization state
+  // Getters
   bool get isFlashbacksInitialized => _isFlashbacksInitialized;
+  List<AssetEntity> get flashbackPhotos => _flashbackPhotos;
+  bool get isLoadingFlashbacks => _isLoadingFlashbacks;
+  String? get flashbackError => _flashbackError;
+  List<AssetEntity> get weeklyFlashbackPhotos => _weeklyFlashbackPhotos;
+  bool get isLoadingWeeklyFlashbacks => _isLoadingWeeklyFlashbacks;
+  String? get weeklyFlashbackError => _weeklyFlashbackError;
+  List<AssetEntity> get monthlyFlashbackPhotos => _monthlyFlashbackPhotos;
+  bool get isLoadingMonthlyFlashbacks => _isLoadingMonthlyFlashbacks;
+  String? get monthlyFlashbackError => _monthlyFlashbackError;
 
   @override
   void dispose() {
@@ -1076,140 +1085,6 @@ Avoid repetition. Use clear and simple language. Return only the structured outp
     notifyListeners();
   }
 
-  // Add getters for flashbacks
-  List<AssetEntity> get flashbackPhotos => _flashbackPhotos;
-  bool get isLoadingFlashbacks => _isLoadingFlashbacks;
-  String? get flashbackError => _flashbackError;
-
-  // Update loadFlashbackPhotos to include caching
-  Future<void> loadFlashbackPhotos() async {
-    if (_isLoadingFlashbacks) return;
-
-    try {
-      _isLoadingFlashbacks = true;
-      _flashbackError = null;
-      notifyListeners();
-
-      // Try to load from cache first
-      if (_prefs != null) {
-        final cachedIds = _prefs?.getStringList(_flashbacksCacheKey);
-        if (cachedIds != null && cachedIds.isNotEmpty) {
-          _flashbackPhotos = cachedIds
-              .map((id) => _allMediaItems[id])
-              .where((asset) => asset != null)
-              .cast<AssetEntity>()
-              .toList();
-          _isLoadingFlashbacks = false;
-          _isFlashbacksInitialized = true;
-          notifyListeners();
-          return;
-        }
-      }
-
-      final today = DateTime.now();
-      final currentDay = today.day;
-      final currentMonth = today.month;
-
-      // Get all photos from previous years for the same day
-      final allPhotos = _allMediaList.where((asset) {
-        final date = asset.createDateTime;
-        return date.day == currentDay &&
-            date.month == currentMonth &&
-            date.year < today.year;
-      }).toList();
-
-      // Sort by year in descending order
-      allPhotos.sort(
-          (a, b) => b.createDateTime.year.compareTo(a.createDateTime.year));
-
-      _flashbackPhotos = allPhotos;
-
-      // Cache the results
-      if (_prefs != null) {
-        await _prefs?.setStringList(
-            _flashbacksCacheKey, allPhotos.map((a) => a.id).toList());
-      }
-
-      _isLoadingFlashbacks = false;
-      _isFlashbacksInitialized = true;
-      notifyListeners();
-    } catch (e) {
-      _isLoadingFlashbacks = false;
-      _flashbackError = e.toString();
-      notifyListeners();
-    }
-  }
-
-  // Weekly flashback getters
-  List<AssetEntity> get weeklyFlashbackPhotos => _weeklyFlashbackPhotos;
-  bool get isLoadingWeeklyFlashbacks => _isLoadingWeeklyFlashbacks;
-  String? get weeklyFlashbackError => _weeklyFlashbackError;
-
-  // Update loadWeeklyFlashbackPhotos to include caching
-  Future<void> loadWeeklyFlashbackPhotos() async {
-    if (_isLoadingWeeklyFlashbacks) return;
-
-    try {
-      _isLoadingWeeklyFlashbacks = true;
-      _weeklyFlashbackError = null;
-      notifyListeners();
-
-      // Try to load from cache first
-      if (_prefs != null) {
-        final cachedIds = _prefs?.getStringList(_weeklyFlashbacksCacheKey);
-        if (cachedIds != null && cachedIds.isNotEmpty) {
-          _weeklyFlashbackPhotos = cachedIds
-              .map((id) => _allMediaItems[id])
-              .where((asset) => asset != null)
-              .cast<AssetEntity>()
-              .toList();
-          _isLoadingWeeklyFlashbacks = false;
-          notifyListeners();
-          return;
-        }
-      }
-
-      final now = DateTime.now();
-      final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
-      final currentWeekEnd = currentWeekStart.add(const Duration(days: 6));
-
-      final weeklyPhotos = <AssetEntity>[];
-
-      for (final photo in _allMediaList) {
-        final photoDate = photo.createDateTime;
-        if (photoDate.month == currentWeekStart.month &&
-            photoDate.day >= currentWeekStart.day &&
-            photoDate.day <= currentWeekEnd.day &&
-            photoDate.year != now.year) {
-          weeklyPhotos.add(photo);
-        }
-      }
-
-      // Sort by year and date in descending order
-      weeklyPhotos.sort((a, b) {
-        final yearCompare =
-            b.createDateTime.year.compareTo(a.createDateTime.year);
-        if (yearCompare != 0) return yearCompare;
-        return b.createDateTime.compareTo(a.createDateTime);
-      });
-
-      _weeklyFlashbackPhotos = weeklyPhotos;
-
-      // Cache the results
-      if (_prefs != null) {
-        await _prefs?.setStringList(
-            _weeklyFlashbacksCacheKey, weeklyPhotos.map((a) => a.id).toList());
-      }
-
-      _isLoadingWeeklyFlashbacks = false;
-      notifyListeners();
-    } catch (e) {
-      _weeklyFlashbackError = e.toString();
-      _isLoadingWeeklyFlashbacks = false;
-      notifyListeners();
-    }
-  }
-
   // Add method to generate caption
   Future<String> generateCaption(AssetEntity asset) async {
     // Check cache first
@@ -1262,72 +1137,6 @@ Keep it personal and nostalgic, as if reminiscing about a past memory. Be concis
   void clearCaptionCache() {
     _captionCache.clear();
     notifyListeners();
-  }
-
-  // Add getters for monthly flashbacks
-  List<AssetEntity> get monthlyFlashbackPhotos => _monthlyFlashbackPhotos;
-  bool get isLoadingMonthlyFlashbacks => _isLoadingMonthlyFlashbacks;
-  String? get monthlyFlashbackError => _monthlyFlashbackError;
-
-  // Update loadMonthlyFlashbackPhotos to include caching
-  Future<void> loadMonthlyFlashbackPhotos() async {
-    if (_isLoadingMonthlyFlashbacks) return;
-
-    try {
-      _isLoadingMonthlyFlashbacks = true;
-      _monthlyFlashbackError = null;
-      notifyListeners();
-
-      // Try to load from cache first
-      if (_prefs != null) {
-        final cachedIds = _prefs?.getStringList(_monthlyFlashbacksCacheKey);
-        if (cachedIds != null && cachedIds.isNotEmpty) {
-          _monthlyFlashbackPhotos = cachedIds
-              .map((id) => _allMediaItems[id])
-              .where((asset) => asset != null)
-              .cast<AssetEntity>()
-              .toList();
-          _isLoadingMonthlyFlashbacks = false;
-          notifyListeners();
-          return;
-        }
-      }
-
-      final now = DateTime.now();
-      final currentMonth = now.month;
-
-      final monthlyPhotos = <AssetEntity>[];
-
-      for (final photo in _allMediaList) {
-        final photoDate = photo.createDateTime;
-        if (photoDate.month == currentMonth && photoDate.year != now.year) {
-          monthlyPhotos.add(photo);
-        }
-      }
-
-      // Sort by year and date in descending order
-      monthlyPhotos.sort((a, b) {
-        final yearCompare =
-            b.createDateTime.year.compareTo(a.createDateTime.year);
-        if (yearCompare != 0) return yearCompare;
-        return b.createDateTime.compareTo(a.createDateTime);
-      });
-
-      _monthlyFlashbackPhotos = monthlyPhotos;
-
-      // Cache the results
-      if (_prefs != null) {
-        await _prefs?.setStringList(_monthlyFlashbacksCacheKey,
-            monthlyPhotos.map((a) => a.id).toList());
-      }
-
-      _isLoadingMonthlyFlashbacks = false;
-      notifyListeners();
-    } catch (e) {
-      _monthlyFlashbackError = e.toString();
-      _isLoadingMonthlyFlashbacks = false;
-      notifyListeners();
-    }
   }
 
   // Add method to analyze memory
@@ -1453,17 +1262,147 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     return memoriesWithAnalysis.take(limit).toList();
   }
 
-  // Add method to clear flashbacks cache
+  // Update clearFlashbacksCache to not clear the lists immediately
   Future<void> clearFlashbacksCache() async {
-    if (_prefs != null) {
-      await _prefs?.remove(_flashbacksCacheKey);
-      await _prefs?.remove(_weeklyFlashbacksCacheKey);
-      await _prefs?.remove(_monthlyFlashbacksCacheKey);
-    }
     _isFlashbacksInitialized = false;
-    _flashbackPhotos.clear();
-    _weeklyFlashbackPhotos.clear();
-    _monthlyFlashbackPhotos.clear();
     notifyListeners();
+  }
+
+  // Helper method to get week number
+  int _getWeekNumber(DateTime date) {
+    final firstDayOfYear = DateTime(date.year, 1, 1);
+    final daysSinceFirstDay = date.difference(firstDayOfYear).inDays;
+    return ((daysSinceFirstDay + firstDayOfYear.weekday - 1) / 7).ceil();
+  }
+
+  Future<void> loadFlashbackPhotos() async {
+    if (_isLoadingFlashbacks) return;
+
+    try {
+      _isLoadingFlashbacks = true;
+      _flashbackError = null;
+      notifyListeners();
+
+      final today = DateTime.now();
+      final currentDay = today.day;
+      final currentMonth = today.month;
+
+      // Get all photos from previous years for the same day and month
+      final allPhotos = _allMediaList.where((asset) {
+        final date = asset.createDateTime;
+        return date.day == currentDay &&
+            date.month == currentMonth &&
+            date.year < today.year;
+      }).toList();
+
+      // Sort by year in descending order
+      allPhotos.sort(
+          (a, b) => b.createDateTime.year.compareTo(a.createDateTime.year));
+
+      _flashbackPhotos = allPhotos;
+      _isLoadingFlashbacks = false;
+      _isFlashbacksInitialized = true;
+      notifyListeners();
+    } catch (e) {
+      _isLoadingFlashbacks = false;
+      _flashbackError = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadWeeklyFlashbackPhotos() async {
+    if (_isLoadingWeeklyFlashbacks) return;
+
+    try {
+      _isLoadingWeeklyFlashbacks = true;
+      _weeklyFlashbackError = null;
+      notifyListeners();
+
+      final now = DateTime.now();
+      // Calculate the start of the current week (Monday)
+      final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
+      // Calculate the end of the current week (Sunday)
+      final currentWeekEnd = currentWeekStart.add(const Duration(days: 6));
+
+      final weeklyPhotos = <AssetEntity>[];
+
+      for (final photo in _allMediaList) {
+        final photoDate = photo.createDateTime;
+        // Check if the photo is from a previous year
+        if (photoDate.year < now.year) {
+          // Calculate the week start for the photo's date
+          final photoWeekStart = DateTime(
+            photoDate.year,
+            photoDate.month,
+            photoDate.day - (photoDate.weekday - 1),
+          );
+
+          // Calculate the week end for the photo's date
+          final photoWeekEnd = photoWeekStart.add(const Duration(days: 6));
+
+          // Check if the photo's week matches the current week
+          if (photoDate.month == currentWeekStart.month &&
+              photoDate.day >= currentWeekStart.day &&
+              photoDate.day <= currentWeekEnd.day) {
+            weeklyPhotos.add(photo);
+          }
+        }
+      }
+
+      // Sort by year and date in descending order
+      weeklyPhotos.sort((a, b) {
+        final yearCompare =
+            b.createDateTime.year.compareTo(a.createDateTime.year);
+        if (yearCompare != 0) return yearCompare;
+        return b.createDateTime.compareTo(a.createDateTime);
+      });
+
+      _weeklyFlashbackPhotos = weeklyPhotos;
+      _isLoadingWeeklyFlashbacks = false;
+      notifyListeners();
+    } catch (e) {
+      _weeklyFlashbackError = e.toString();
+      _isLoadingWeeklyFlashbacks = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMonthlyFlashbackPhotos() async {
+    if (_isLoadingMonthlyFlashbacks) return;
+
+    try {
+      _isLoadingMonthlyFlashbacks = true;
+      _monthlyFlashbackError = null;
+      notifyListeners();
+
+      final now = DateTime.now();
+      final currentMonth = now.month;
+
+      final monthlyPhotos = <AssetEntity>[];
+
+      for (final photo in _allMediaList) {
+        final photoDate = photo.createDateTime;
+        // Check if the photo is from a previous year and same month
+        if (photoDate.month == currentMonth && photoDate.year < now.year) {
+          monthlyPhotos.add(photo);
+        }
+      }
+
+      // Sort by year and date in descending order
+      monthlyPhotos.sort((a, b) {
+        final yearCompare =
+            b.createDateTime.year.compareTo(a.createDateTime.year);
+        if (yearCompare != 0) return yearCompare;
+        return b.createDateTime.compareTo(a.createDateTime);
+      });
+
+      _monthlyFlashbackPhotos = monthlyPhotos;
+      _isLoadingMonthlyFlashbacks = false;
+      notifyListeners();
+    } catch (e) {
+      _monthlyFlashbackError = e.toString();
+      _isLoadingMonthlyFlashbacks = false;
+      notifyListeners();
+    }
   }
 }

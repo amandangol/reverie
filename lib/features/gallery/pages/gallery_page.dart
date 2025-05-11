@@ -89,36 +89,35 @@ class _GalleryPageState extends State<GalleryPage>
           onPermissionGranted: () {
             context.read<MediaProvider>().requestPermission();
           },
-          child: Column(
-            children: [
-              // Flashbacks Preview
-              Consumer<MediaProvider>(
-                builder: (context, mediaProvider, _) {
-                  if (mediaProvider.isLoading) {
-                    return const SizedBox.shrink();
-                  }
-                  return const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: FlashbacksPreview(),
-                  );
-                },
-              ),
-              // TabBarView
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    PhotosTab(
-                      isGridView: preferences.isGridView,
-                      gridCrossAxisCount: preferences.gridCrossAxisCount,
-                    ),
-                    AlbumsTab(
-                      isGridView: preferences.isGridView,
-                      gridCrossAxisCount: preferences.gridCrossAxisCount,
-                    ),
-                  ],
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              SliverToBoxAdapter(
+                child: Consumer<MediaProvider>(
+                  builder: (context, mediaProvider, _) {
+                    if (mediaProvider.isLoading) {
+                      return const SizedBox.shrink();
+                    }
+                    return const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: FlashbacksPreview(),
+                    );
+                  },
                 ),
               ),
             ],
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                PhotosTab(
+                  isGridView: preferences.isGridView,
+                  gridCrossAxisCount: preferences.gridCrossAxisCount,
+                ),
+                AlbumsTab(
+                  isGridView: preferences.isGridView,
+                  gridCrossAxisCount: preferences.gridCrossAxisCount,
+                ),
+              ],
+            ),
           ),
         ),
       ),

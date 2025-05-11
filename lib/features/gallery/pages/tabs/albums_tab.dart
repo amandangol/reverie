@@ -164,7 +164,8 @@ class _AlbumsTabState extends State<AlbumsTab> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => VideoAlbumsPage(),
+                                    builder: (context) =>
+                                        const VideoAlbumsPage(),
                                   ),
                                 );
                               },
