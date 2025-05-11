@@ -138,9 +138,9 @@ class _FlashbacksPreviewState extends State<FlashbacksPreview> {
                             size: 24,
                           ),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Flashback Memories',
-                            style: TextStyle(
+                          Text(
+                            '${_getMonthName(DateTime.now().month)} Memories',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -175,18 +175,63 @@ class _FlashbacksPreviewState extends State<FlashbacksPreview> {
   Widget _buildPreviewImage(AssetEntity? asset) {
     return Container(
       color: Colors.black.withOpacity(0.1),
-      child: asset != null
-          ? AssetThumbnail(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (asset != null)
+            AssetThumbnail(
               asset: asset,
               boxFit: BoxFit.cover,
             )
-          : const Center(
+          else
+            const Center(
               child: Icon(
                 Icons.photo,
                 color: Colors.white54,
                 size: 32,
               ),
             ),
+          // Month name overlay
+          // if (asset != null)
+          //   Positioned(
+          //     top: 8,
+          //     left: 8,
+          //     child: Container(
+          //       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          //       decoration: BoxDecoration(
+          //         color: Colors.black.withOpacity(0.6),
+          //         borderRadius: BorderRadius.circular(4),
+          //       ),
+          //       child: Text(
+          //         _getMonthName(asset.createDateTime.month),
+          //         style: const TextStyle(
+          //           color: Colors.white,
+          //           fontSize: 12,
+          //           fontWeight: FontWeight.w500,
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+        ],
+      ),
     );
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+    return months[month - 1];
   }
 }

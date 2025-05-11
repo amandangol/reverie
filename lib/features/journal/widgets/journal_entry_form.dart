@@ -119,28 +119,37 @@ class _JournalEntryFormState extends State<JournalEntryForm>
       final mediaItems = mediaProvider.mediaItems;
 
       // Find media items by ID, checking all available sources
-      final loadedMedia = widget.initialMediaIds!
-          .map((id) {
-            try {
-              // First check all media items
-              final item = allMediaItems.firstWhere(
+      final loadedMedia = <AssetEntity>[];
+
+      for (final id in widget.initialMediaIds!) {
+        try {
+          // First check all media items
+          final item = allMediaItems.firstWhere(
+            (item) => item.id == id,
+            orElse: () => mediaItems.firstWhere(
+              (item) => item.id == id,
+              orElse: () => currentMediaItems.firstWhere(
                 (item) => item.id == id,
-                orElse: () => mediaItems.firstWhere(
-                  (item) => item.id == id,
-                  orElse: () => currentMediaItems.firstWhere(
-                    (item) => item.id == id,
-                    orElse: () => throw Exception('Media not found'),
-                  ),
-                ),
-              );
-              return item;
-            } catch (e) {
-              debugPrint('Error finding media with ID $id: $e');
-              return null;
+                orElse: () => throw Exception('Media not found'),
+              ),
+            ),
+          );
+          loadedMedia.add(item);
+        } catch (e) {
+          debugPrint('Error finding media with ID $id: $e');
+          // Try to load the asset directly if not found in any list
+          try {
+            final asset = await AssetEntity.fromId(id);
+            if (asset != null) {
+              loadedMedia.add(asset);
+              // Cache the asset data
+              await mediaProvider.cacheAssetData(asset);
             }
-          })
-          .whereType<AssetEntity>()
-          .toList();
+          } catch (e) {
+            debugPrint('Error loading asset directly: $e');
+          }
+        }
+      }
 
       if (mounted) {
         setState(() {

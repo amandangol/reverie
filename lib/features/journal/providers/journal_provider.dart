@@ -12,6 +12,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter/material.dart';
 
+enum SortOption { dateDesc, dateAsc, titleAsc, titleDesc, moodAsc, moodDesc }
+
 class JournalProvider extends ChangeNotifier {
   List<JournalEntry> _entries = [];
   bool _isLoading = true;
@@ -23,6 +25,10 @@ class JournalProvider extends ChangeNotifier {
   Map<String, List<JournalEntry>> _moodCache = {};
   Map<String, AssetEntity?> _imageCache = {};
   GenerativeModel? _model;
+
+  SortOption _currentSort = SortOption.dateDesc;
+
+  SortOption get currentSort => _currentSort;
 
   JournalProvider() {
     _initializeModel();
@@ -152,6 +158,7 @@ class JournalProvider extends ChangeNotifier {
         return entry;
       }).toList();
 
+      _sortEntries();
       _updateCaches();
     } catch (e) {
       _error = 'Failed to load journal entries: $e';
@@ -220,6 +227,19 @@ class JournalProvider extends ChangeNotifier {
 
       _entryCache[entry.id] = newEntry;
       _entries.insert(0, newEntry);
+
+      // Cache all media assets for the entry
+      for (final mediaId in entry.mediaIds) {
+        try {
+          final asset = await AssetEntity.fromId(mediaId);
+          if (asset != null) {
+            _imageCache[mediaId] = asset;
+          }
+        } catch (e) {
+          debugPrint('Failed to cache media asset: $e');
+        }
+      }
+
       _updateCaches();
       notifyListeners();
       return true;
@@ -738,5 +758,44 @@ class JournalProvider extends ChangeNotifier {
         'content': 'Please try again or write your own entry.',
       };
     }
+  }
+
+  void _sortEntries() {
+    switch (_currentSort) {
+      case SortOption.dateDesc:
+        _entries.sort((a, b) => b.date.compareTo(a.date));
+        break;
+      case SortOption.dateAsc:
+        _entries.sort((a, b) => a.date.compareTo(b.date));
+        break;
+      case SortOption.titleAsc:
+        _entries.sort((a, b) => a.title.compareTo(b.title));
+        break;
+      case SortOption.titleDesc:
+        _entries.sort((a, b) => b.title.compareTo(a.title));
+        break;
+      case SortOption.moodAsc:
+        _entries.sort((a, b) {
+          if (a.mood == null && b.mood == null) return 0;
+          if (a.mood == null) return 1;
+          if (b.mood == null) return -1;
+          return a.mood!.compareTo(b.mood!);
+        });
+        break;
+      case SortOption.moodDesc:
+        _entries.sort((a, b) {
+          if (a.mood == null && b.mood == null) return 0;
+          if (a.mood == null) return 1;
+          if (b.mood == null) return -1;
+          return b.mood!.compareTo(a.mood!);
+        });
+        break;
+    }
+  }
+
+  void setSortOption(SortOption option) {
+    _currentSort = option;
+    _sortEntries();
+    notifyListeners();
   }
 }

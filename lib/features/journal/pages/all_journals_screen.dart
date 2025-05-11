@@ -15,6 +15,130 @@ class AllJournalsScreen extends StatefulWidget {
 }
 
 class _AllJournalsScreenState extends State<AllJournalsScreen> {
+  void _showSortMenu() {
+    final journalProvider = context.read<JournalProvider>();
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Sort By',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.calendar_today_rounded,
+                color: theme.colorScheme.primary,
+              ),
+              title: const Text('Date (Newest First)'),
+              trailing: journalProvider.currentSort == SortOption.dateDesc
+                  ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
+                  : null,
+              onTap: () {
+                journalProvider.setSortOption(SortOption.dateDesc);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.calendar_today_rounded,
+                color: theme.colorScheme.primary,
+              ),
+              title: const Text('Date (Oldest First)'),
+              trailing: journalProvider.currentSort == SortOption.dateAsc
+                  ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
+                  : null,
+              onTap: () {
+                journalProvider.setSortOption(SortOption.dateAsc);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.sort_by_alpha_rounded,
+                color: theme.colorScheme.primary,
+              ),
+              title: const Text('Title (A-Z)'),
+              trailing: journalProvider.currentSort == SortOption.titleAsc
+                  ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
+                  : null,
+              onTap: () {
+                journalProvider.setSortOption(SortOption.titleAsc);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.sort_by_alpha_rounded,
+                color: theme.colorScheme.primary,
+              ),
+              title: const Text('Title (Z-A)'),
+              trailing: journalProvider.currentSort == SortOption.titleDesc
+                  ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
+                  : null,
+              onTap: () {
+                journalProvider.setSortOption(SortOption.titleDesc);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.mood_rounded,
+                color: theme.colorScheme.primary,
+              ),
+              title: const Text('Mood (A-Z)'),
+              trailing: journalProvider.currentSort == SortOption.moodAsc
+                  ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
+                  : null,
+              onTap: () {
+                journalProvider.setSortOption(SortOption.moodAsc);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.mood_rounded,
+                color: theme.colorScheme.primary,
+              ),
+              title: const Text('Mood (Z-A)'),
+              trailing: journalProvider.currentSort == SortOption.moodDesc
+                  ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
+                  : null,
+              onTap: () {
+                journalProvider.setSortOption(SortOption.moodDesc);
+                Navigator.pop(context);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -33,6 +157,17 @@ class _AllJournalsScreenState extends State<AllJournalsScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.sort_rounded,
+              color: colorScheme.primary,
+            ),
+            onPressed: _showSortMenu,
+            tooltip: 'Sort entries',
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Consumer<JournalProvider>(
         builder: (context, journalProvider, child) {

@@ -210,11 +210,12 @@ class _PhotosTabState extends State<PhotosTab> {
   Future<void> _handleFavoriteSelected(
       PhotoOperationsProvider photoOps, MediaProvider mediaProvider) async {
     try {
-      await photoOps.toggleFavoriteSelected(mediaProvider.mediaItems);
-      if (mounted) {
+      final successCount =
+          await photoOps.toggleFavoriteSelected(mediaProvider.mediaItems);
+      if (mounted && successCount > 0) {
         SnackbarUtils.showMediaAddedToFavorites(
           context,
-          count: photoOps.selectedCount,
+          count: successCount,
           onView: () {
             Navigator.pushNamed(context, '/albums/favorites');
           },
@@ -231,13 +232,19 @@ class _PhotosTabState extends State<PhotosTab> {
   Future<void> _handleJournalSelected(
       PhotoOperationsProvider photoOps, MediaProvider mediaProvider) async {
     try {
-      await photoOps.addToJournalSelected(mediaProvider.mediaItems);
-      if (mounted) {
-        SnackbarUtils.showJournalEntryCreated(
+      final mediaIds =
+          await photoOps.addToJournalSelected(mediaProvider.mediaItems);
+      if (mounted && mediaIds.isNotEmpty) {
+        // Navigate to journal entry form with selected media
+        Navigator.pushNamed(
           context,
-          title: 'New Journal Entry',
-          onView: () {
-            Navigator.pushNamed(context, '/journal');
+          '/journal/new',
+          arguments: {
+            'mediaIds': mediaIds,
+            'title': 'New Journal Entry',
+            'content': '',
+            'mood': null,
+            'tags': [],
           },
         );
       }

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'dart:convert';
 
 @immutable
 class JournalEntry {

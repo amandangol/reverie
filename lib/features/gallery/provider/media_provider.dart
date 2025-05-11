@@ -897,7 +897,14 @@ class MediaProvider extends ChangeNotifier {
       _favoriteIds.add(asset.id);
     }
     await _saveFavorites();
+
+    // Update the UI immediately
     notifyListeners();
+
+    // Ensure the asset is in the allMediaItems map
+    if (!_allMediaItems.containsKey(asset.id)) {
+      _allMediaItems[asset.id] = asset;
+    }
   }
 
   @override

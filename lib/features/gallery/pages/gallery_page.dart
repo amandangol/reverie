@@ -61,9 +61,7 @@ class _GalleryPageState extends State<GalleryPage>
                     ? Icons.grid_view_rounded
                     : Icons.list_rounded,
               ),
-              onPressed: () {
-                preferences.toggleViewMode();
-              },
+              onPressed: () => preferences.toggleViewMode(),
               tooltip: preferences.isGridView ? 'List view' : 'Grid view',
             ),
             if (preferences.isGridView)
@@ -71,15 +69,14 @@ class _GalleryPageState extends State<GalleryPage>
                 icon: Icon(preferences.gridCrossAxisCount == 3
                     ? Icons.grid_4x4
                     : Icons.grid_3x3),
-                onPressed: () {
-                  preferences.setGridCrossAxisCount(
-                      preferences.gridCrossAxisCount == 3 ? 4 : 3);
-                },
+                onPressed: () => preferences.setGridCrossAxisCount(
+                    preferences.gridCrossAxisCount == 3 ? 4 : 3),
                 tooltip: 'Change grid size',
               ),
           ],
-          bottom: const TabBar(
-            tabs: [
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: const [
               Tab(text: 'Photos'),
               Tab(text: 'Albums'),
             ],
@@ -106,7 +103,8 @@ class _GalleryPageState extends State<GalleryPage>
               ),
             ],
             body: TabBarView(
-              controller: _tabController,
+              controller:
+                  _tabController, // <-- Make sure controller is passed here
               children: [
                 PhotosTab(
                   isGridView: preferences.isGridView,

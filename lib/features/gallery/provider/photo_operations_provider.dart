@@ -80,27 +80,36 @@ class PhotoOperationsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> toggleFavoriteSelected(List<AssetEntity> assets) async {
+  Future<int> toggleFavoriteSelected(List<AssetEntity> assets) async {
     final selectedAssets =
         assets.where((asset) => _selectedItems.contains(asset.id)).toList();
 
-    if (selectedAssets.isEmpty) return;
+    if (selectedAssets.isEmpty) return 0;
 
     final mediaProvider = MediaProvider();
+    int successCount = 0;
+
     for (var asset in selectedAssets) {
-      await mediaProvider.toggleFavorite(asset);
+      try {
+        await mediaProvider.toggleFavorite(asset);
+        successCount++;
+      } catch (e) {
+        debugPrint('Error toggling favorite for asset ${asset.id}: $e');
+      }
     }
 
     _selectedItems.clear();
     _isSelectionMode = false;
     notifyListeners();
+
+    return successCount;
   }
 
-  Future<void> addToJournalSelected(List<AssetEntity> assets) async {
+  Future<List<String>> addToJournalSelected(List<AssetEntity> assets) async {
     final selectedAssets =
         assets.where((asset) => _selectedItems.contains(asset.id)).toList();
 
-    if (selectedAssets.isEmpty) return;
+    if (selectedAssets.isEmpty) return [];
 
     final mediaIds = selectedAssets.map((asset) => asset.id).toList();
 
@@ -110,22 +119,8 @@ class PhotoOperationsProvider extends ChangeNotifier {
       await mediaProvider.cacheAssetData(asset);
     }
 
-    final entry = JournalEntry(
-      id: const Uuid().v4(),
-      title: 'New Journal Entry',
-      content: '',
-      mediaIds: mediaIds,
-      mood: null,
-      tags: [],
-      date: DateTime.now(),
-    );
-
-    final journalProvider = JournalProvider();
-    await journalProvider.addEntry(entry);
-
-    _selectedItems.clear();
-    _isSelectionMode = false;
-    notifyListeners();
+    // Return the media IDs so the UI can navigate to the journal entry form
+    return mediaIds;
   }
 
   Future<void> shareMedia(AssetEntity asset) async {
