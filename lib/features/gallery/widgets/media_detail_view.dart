@@ -20,6 +20,7 @@ import '../../journal/models/journal_entry.dart';
 import '../pages/album_page.dart';
 import 'package:intl/intl.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
+import 'package:image_editor_plus/image_editor_plus.dart';
 
 class MediaDetailView extends StatefulWidget {
   final AssetEntity? asset;
@@ -436,6 +437,77 @@ class _MediaDetailViewState extends State<MediaDetailView>
     }
   }
 
+  Future<void> _editImage() async {
+    if (widget.asset == null) return;
+
+    try {
+      final mediaProvider = context.read<MediaProvider>();
+      // Get the current asset based on the index if we're in a list
+      final currentAsset = widget.assetList != null
+          ? widget.assetList![_currentIndex]
+          : widget.asset;
+
+      final file = await mediaProvider.editImage(currentAsset!);
+
+      if (file != null && mounted) {
+        // Read the file as bytes
+        final bytes = await file.readAsBytes();
+
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ImageEditor(
+              image: bytes,
+            ),
+          ),
+        );
+
+        if (result != null && mounted) {
+          // Create a temporary file to save the edited image
+          final tempDir = await Directory.systemTemp.createTemp();
+          final tempFile = File('${tempDir.path}/edited_image.jpg');
+
+          try {
+            // Write the edited image bytes to the temporary file
+            await tempFile.writeAsBytes(result);
+
+            // Save the edited image to the gallery
+            final savedAsset = await mediaProvider.saveEditedImage(tempFile);
+
+            if (savedAsset != null && mounted) {
+              // Update the current asset in the list if we're viewing a list
+              if (widget.assetList != null) {
+                setState(() {
+                  widget.assetList![_currentIndex] = savedAsset;
+                });
+              }
+
+              // Pop back to the previous screen with the saved asset
+              Navigator.pop(context, savedAsset);
+            }
+          } finally {
+            // Ensure cleanup happens even if there's an error
+            if (await tempFile.exists()) {
+              await tempFile.delete();
+            }
+            if (await tempDir.exists()) {
+              await tempDir.delete(recursive: true);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to edit image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -493,6 +565,7 @@ class _MediaDetailViewState extends State<MediaDetailView>
                   showInfo: _showInfo,
                   showJournal: _showJournal,
                   currentIndex: _currentIndex,
+                  onEditImage: _editImage,
                   totalItems: widget.assetList?.length ?? 1,
                   onClose: () {
                     _resetSystemUI();
@@ -753,8 +826,10 @@ class _MediaDetailViewState extends State<MediaDetailView>
   Widget _buildPhotoView(File file, String? heroTag) {
     return PhotoView(
       imageProvider: FileImage(file),
-      heroAttributes:
-          heroTag != null ? PhotoViewHeroAttributes(tag: heroTag) : null,
+      heroAttributes: heroTag != null
+          ? PhotoViewHeroAttributes(
+              tag: '${heroTag}_${DateTime.now().millisecondsSinceEpoch}')
+          : null,
       minScale: PhotoViewComputedScale.contained,
       maxScale: PhotoViewComputedScale.covered * 3,
       backgroundDecoration: const BoxDecoration(color: Colors.transparent),
@@ -1522,6 +1597,7 @@ class _MediaControls extends StatelessWidget {
   final VoidCallback onAnalyzeImage;
   final Widget Function(BuildContext) favoriteButtonBuilder;
   final AssetEntity? currentAsset;
+  final VoidCallback onEditImage;
 
   const _MediaControls({
     required this.showControls,
@@ -1539,6 +1615,7 @@ class _MediaControls extends StatelessWidget {
     required this.onAnalyzeImage,
     required this.favoriteButtonBuilder,
     required this.currentAsset,
+    required this.onEditImage,
   });
 
   @override
@@ -1617,6 +1694,10 @@ class _MediaControls extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.auto_awesome, color: Colors.white),
                       onPressed: onAnalyzeImage,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.white),
+                      onPressed: onEditImage,
                     ),
                   ],
                   // More options menu

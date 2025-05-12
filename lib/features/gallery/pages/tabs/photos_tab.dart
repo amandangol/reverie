@@ -735,4 +735,18 @@ class _PhotosTabState extends State<PhotosTab> {
     return Map.fromEntries(
         grouped.entries.toList()..sort((a, b) => b.key.compareTo(a.key)));
   }
+
+  void _openMediaDetail(AssetEntity asset) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MediaDetailView(asset: asset),
+      ),
+    );
+
+    if (result != null && result is AssetEntity) {
+      // Refresh the media list to show the edited image
+      context.read<MediaProvider>().refreshMedia();
+    }
+  }
 }

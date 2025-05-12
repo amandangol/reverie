@@ -1412,4 +1412,62 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
       notifyListeners();
     }
   }
+
+  // Add new method to edit image
+  Future<File?> editImage(AssetEntity asset) async {
+    File? tempFile;
+    try {
+      final file = await asset.file;
+      if (file == null) throw Exception('Could not load image file');
+
+      // Create a copy of the file in the temporary directory
+      final tempDir = await getTemporaryDirectory();
+      tempFile = File(path.join(tempDir.path, '${_uuid.v4()}.jpg'));
+
+      // Read and write bytes in a single operation
+      await tempFile.writeAsBytes(await file.readAsBytes());
+
+      return tempFile;
+    } catch (e) {
+      debugPrint('Error preparing image for editing: $e');
+      // Clean up temp file if it exists
+      if (tempFile != null && await tempFile.exists()) {
+        await tempFile.delete();
+      }
+      return null;
+    }
+  }
+
+  Future<AssetEntity?> saveEditedImage(File editedFile) async {
+    File? tempFile;
+    try {
+      // Create a copy in the temporary directory
+      final tempDir = await getTemporaryDirectory();
+      tempFile = File(path.join(tempDir.path, '${_uuid.v4()}.jpg'));
+
+      // Copy the edited file
+      await tempFile.writeAsBytes(await editedFile.readAsBytes());
+
+      // Save the edited file to the gallery
+      final result = await PhotoManager.editor.saveImageWithPath(
+        tempFile.path,
+        title: 'Edited_${DateTime.now().millisecondsSinceEpoch}',
+      );
+
+      if (result != null) {
+        // Refresh media to include the new image
+        await refreshMedia();
+        return result;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error saving edited image: $e');
+      return null;
+    } finally {
+      // Clean up temp file
+      if (tempFile != null && await tempFile.exists()) {
+        await tempFile.delete();
+      }
+    }
+  }
 }

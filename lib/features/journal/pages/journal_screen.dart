@@ -12,7 +12,6 @@ import 'package:intl/intl.dart';
 import 'package:reverie/theme/app_theme.dart';
 import '../widgets/journal_card.dart';
 import '../widgets/journal_shimmer.dart';
-
 import 'all_journals_screen.dart';
 
 class JournalScreen extends StatefulWidget {
@@ -425,43 +424,98 @@ class _JournalScreenState extends State<JournalScreen> {
     );
   }
 
+  Widget _buildCalendarSection(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final journalTextTheme = AppTheme.journalTextTheme;
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const CalendarScreen(),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Text Block
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Journal Calendar',
+                  style: journalTextTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'View your journal entries by date',
+                  style: journalTextTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurface.withOpacity(0.65),
+                  ),
+                ),
+              ],
+            ),
+
+            // Icon Button
+            IconButton(
+              icon: Icon(
+                Icons.calendar_month_rounded,
+                color: colorScheme.primary,
+                size: 28,
+              ),
+              tooltip: 'Open full calendar',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CalendarScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final journalTextTheme = AppTheme.journalTextTheme;
 
     return Scaffold(
       extendBody: true,
-      backgroundColor: colorScheme.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: Text(
-          'Journal',
-          style: journalTextTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
-            fontSize: 17,
-          ),
+        title: const Text(
+          'Reverie',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
         ),
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.background,
+        backgroundColor: colorScheme.surface,
         actions: [
-          IconButton(
-            icon: Icon(
-              Icons.calendar_month_rounded,
-              color: colorScheme.onSurface,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CalendarScreen(),
-                ),
-              );
-            },
-          ),
           IconButton(
             icon: Icon(
               Icons.help_outline_rounded,
@@ -534,7 +588,7 @@ class _JournalScreenState extends State<JournalScreen> {
                       end: Alignment.bottomCenter,
                       colors: [
                         colorScheme.surface,
-                        colorScheme.background,
+                        colorScheme.surface,
                       ],
                       stops: const [0.0, 0.3],
                     ),
@@ -553,6 +607,11 @@ class _JournalScreenState extends State<JournalScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                       child: _buildHeader(journalProvider, theme),
                     ),
+                  ),
+
+                  // Calendar section
+                  SliverToBoxAdapter(
+                    child: _buildCalendarSection(theme),
                   ),
 
                   // Stats section
