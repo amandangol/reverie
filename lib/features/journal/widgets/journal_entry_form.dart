@@ -17,8 +17,9 @@ class JournalEntryForm extends StatefulWidget {
   final List<String>? initialMediaIds;
   final String? initialMood;
   final List<String>? initialTags;
-  final Function(String, String, List<String>, String?, List<String>,
-      {DateTime? lastEdited}) onSave;
+  final DateTime? initialDate;
+  final Function(String title, String content, List<String> mediaIds,
+      String? mood, List<String> tags) onSave;
   final VoidCallback? onDelete;
 
   const JournalEntryForm({
@@ -28,6 +29,7 @@ class JournalEntryForm extends StatefulWidget {
     this.initialMediaIds,
     this.initialMood,
     this.initialTags,
+    this.initialDate,
     required this.onSave,
     this.onDelete,
   });
@@ -52,6 +54,7 @@ class _JournalEntryFormState extends State<JournalEntryForm>
   final FocusNode _contentFocusNode = FocusNode();
   final FocusNode _tagFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
+  DateTime _selectedDate = DateTime.now();
 
   final List<String> _availableMoods = [
     'Happy',
@@ -90,6 +93,7 @@ class _JournalEntryFormState extends State<JournalEntryForm>
     _contentController.text = widget.initialContent ?? '';
     _mood = widget.initialMood;
     _tags = List.from(widget.initialTags ?? []);
+    _selectedDate = widget.initialDate ?? DateTime.now();
     _loadInitialMedia();
   }
 
@@ -222,7 +226,7 @@ class _JournalEntryFormState extends State<JournalEntryForm>
             : DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleController.text,
         content: _contentController.text,
-        date: DateTime.now(),
+        date: _selectedDate,
         mediaIds: _selectedMedia.map((e) => e.id).toList(),
         mood: _mood,
         tags: _tags,
@@ -243,7 +247,6 @@ class _JournalEntryFormState extends State<JournalEntryForm>
           entry.mediaIds,
           entry.mood,
           entry.tags,
-          lastEdited: entry.lastEdited,
         );
         Navigator.pop(context);
 

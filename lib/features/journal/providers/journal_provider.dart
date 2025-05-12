@@ -28,6 +28,10 @@ class JournalProvider extends ChangeNotifier {
 
   SortOption _currentSort = SortOption.dateDesc;
 
+  // Calendar-related methods
+  Map<DateTime, List<JournalEntry>> _calendarEntries = {};
+  Map<DateTime, String?> _moodIndicators = {};
+
   SortOption get currentSort => _currentSort;
 
   JournalProvider() {
@@ -40,6 +44,9 @@ class JournalProvider extends ChangeNotifier {
   String? get error => _error;
   bool get isInitialized => _isInitialized;
   Map<String, AssetEntity?> get imageCache => _imageCache;
+
+  Map<DateTime, List<JournalEntry>> get calendarEntries => _calendarEntries;
+  Map<DateTime, String?> get moodIndicators => _moodIndicators;
 
   Future<void> _initDatabase() async {
     try {
@@ -172,6 +179,7 @@ class JournalProvider extends ChangeNotifier {
   void _updateCaches() {
     _tagCache.clear();
     _moodCache.clear();
+    _updateCalendarData();
 
     for (final entry in _entries) {
       // Update tag cache
@@ -182,6 +190,24 @@ class JournalProvider extends ChangeNotifier {
       // Update mood cache
       if (entry.mood != null) {
         _moodCache.putIfAbsent(entry.mood!, () => []).add(entry);
+      }
+    }
+  }
+
+  void _updateCalendarData() {
+    _calendarEntries.clear();
+    _moodIndicators.clear();
+
+    for (var entry in _entries) {
+      final date = DateTime(entry.date.year, entry.date.month, entry.date.day);
+      _calendarEntries.putIfAbsent(date, () => []).add(entry);
+
+      // Only set mood indicator if there isn't one for this date
+      // or if this entry's mood is more recent
+      if (entry.mood != null &&
+          (!_moodIndicators.containsKey(date) ||
+              entry.date.isAfter(_calendarEntries[date]!.first.date))) {
+        _moodIndicators[date] = entry.mood;
       }
     }
   }
@@ -797,5 +823,15 @@ class JournalProvider extends ChangeNotifier {
     _currentSort = option;
     _sortEntries();
     notifyListeners();
+  }
+
+  List<JournalEntry> getEntriesForDate(DateTime date) {
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    return _calendarEntries[normalizedDate] ?? [];
+  }
+
+  String? getMoodForDate(DateTime date) {
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    return _moodIndicators[normalizedDate];
   }
 }

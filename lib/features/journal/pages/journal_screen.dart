@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:uuid/uuid.dart';
 import 'journal_detail_screen.dart';
+import 'calendar_screen.dart';
 import '../providers/journal_provider.dart';
 import '../models/journal_entry.dart';
 import '../widgets/journal_entry_form.dart';
@@ -302,6 +304,127 @@ class _JournalScreenState extends State<JournalScreen> {
     );
   }
 
+  void _handleDateSelected(DateTime date) {
+    final entries = context.read<JournalProvider>().getEntriesForDate(date);
+    if (entries.isEmpty) {
+      // Show empty state or create new entry
+      _showCreateEntryDialog(date);
+    } else if (entries.length == 1) {
+      // Navigate to single entry
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => JournalDetailScreen(entry: entries.first),
+        ),
+      );
+    } else {
+      // Show list of entries for that date
+      _showEntriesForDate(date, entries);
+    }
+  }
+
+  void _showCreateEntryDialog(DateTime date) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: JournalEntryForm(
+          initialDate: date,
+          onSave: (title, content, mediaIds, mood, tags) async {
+            final entry = JournalEntry(
+              id: const Uuid().v4(),
+              title: title,
+              content: content,
+              date: date,
+              mediaIds: mediaIds,
+              mood: mood,
+              tags: tags,
+            );
+            await context.read<JournalProvider>().addEntry(entry);
+            if (mounted) {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => JournalDetailScreen(entry: entry),
+                ),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showEntriesForDate(DateTime date, List<JournalEntry> entries) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    DateFormat('MMMM d, yyyy').format(date),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: entries.length,
+                itemBuilder: (context, index) {
+                  final entry = entries[index];
+                  return ListTile(
+                    title: Text(entry.title),
+                    subtitle: Text(
+                      DateFormat('h:mm a').format(entry.date),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              JournalDetailScreen(entry: entry),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -312,17 +435,33 @@ class _JournalScreenState extends State<JournalScreen> {
       extendBody: true,
       backgroundColor: colorScheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
         title: Text(
-          'Reverie',
+          'Journal',
           style: journalTextTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+            fontSize: 17,
           ),
         ),
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: colorScheme.background,
         actions: [
+          IconButton(
+            icon: Icon(
+              Icons.calendar_month_rounded,
+              color: colorScheme.onSurface,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CalendarScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(
               Icons.help_outline_rounded,
@@ -435,7 +574,7 @@ class _JournalScreenState extends State<JournalScreen> {
                             'Your Entries',
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: colorScheme.onBackground,
+                              color: colorScheme.onSurface,
                             ),
                           ),
                           TextButton.icon(
