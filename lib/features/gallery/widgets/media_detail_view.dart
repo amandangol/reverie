@@ -442,7 +442,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
 
     try {
       final mediaProvider = context.read<MediaProvider>();
-      // Get the current asset based on the index if we're in a list
       final currentAsset = widget.assetList != null
           ? widget.assetList![_currentIndex]
           : widget.asset;
@@ -450,8 +449,23 @@ class _MediaDetailViewState extends State<MediaDetailView>
       final file = await mediaProvider.editImage(currentAsset!);
 
       if (file != null && mounted) {
-        // Read the file as bytes
-        final bytes = await file.readAsBytes();
+        // Read bytes using a stream to ensure proper resource handling
+        final bytes = await file
+            .openRead()
+            .fold<BytesBuilder>(
+              BytesBuilder(),
+              (builder, data) => builder..add(data),
+            )
+            .then((b) => b.takeBytes());
+
+        // Delete the temp file after reading
+        try {
+          if (await file.exists()) {
+            await file.delete();
+          }
+        } catch (e) {
+          debugPrint('Error deleting temp file: $e');
+        }
 
         final result = await Navigator.push(
           context,
@@ -463,36 +477,18 @@ class _MediaDetailViewState extends State<MediaDetailView>
         );
 
         if (result != null && mounted) {
-          // Create a temporary file to save the edited image
-          final tempDir = await Directory.systemTemp.createTemp();
-          final tempFile = File('${tempDir.path}/edited_image.jpg');
+          // Save the edited image to the gallery
+          final savedAsset = await mediaProvider.saveEditedImage(result);
 
-          try {
-            // Write the edited image bytes to the temporary file
-            await tempFile.writeAsBytes(result);
-
-            // Save the edited image to the gallery
-            final savedAsset = await mediaProvider.saveEditedImage(tempFile);
-
-            if (savedAsset != null && mounted) {
-              // Update the current asset in the list if we're viewing a list
-              if (widget.assetList != null) {
-                setState(() {
-                  widget.assetList![_currentIndex] = savedAsset;
-                });
-              }
-
-              // Pop back to the previous screen with the saved asset
-              Navigator.pop(context, savedAsset);
+          if (savedAsset != null && mounted) {
+            // Update the current view and return the edited asset
+            if (widget.assetList != null) {
+              setState(() {
+                widget.assetList![_currentIndex] = savedAsset;
+              });
             }
-          } finally {
-            // Ensure cleanup happens even if there's an error
-            if (await tempFile.exists()) {
-              await tempFile.delete();
-            }
-            if (await tempDir.exists()) {
-              await tempDir.delete(recursive: true);
-            }
+            // Return the edited asset when popping back
+            Navigator.pop(context, savedAsset);
           }
         }
       }
@@ -826,10 +822,8 @@ class _MediaDetailViewState extends State<MediaDetailView>
   Widget _buildPhotoView(File file, String? heroTag) {
     return PhotoView(
       imageProvider: FileImage(file),
-      heroAttributes: heroTag != null
-          ? PhotoViewHeroAttributes(
-              tag: '${heroTag}_${DateTime.now().millisecondsSinceEpoch}')
-          : null,
+      heroAttributes:
+          heroTag != null ? PhotoViewHeroAttributes(tag: heroTag) : null,
       minScale: PhotoViewComputedScale.contained,
       maxScale: PhotoViewComputedScale.covered * 3,
       backgroundDecoration: const BoxDecoration(color: Colors.transparent),

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -1418,45 +1419,87 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     File? tempFile;
     try {
       final file = await asset.file;
-      if (file == null) throw Exception('Could not load image file');
+      if (file == null) return null;
 
-      // Create a copy of the file in the temporary directory
+      // Create a copy in the temporary directory
       final tempDir = await getTemporaryDirectory();
       tempFile = File(path.join(tempDir.path, '${_uuid.v4()}.jpg'));
 
-      // Read and write bytes in a single operation
-      await tempFile.writeAsBytes(await file.readAsBytes());
+      // ✅ Safer way to read bytes without resource warnings
+      final bytes = await file.readAsBytes();
+
+      // Write bytes to temp file
+      await tempFile.writeAsBytes(bytes);
 
       return tempFile;
     } catch (e) {
       debugPrint('Error preparing image for editing: $e');
-      // Clean up temp file if it exists
       if (tempFile != null && await tempFile.exists()) {
-        await tempFile.delete();
+        try {
+          await tempFile.delete();
+        } catch (e) {
+          debugPrint('Error deleting temp file: $e');
+        }
       }
       return null;
     }
   }
 
-  Future<AssetEntity?> saveEditedImage(File editedFile) async {
+  Future<AssetEntity?> saveEditedImage(Uint8List imageData) async {
     File? tempFile;
     try {
-      // Create a copy in the temporary directory
+      // Create a temporary file
       final tempDir = await getTemporaryDirectory();
-      tempFile = File(path.join(tempDir.path, '${_uuid.v4()}.jpg'));
+      final tempPath = path.join(tempDir.path, '${_uuid.v4()}.jpg');
 
-      // Copy the edited file
-      await tempFile.writeAsBytes(await editedFile.readAsBytes());
+      // Create and write to the temp file
+      tempFile = File(tempPath);
+      await tempFile.writeAsBytes(imageData);
 
-      // Save the edited file to the gallery
+      // Save as a new image in gallery (preserving the original)
+      // Using timestamp to ensure unique filename
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       final result = await PhotoManager.editor.saveImageWithPath(
-        tempFile.path,
-        title: 'Edited_${DateTime.now().millisecondsSinceEpoch}',
+        tempPath,
+        title: 'Edited_$timestamp', // Creates a new file with unique name
       );
 
       if (result != null) {
-        // Refresh media to include the new image
-        await refreshMedia();
+        // Add the new edited image to our lists and caches
+        // Note: Original image remains untouched
+        _allMediaList.insert(0, result);
+        _allMediaItems[result.id] = result;
+
+        // Add to current album items if we're in an album
+        if (_currentAlbumId != null) {
+          _currentAlbumItems.insert(0, result);
+        }
+
+        // Update grouped photos for all albums
+        final dateKey = DateTime(
+          result.createDateTime.year,
+          result.createDateTime.month,
+          result.createDateTime.day,
+        );
+
+        // Update main grouped photos
+        if (!_groupedPhotos.containsKey(dateKey)) {
+          _groupedPhotos[dateKey] = [];
+        }
+        _groupedPhotos[dateKey]!.insert(0, result);
+
+        // Update album grouped photos if we're in an album
+        if (_currentAlbumId != null) {
+          if (!_albumGroupedPhotos.containsKey(_currentAlbumId)) {
+            _albumGroupedPhotos[_currentAlbumId!] = {};
+          }
+          if (!_albumGroupedPhotos[_currentAlbumId]!.containsKey(dateKey)) {
+            _albumGroupedPhotos[_currentAlbumId]![dateKey] = [];
+          }
+          _albumGroupedPhotos[_currentAlbumId]![dateKey]!.insert(0, result);
+        }
+
+        notifyListeners();
         return result;
       }
       return null;
@@ -1466,7 +1509,11 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     } finally {
       // Clean up temp file
       if (tempFile != null && await tempFile.exists()) {
-        await tempFile.delete();
+        try {
+          await tempFile.delete();
+        } catch (e) {
+          debugPrint('Error deleting temp file: $e');
+        }
       }
     }
   }

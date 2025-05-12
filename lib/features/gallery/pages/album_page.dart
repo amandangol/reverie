@@ -585,8 +585,8 @@ class _AlbumPageState extends State<AlbumPage> {
     );
   }
 
-  void _showMediaDetail(BuildContext context, AssetEntity asset) {
-    Navigator.of(context).push(
+  void _showMediaDetail(BuildContext context, AssetEntity asset) async {
+    final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => MediaDetailView(
           asset: asset,
@@ -596,6 +596,20 @@ class _AlbumPageState extends State<AlbumPage> {
         fullscreenDialog: true,
       ),
     );
+
+    if (result != null && result is AssetEntity) {
+      // If it's a new edited image (different ID from original)
+      if (result.id != asset.id) {
+        setState(() {
+          // Add the new edited image at the beginning of the list
+          _mediaItems.insert(0, result);
+        });
+
+        // Update the grouped photos in the media provider
+        final mediaProvider = context.read<MediaProvider>();
+        mediaProvider.groupPhotosByDate(_mediaItems, albumId: widget.album.id);
+      }
+    }
   }
 
   Map<DateTime, List<AssetEntity>> _groupPhotosByDate(

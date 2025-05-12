@@ -254,7 +254,6 @@ class _CalendarScreenState extends State<CalendarScreen>
                       _selectedDay = selectedDay;
                       _focusedDay = focusedDay;
                     });
-                    _showEntriesForDate(selectedDay);
                   },
                   onFormatChanged: (format) {
                     setState(() {
@@ -334,6 +333,12 @@ class _CalendarScreenState extends State<CalendarScreen>
             ),
 
             const SizedBox(height: 16),
+            Divider(
+              color: colorScheme.outlineVariant,
+              height: 0.5,
+              indent: 24,
+              endIndent: 24,
+            ),
 
             // Month navigation
             Padding(
@@ -345,7 +350,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                     icon: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceVariant,
+                        color: colorScheme.surfaceContainerHighest,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -392,6 +397,13 @@ class _CalendarScreenState extends State<CalendarScreen>
                     },
                   ),
                 ],
+              ),
+            ),
+            Text(
+              'Entries for ${DateFormat('MMMM d, yyyy').format(_selectedDay!)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
               ),
             ),
 
@@ -692,14 +704,6 @@ class _CalendarScreenState extends State<CalendarScreen>
         return Icons.psychology;
       default:
         return Icons.emoji_emotions;
-    }
-  }
-
-  void _showEntriesForDate(DateTime date) {
-    final entries = context.read<JournalProvider>().getEntriesForDate(date);
-    if (entries.isEmpty) {
-      // We removed automatic dialog popup for better UX
-      // User can create entry with FAB or the button in empty state
     }
   }
 
