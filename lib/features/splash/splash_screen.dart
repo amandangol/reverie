@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:reverie/theme/app_theme.dart';
+import 'package:reverie/features/onboarding/provider/onboarding_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -38,10 +40,30 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to main screen after animation
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pushReplacementNamed('/main');
+    // Wait for both animation and onboarding status check
+    Future.wait([
+      Future.delayed(const Duration(seconds: 2)),
+      _checkOnboardingStatus(),
+    ]).then((_) {
+      if (!mounted) return;
+      _navigateToNextScreen();
     });
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    final onboardingProvider =
+        Provider.of<OnboardingProvider>(context, listen: false);
+    await onboardingProvider.loadOnboardingStatus();
+  }
+
+  void _navigateToNextScreen() {
+    final onboardingProvider =
+        Provider.of<OnboardingProvider>(context, listen: false);
+    if (!onboardingProvider.hasCompletedOnboarding) {
+      Navigator.of(context).pushReplacementNamed('/onboarding');
+    } else {
+      Navigator.of(context).pushReplacementNamed('/main');
+    }
   }
 
   @override

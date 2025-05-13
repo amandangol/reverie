@@ -65,22 +65,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                 ),
               ),
-              const SettingsDivider(),
-              SettingsTile(
-                icon: Icons.auto_awesome,
-                title: 'Clear AI Compilations',
-                subtitle: 'Delete all AI-generated compilations',
-                onTap: () => _showConfirmationDialog(
-                  context,
-                  title: 'Clear AI Compilations',
-                  content:
-                      'Are you sure you want to delete all AI compilations?',
-                  onConfirm: () {
-                    // context.read<AICompilationProvider>().clearAll();
-                    // _showSnackBar(context, 'AI compilations cleared');
-                  },
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 16),

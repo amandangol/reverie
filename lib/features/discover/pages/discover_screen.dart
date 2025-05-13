@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:reverie/features/gallery/pages/flashbacks_screen.dart';
 import 'package:reverie/features/journal/pages/calendar_screen.dart';
+import 'package:reverie/features/gallery/pages/gallery_page.dart';
+import 'package:reverie/features/journal/pages/journal_screen.dart';
+import 'package:reverie/features/gallery/pages/album_page.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:reverie/features/onboarding/pages/onboarding_screen.dart';
+
+import '../../gallery/pages/video_albums_page.dart';
 
 class DiscoverScreen extends StatelessWidget {
   const DiscoverScreen({super.key});
@@ -53,10 +60,30 @@ class DiscoverScreen extends StatelessWidget {
 
     final features = [
       {
+        'title': 'Gallery',
+        'description': 'Browse your photos and videos',
+        'icon': Icons.photo_library_rounded,
+        'color': colorScheme.primary,
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const GalleryPage()),
+            ),
+      },
+      {
+        'title': 'Journal',
+        'description': 'Write and organize your thoughts',
+        'icon': Icons.auto_stories_rounded,
+        'color': colorScheme.secondary,
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const JournalScreen()),
+            ),
+      },
+      {
         'title': 'Flashbacks',
         'description': 'Relive your past memories',
-        'icon': Icons.history,
-        'color': colorScheme.primary,
+        'icon': Icons.history_rounded,
+        'color': Colors.orange,
         'onTap': () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const FlashbacksScreen()),
@@ -65,14 +92,42 @@ class DiscoverScreen extends StatelessWidget {
       {
         'title': 'Calendar',
         'description': 'View your journal entries by date',
-        'icon': Icons.calendar_month,
-        'color': colorScheme.secondary,
+        'icon': Icons.calendar_month_rounded,
+        'color': Colors.blue,
         'onTap': () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const CalendarScreen()),
             ),
       },
-      // Add more features here as needed
+      {
+        'title': 'Favorites',
+        'description': 'Access your favorite memories',
+        'icon': Icons.favorite_rounded,
+        'color': Colors.red,
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AlbumPage(
+                  album: AssetPathEntity(id: 'favorites', name: 'Favorites'),
+                  isGridView: true,
+                  gridCrossAxisCount: 3,
+                  isFavoritesAlbum: true,
+                ),
+              ),
+            ),
+      },
+      {
+        'title': 'Videos',
+        'description': 'Watch your video collection',
+        'icon': Icons.video_library_rounded,
+        'color': Colors.purple,
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const VideoAlbumsPage(),
+              ),
+            ),
+      },
     ];
 
     return GridView.builder(

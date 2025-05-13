@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:reverie/theme/app_theme.dart';
+import 'package:reverie/features/onboarding/provider/onboarding_provider.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -16,28 +17,43 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<OnboardingPage> _pages = [
     OnboardingPage(
       title: 'Welcome to Reverie',
-      description: 'Your personal space for reflection, memories, and growth.',
-      icon: Icons.auto_stories_rounded,
+      description: 'Your personal space for memories, reflection, and growth.',
+      imagePath: 'assets/icon/icon.png',
       color: Colors.amber,
+      icon: Icons.auto_stories_rounded,
     ),
     OnboardingPage(
-      title: 'Capture Your Moments',
+      title: 'Gallery & Media',
       description:
-          'Add photos and videos to your journal entries to relive your memories.',
+          'Browse and organize your photos and videos in a beautiful gallery view.',
       icon: Icons.photo_library_rounded,
       color: Colors.blue,
     ),
     OnboardingPage(
-      title: 'Track Your Journey',
+      title: 'Journal & Memories',
       description:
-          'Use tags and moods to organize your thoughts and track your emotional journey.',
-      icon: Icons.psychology_rounded,
+          'Write journal entries, add media, and track your emotional journey.',
+      icon: Icons.auto_stories_rounded,
       color: Colors.purple,
     ),
     OnboardingPage(
-      title: 'AI-Powered Insights',
+      title: 'Flashbacks & Calendar',
       description:
-          'Let our AI assistant help you express your thoughts and feelings.',
+          'Relive past memories and view your journal entries organized by date.',
+      icon: Icons.history_rounded,
+      color: Colors.orange,
+    ),
+    OnboardingPage(
+      title: 'Favorites & Videos',
+      description:
+          'Keep your favorite memories close and enjoy your video collection.',
+      icon: Icons.favorite_rounded,
+      color: Colors.red,
+    ),
+    OnboardingPage(
+      title: 'AI-Powered Features',
+      description:
+          'Let our AI assistant help you organize memories and generate content.',
       icon: Icons.auto_awesome_rounded,
       color: Colors.green,
     ),
@@ -56,10 +72,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _completeOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_completed', true);
+    final onboardingProvider =
+        Provider.of<OnboardingProvider>(context, listen: false);
+    await onboardingProvider.completeOnboarding();
     if (mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/main');
     }
   }
 
@@ -162,18 +179,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: page.color.withOpacity(0.1),
-              shape: BoxShape.circle,
+          if (page.imagePath != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(100),
+              child: Image.asset(
+                page.imagePath!,
+                height: 200,
+                width: 200,
+                fit: BoxFit.contain,
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: page.color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                page.icon,
+                size: 80,
+                color: page.color,
+              ),
             ),
-            child: Icon(
-              page.icon,
-              size: 80,
-              color: page.color,
-            ),
-          ),
           const SizedBox(height: 48),
           Text(
             page.title,
@@ -203,11 +231,13 @@ class OnboardingPage {
   final String description;
   final IconData icon;
   final Color color;
+  final String? imagePath;
 
   OnboardingPage({
     required this.title,
     required this.description,
     required this.icon,
     required this.color,
+    this.imagePath,
   });
 }

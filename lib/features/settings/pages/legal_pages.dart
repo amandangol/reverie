@@ -257,7 +257,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
 
     try {
       // Create email content with proper formatting
-      final subject = 'Reverie App Feedback';
+      const subject = 'Reverie App Feedback';
       final body = '''
 Issue Description:
 ${_issueController.text}

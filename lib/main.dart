@@ -13,6 +13,8 @@ import 'providers/gallery_preferences_provider.dart';
 import 'features/gallery/pages/flashbacks_screen.dart';
 import 'features/journal/widgets/journal_entry_form.dart';
 import 'features/discover/pages/discover_screen.dart';
+import 'features/onboarding/pages/onboarding_screen.dart';
+import 'features/onboarding/provider/onboarding_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +27,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => JournalProvider()),
         ChangeNotifierProvider(create: (_) => GalleryPreferencesProvider()),
         ChangeNotifierProvider(create: (_) => PhotoOperationsProvider()),
+        ChangeNotifierProvider(create: (_) => OnboardingProvider()),
       ],
       child: const MyApp(),
     ),
@@ -45,6 +48,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/main': (context) => const MainScreen(),
+        '/onboarding': (context) => const OnboardingScreen(),
         '/flashbacks': (context) => const FlashbacksScreen(),
         '/journal/new': (context) => JournalEntryForm(
               onSave: (title, content, mediaIds, mood, tags, {lastEdited}) {
