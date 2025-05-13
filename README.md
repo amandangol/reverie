@@ -1,6 +1,6 @@
 # Reverie - Your Personal Memory Journal
 
-<img src="assets/icon/icon.png" alt="ReverieLogo" width="400"/>
+<img src="assets/icon/icon.png" alt="ReverieLogo" width="150" height="150"/>
 
 
 Reverie is a beautiful and intuitive mobile application that helps you capture, organize, and relive your precious memories through photos, videos, and journal entries. Built with Flutter, it offers a seamless experience across iOS and Android platforms.
