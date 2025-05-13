@@ -428,72 +428,474 @@ class _JournalScreenState extends State<JournalScreen> {
     final colorScheme = theme.colorScheme;
     final journalTextTheme = AppTheme.journalTextTheme;
 
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const CalendarScreen(),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CalendarScreen(),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                colorScheme.primary.withOpacity(0.1),
+                colorScheme.primary.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: colorScheme.primary.withOpacity(0.1),
+              width: 1.5,
+            ),
           ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.calendar_month_rounded,
+                      color: colorScheme.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Journal Calendar',
+                          style: journalTextTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Visualize your journaling patterns',
+                          style: journalTextTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurface.withOpacity(0.65),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: IconButton(
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      tooltip: 'Open full calendar',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CalendarScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Simple mini calendar preview
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(7, (index) {
+                  final day =
+                      DateTime.now().subtract(Duration(days: 6 - index));
+                  final isToday = index == 6;
+                  final hasEntry =
+                      _hasEntryForDay(day); // You would implement this method
+
+                  return Column(
+                    children: [
+                      Text(
+                        DateFormat('E').format(day).substring(0, 1),
+                        style: journalTextTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface.withOpacity(0.5),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: isToday
+                              ? colorScheme.primary
+                              : hasEntry
+                                  ? colorScheme.primaryContainer
+                                      .withOpacity(0.3)
+                                  : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          border: isToday
+                              ? null
+                              : Border.all(
+                                  color: hasEntry
+                                      ? colorScheme.primary.withOpacity(0.2)
+                                      : colorScheme.onSurface.withOpacity(0.1),
+                                  width: 1.5,
+                                ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            day.day.toString(),
+                            style: journalTextTheme.bodyMedium?.copyWith(
+                              color: isToday
+                                  ? colorScheme.onPrimary
+                                  : hasEntry
+                                      ? colorScheme.primary
+                                      : colorScheme.onSurface.withOpacity(0.6),
+                              fontWeight: isToday || hasEntry
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper method to check if a day has journal entries
+  bool _hasEntryForDay(DateTime day) {
+    // Implement this method based on your JournalProvider
+    final provider = Provider.of<JournalProvider>(context, listen: false);
+    return provider.getEntriesForDate(day).isNotEmpty;
+  }
+
+  Widget _buildHeader(JournalProvider journalProvider, ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final journalTextTheme = AppTheme.journalTextTheme;
+    String greeting = _getGreeting();
+    final entries = journalProvider.entries;
+    final latestEntry = entries.isNotEmpty ? entries[0] : null;
+    final lastEntryDate = latestEntry != null
+        ? _formatTimeAgo(latestEntry.date)
+        : 'No entries yet';
+
+    // Get current date
+    final now = DateTime.now();
+    final dateString = DateFormat('EEEE, MMMM d').format(now);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Upper section with greeting and streak
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.wb_sunny_rounded,
+                    size: 16,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    greeting,
+                    style: journalTextTheme.labelMedium?.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // const Spacer(),
+            // if (latestEntry != null)
+            //   Container(
+            //     padding:
+            //         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            //     decoration: BoxDecoration(
+            //       color: colorScheme.secondaryContainer.withOpacity(0.3),
+            //       borderRadius: BorderRadius.circular(20),
+            //     ),
+            //     child: Row(
+            //       mainAxisSize: MainAxisSize.min,
+            //       children: [
+            //         Icon(
+            //           Icons.access_time_rounded,
+            //           size: 14,
+            //           color: colorScheme.secondary,
+            //         ),
+            // const SizedBox(width: 4),
+            // Text(
+            //   lastEntryDate,
+            //   style: journalTextTheme.labelSmall?.copyWith(
+            //     color: colorScheme.secondary,
+            //     fontWeight: FontWeight.w500,
+            //   ),
+            // ),
+            //     ],
+            //   ),
+            // ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Main header with title and date
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your Journal',
+                    style: journalTextTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onBackground,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    dateString,
+                    style: journalTextTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                // Navigate to profile or settings
+              },
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: colorScheme.primary.withOpacity(0.2),
+                    width: 2,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(100),
+                  child: Image.asset(
+                    'assets/icon/icon.png',
+                    width: 24,
+                    height: 24,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      ],
+    );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }
+
+  String _formatTimeAgo(DateTime date) {
+    final difference = DateTime.now().difference(date);
+
+    if (difference.inDays > 7) {
+      return 'Last entry: ${DateFormat('MMM d').format(date)}';
+    } else if (difference.inDays > 1) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inHours >= 1) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
+  Widget _buildJournalStats(JournalProvider journalProvider, ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final journalTextTheme = AppTheme.journalTextTheme;
+    final totalEntries = journalProvider.entries.length;
+    final entriesThisMonth = journalProvider.getEntriesThisMonth();
+    final currentStreak = "3";
+    final longestStreak = "5";
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(
+            'Journal Insights',
+            style: journalTextTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onSurface.withOpacity(0.8),
+            ),
+          ),
+        ),
+        Row(
           children: [
-            // Text Block
-            Column(
+            Expanded(
+              child: _buildStatItem(
+                context,
+                totalEntries.toString(),
+                'Total Entries',
+                Icons.auto_stories_rounded,
+                colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildStatItem(
+                context,
+                entriesThisMonth.toString(),
+                'This Month',
+                Icons.calendar_view_month_rounded,
+                Colors.blue,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                context,
+                '$currentStreak days',
+                'Current Streak',
+                Icons.local_fire_department_rounded,
+                Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildStatItem(
+                context,
+                '$longestStreak days',
+                'Best Streak',
+                Icons.emoji_events_rounded,
+                Colors.amber,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatItem(BuildContext context, String value, String label,
+      IconData icon, Color color) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final journalTextTheme = AppTheme.journalTextTheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withOpacity(0.15),
+            color.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Journal Calendar',
+                  value,
                   style: journalTextTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 6),
                 Text(
-                  'View your journal entries by date',
-                  style: journalTextTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.65),
+                  label,
+                  style: journalTextTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface.withOpacity(0.6),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
-
-            // Icon Button
-            IconButton(
-              icon: Icon(
-                Icons.calendar_month_rounded,
-                color: colorScheme.primary,
-                size: 28,
-              ),
-              tooltip: 'Open full calendar',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CalendarScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -925,174 +1327,6 @@ class _JournalScreenState extends State<JournalScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildJournalStats(JournalProvider journalProvider, ThemeData theme) {
-    final totalEntries = journalProvider.entries.length;
-    final entriesThisMonth = journalProvider.getEntriesThisMonth();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Expanded(
-              child: _buildStatItem(
-                theme,
-                totalEntries.toString(),
-                'Total Entries',
-                Icons.auto_stories_rounded,
-                colorOne: theme.colorScheme.primary,
-                colorTwo: theme.colorScheme.primaryContainer,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildStatItem(
-                theme,
-                entriesThisMonth.toString(),
-                'This Month',
-                Icons.calendar_month_rounded,
-                colorOne: Colors.blue,
-                colorTwo: Colors.blue.withOpacity(0.2),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatItem(
-      ThemeData theme, String value, String label, IconData icon,
-      {required Color colorOne, required Color colorTwo}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colorTwo.withOpacity(0.2),
-            colorTwo.withOpacity(0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: colorOne.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: colorOne,
-              size: 20,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colorOne,
-            ),
-          ),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(JournalProvider journalProvider, ThemeData theme) {
-    final journalTextTheme = AppTheme.journalTextTheme;
-    String greeting = _getGreeting();
-    final entries = journalProvider.entries;
-    final latestEntry = entries.isNotEmpty ? entries[0] : null;
-    final lastEntryDate = latestEntry != null
-        ? _formatTimeAgo(latestEntry.date)
-        : 'No entries yet';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              greeting,
-              style: journalTextTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              lastEntryDate,
-              style: journalTextTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Your Journal',
-          style: journalTextTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onBackground,
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return 'Good Morning';
-    } else if (hour < 17) {
-      return 'Good Afternoon';
-    } else {
-      return 'Good Evening';
-    }
-  }
-
-  String _formatTimeAgo(DateTime date) {
-    final difference = DateTime.now().difference(date);
-
-    if (difference.inDays > 7) {
-      return 'Last entry: ${DateFormat('MMM d').format(date)}';
-    } else if (difference.inDays > 1) {
-      return 'Last entry: ${difference.inDays} days ago';
-    } else if (difference.inDays == 1) {
-      return 'Last entry: Yesterday';
-    } else if (difference.inHours >= 1) {
-      return 'Last entry: ${difference.inHours} hours ago';
-    } else if (difference.inMinutes >= 1) {
-      return 'Last entry: ${difference.inMinutes} minutes ago';
-    } else {
-      return 'Last entry: Just now';
-    }
   }
 
   Widget _buildGridView(JournalProvider journalProvider, ThemeData theme) {
