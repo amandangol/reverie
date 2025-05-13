@@ -30,6 +30,7 @@ class _AlbumsTabState extends State<AlbumsTab> {
   int _cachedFavoriteCount = 0;
   Map<String, Future<AssetEntity?>> _thumbnailCache = {};
   Map<String, Future<int>> _assetCountCache = {};
+  bool _isSorting = false;
 
   @override
   void initState() {
@@ -48,7 +49,7 @@ class _AlbumsTabState extends State<AlbumsTab> {
     if (!mounted) return;
 
     // Load albums in parallel
-    final albums = mediaProvider.albums;
+    final albums = await mediaProvider.getSortedAlbums();
     final videoAlbums = mediaProvider.videoAlbums;
     final favoriteCount = mediaProvider.favoriteItems.length;
 
@@ -68,6 +69,38 @@ class _AlbumsTabState extends State<AlbumsTab> {
     for (var i = 3; i < albums.length; i++) {
       if (!mounted) break;
       _precacheThumbnail(albums[i]);
+    }
+  }
+
+  Future<void> _updateSortedAlbums() async {
+    if (_isSorting) return;
+
+    setState(() {
+      _isSorting = true;
+    });
+
+    try {
+      final mediaProvider = context.read<MediaProvider>();
+      final sortedAlbums = await mediaProvider.getSortedAlbums();
+
+      if (mounted) {
+        setState(() {
+          _cachedAlbums = sortedAlbums;
+          _isSorting = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSorting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sorting albums: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -104,219 +137,291 @@ class _AlbumsTabState extends State<AlbumsTab> {
           );
         }
 
-        return SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              // Favorites and Videos section
-              if (widget.isGridView)
-                Column(
+        return Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
                   children: [
-                    // First row: Favorites and Videos
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                      padding: const EdgeInsets.all(8),
-                      children: [
-                        // Favorites card
-                        Card(
-                          clipBehavior: Clip.antiAlias,
-                          elevation: 0.5,
-                          color: Colors.black.withOpacity(0.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: InkWell(
-                            onTap: _cachedFavoriteCount > 0
-                                ? () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => AlbumPage(
-                                          album: _cachedAlbums.first,
-                                          isGridView: widget.isGridView,
-                                          gridCrossAxisCount:
-                                              widget.gridCrossAxisCount,
-                                          isFavoritesAlbum: true,
+                    // Favorites and Videos section
+                    if (widget.isGridView)
+                      Column(
+                        children: [
+                          // First row: Favorites and Videos
+                          GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            padding: const EdgeInsets.all(8),
+                            children: [
+                              // Favorites card
+                              Card(
+                                clipBehavior: Clip.antiAlias,
+                                elevation: 0.5,
+                                color: Colors.black.withOpacity(0.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: InkWell(
+                                  onTap: _cachedFavoriteCount > 0
+                                      ? () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => AlbumPage(
+                                                album: _cachedAlbums.first,
+                                                isGridView: widget.isGridView,
+                                                gridCrossAxisCount:
+                                                    widget.gridCrossAxisCount,
+                                                isFavoritesAlbum: true,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      : null,
+                                  child: _buildFavoritesAlbumCard(
+                                      _cachedFavoriteCount),
+                                ),
+                              ),
+                              // Videos card
+                              if (_cachedVideoAlbums.isNotEmpty)
+                                Card(
+                                  clipBehavior: Clip.antiAlias,
+                                  elevation: 0.5,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: InkWell(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const VideoAlbumsPage(),
                                         ),
-                                      ),
-                                    );
-                                  }
-                                : null,
-                            child:
-                                _buildFavoritesAlbumCard(_cachedFavoriteCount),
+                                      );
+                                    },
+                                    child: _buildVideosCard(),
+                                  ),
+                                ),
+                            ],
                           ),
-                        ),
-                        // Videos card
-                        if (_cachedVideoAlbums.isNotEmpty)
+                        ],
+                      )
+                    else
+                      Column(
+                        children: [
+                          // Favorites card
                           Card(
-                            clipBehavior: Clip.antiAlias,
+                            margin: const EdgeInsets.only(bottom: 8),
                             elevation: 0.5,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: InkWell(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const VideoAlbumsPage(),
-                                  ),
-                                );
-                              },
-                              child: _buildVideosCard(),
+                              onTap: _cachedFavoriteCount > 0
+                                  ? () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => AlbumPage(
+                                            album: _cachedAlbums.first,
+                                            isGridView: widget.isGridView,
+                                            gridCrossAxisCount:
+                                                widget.gridCrossAxisCount,
+                                            isFavoritesAlbum: true,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                              child: _buildFavoritesAlbumListItem(
+                                  _cachedFavoriteCount),
                             ),
                           ),
-                      ],
-                    ),
-                  ],
-                )
-              else
-                Column(
-                  children: [
-                    // Favorites card
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      elevation: 0.5,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: InkWell(
-                        onTap: _cachedFavoriteCount > 0
-                            ? () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AlbumPage(
-                                      album: _cachedAlbums.first,
-                                      isGridView: widget.isGridView,
-                                      gridCrossAxisCount:
-                                          widget.gridCrossAxisCount,
-                                      isFavoritesAlbum: true,
-                                    ),
-                                  ),
-                                );
-                              }
-                            : null,
-                        child:
-                            _buildFavoritesAlbumListItem(_cachedFavoriteCount),
-                      ),
-                    ),
-                    // Videos card
-                    if (_cachedVideoAlbums.isNotEmpty)
-                      Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        elevation: 0.5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const VideoAlbumsPage(),
+                          // Videos card
+                          if (_cachedVideoAlbums.isNotEmpty)
+                            Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              elevation: 0.5,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                            );
-                          },
-                          child: _buildVideosListItem(),
-                        ),
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const VideoAlbumsPage(),
+                                    ),
+                                  );
+                                },
+                                child: _buildVideosListItem(),
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
-                ),
+                    // Add sort button in the header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 4),
+                      child: Row(
+                        children: [
+                          const Text(
+                            'More Albums',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (_isSorting)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 8),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          PopupMenuButton<AlbumSortOption>(
+                            icon: const Icon(Icons.sort, color: Colors.grey),
+                            onSelected: (option) async {
+                              await mediaProvider.changeSortOption(option);
+                              await _updateSortedAlbums();
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: AlbumSortOption.nameAsc,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.sort_by_alpha, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Name (A-Z)'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: AlbumSortOption.nameDesc,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.sort_by_alpha, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Name (Z-A)'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: AlbumSortOption.countAsc,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.sort, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Count (Low to High)'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: AlbumSortOption.countDesc,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.sort, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Count (High to Low)'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
 
-              // More Albums section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Text(
-                  'More Albums',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
+                    // Other albums
+                    widget.isGridView
+                        ? GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(8),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 8.0,
+                              mainAxisSpacing: 8.0,
+                              childAspectRatio: 0.8,
+                            ),
+                            itemCount: _cachedAlbums.length,
+                            itemBuilder: (context, index) {
+                              final album = _cachedAlbums[index];
+                              return Card(
+                                clipBehavior: Clip.antiAlias,
+                                elevation: 0.5,
+                                color: Colors.black.withOpacity(0.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => AlbumPage(
+                                          album: album,
+                                          isGridView: widget.isGridView,
+                                          gridCrossAxisCount:
+                                              widget.gridCrossAxisCount,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: _buildAlbumCard(album),
+                                ),
+                              );
+                            },
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(8),
+                            itemCount: _cachedAlbums.length,
+                            itemBuilder: (context, index) {
+                              final album = _cachedAlbums[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                elevation: 0.5,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => AlbumPage(
+                                          album: album,
+                                          isGridView: widget.isGridView,
+                                          gridCrossAxisCount:
+                                              widget.gridCrossAxisCount,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: _buildAlbumListItem(album),
+                                ),
+                              );
+                            },
+                          ),
+                  ],
                 ),
               ),
-
-              // Other albums
-              widget.isGridView
-                  ? GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(8),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8.0,
-                        mainAxisSpacing: 8.0,
-                        childAspectRatio: 0.8,
-                      ),
-                      itemCount: _cachedAlbums.length,
-                      itemBuilder: (context, index) {
-                        final album = _cachedAlbums[index];
-                        return Card(
-                          clipBehavior: Clip.antiAlias,
-                          elevation: 0.5,
-                          color: Colors.black.withOpacity(0.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AlbumPage(
-                                    album: album,
-                                    isGridView: widget.isGridView,
-                                    gridCrossAxisCount:
-                                        widget.gridCrossAxisCount,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: _buildAlbumCard(album),
-                          ),
-                        );
-                      },
-                    )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(8),
-                      itemCount: _cachedAlbums.length,
-                      itemBuilder: (context, index) {
-                        final album = _cachedAlbums[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          elevation: 0.5,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AlbumPage(
-                                    album: album,
-                                    isGridView: widget.isGridView,
-                                    gridCrossAxisCount:
-                                        widget.gridCrossAxisCount,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: _buildAlbumListItem(album),
-                          ),
-                        );
-                      },
-                    ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );

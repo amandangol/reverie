@@ -15,6 +15,9 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'dart:convert';
 import 'package:image/image.dart' as img;
 
+// Add sorting enum at the top level
+enum AlbumSortOption { nameAsc, nameDesc, countAsc, countDesc }
+
 class MediaProvider extends ChangeNotifier {
   List<AssetEntity> _mediaItems = [];
   List<AssetEntity> _videoItems = [];
@@ -103,6 +106,45 @@ class MediaProvider extends ChangeNotifier {
   final _textRecognizer = TextRecognizer();
   final Map<String, RecognizedText> _textRecognitionCache = {};
   final Map<String, bool> _textRecognitionInProgress = {};
+
+  AlbumSortOption _currentSortOption = AlbumSortOption.nameAsc;
+  AlbumSortOption get currentSortOption => _currentSortOption;
+
+  // Add getter for sorted albums
+  Future<List<AssetPathEntity>> getSortedAlbums() async {
+    final albums = List<AssetPathEntity>.from(_albums);
+
+    if (_currentSortOption == AlbumSortOption.nameAsc) {
+      albums.sort((a, b) => a.name.compareTo(b.name));
+      return albums;
+    } else if (_currentSortOption == AlbumSortOption.nameDesc) {
+      albums.sort((a, b) => b.name.compareTo(a.name));
+      return albums;
+    } else {
+      // For count-based sorting, we need to get the counts first
+      final albumCounts = await Future.wait(
+        albums.map((album) =>
+            album.assetCountAsync.then((count) => MapEntry(album, count))),
+      );
+
+      final countMap = Map.fromEntries(albumCounts);
+
+      if (_currentSortOption == AlbumSortOption.countAsc) {
+        albums.sort((a, b) => countMap[a]!.compareTo(countMap[b]!));
+      } else {
+        albums.sort((a, b) => countMap[b]!.compareTo(countMap[a]!));
+      }
+
+      return albums;
+    }
+  }
+
+  // Add method to change sort option
+  Future<void> changeSortOption(AlbumSortOption option) async {
+    if (_currentSortOption == option) return;
+    _currentSortOption = option;
+    notifyListeners();
+  }
 
   // Getters
   bool get isFlashbacksInitialized => _isFlashbacksInitialized;

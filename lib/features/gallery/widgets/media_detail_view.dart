@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -22,9 +21,6 @@ import '../pages/album_page.dart';
 import 'package:intl/intl.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'text_recognition_overlay.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/services.dart';
 
 class MediaDetailView extends StatefulWidget {
   final AssetEntity? asset;
