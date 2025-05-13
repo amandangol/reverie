@@ -11,6 +11,7 @@ class JournalCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool showHero;
   final double aspectRatio;
+  final String? searchQuery;
 
   const JournalCard({
     super.key,
@@ -18,7 +19,125 @@ class JournalCard extends StatelessWidget {
     required this.onTap,
     this.showHero = true,
     this.aspectRatio = 0.85,
+    this.searchQuery,
   });
+
+  Widget _buildHighlightedText(String text, ThemeData theme) {
+    if (searchQuery == null || searchQuery!.isEmpty) {
+      return Text(
+        text,
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    final query = searchQuery!.toLowerCase();
+    final textLower = text.toLowerCase();
+    final matches = <TextSpan>[];
+    var start = 0;
+
+    while (true) {
+      final index = textLower.indexOf(query, start);
+      if (index == -1) {
+        if (start < text.length) {
+          matches.add(TextSpan(
+            text: text.substring(start),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ));
+        }
+        break;
+      }
+
+      if (index > start) {
+        matches.add(TextSpan(
+          text: text.substring(start, index),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ));
+      }
+
+      matches.add(TextSpan(
+        text: text.substring(index, index + query.length),
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.primary,
+          backgroundColor: theme.colorScheme.primaryContainer.withOpacity(0.3),
+        ),
+      ));
+
+      start = index + query.length;
+    }
+
+    return RichText(
+      text: TextSpan(children: matches),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildHighlightedContent(String text, ThemeData theme) {
+    if (searchQuery == null || searchQuery!.isEmpty) {
+      return Text(
+        text,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurface.withOpacity(0.7),
+        ),
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    final query = searchQuery!.toLowerCase();
+    final textLower = text.toLowerCase();
+    final matches = <TextSpan>[];
+    var start = 0;
+
+    while (true) {
+      final index = textLower.indexOf(query, start);
+      if (index == -1) {
+        if (start < text.length) {
+          matches.add(TextSpan(
+            text: text.substring(start),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
+            ),
+          ));
+        }
+        break;
+      }
+
+      if (index > start) {
+        matches.add(TextSpan(
+          text: text.substring(start, index),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
+          ),
+        ));
+      }
+
+      matches.add(TextSpan(
+        text: text.substring(index, index + query.length),
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.primary,
+          backgroundColor: theme.colorScheme.primaryContainer.withOpacity(0.3),
+        ),
+      ));
+
+      start = index + query.length;
+    }
+
+    return RichText(
+      text: TextSpan(children: matches),
+      maxLines: 3,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,24 +246,10 @@ class JournalCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        entry.title,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      _buildHighlightedText(entry.title, theme),
                       const SizedBox(height: 4),
                       Expanded(
-                        child: Text(
-                          entry.content,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: _buildHighlightedContent(entry.content, theme),
                       ),
                       if (entry.tags.isNotEmpty) ...[
                         const SizedBox(height: 5),

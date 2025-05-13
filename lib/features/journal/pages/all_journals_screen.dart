@@ -6,6 +6,7 @@ import 'journal_detail_screen.dart';
 import 'package:reverie/theme/app_theme.dart';
 import '../widgets/journal_card.dart';
 import '../widgets/journal_shimmer.dart';
+import '../widgets/journal_search_delegate.dart';
 
 class AllJournalsScreen extends StatefulWidget {
   const AllJournalsScreen({super.key});
@@ -158,6 +159,20 @@ class _AllJournalsScreenState extends State<AllJournalsScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: Icon(
+              Icons.search_rounded,
+              color: colorScheme.primary,
+            ),
+            onPressed: () {
+              showSearch(
+                context: context,
+                delegate:
+                    JournalSearchDelegate(context.read<JournalProvider>()),
+              );
+            },
+            tooltip: 'Search entries',
+          ),
           IconButton(
             icon: Icon(
               Icons.sort_rounded,

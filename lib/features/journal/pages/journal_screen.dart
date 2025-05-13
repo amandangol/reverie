@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
-import 'package:shimmer/shimmer.dart';
 import 'journal_detail_screen.dart';
 import 'calendar_screen.dart';
 import '../providers/journal_provider.dart';
@@ -12,6 +11,7 @@ import 'package:reverie/theme/app_theme.dart';
 import '../widgets/journal_card.dart';
 import '../widgets/journal_shimmer.dart';
 import 'all_journals_screen.dart';
+import '../widgets/journal_search_delegate.dart';
 
 class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
@@ -1028,6 +1028,20 @@ class _JournalScreenState extends State<JournalScreen> {
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.background,
         actions: [
+          IconButton(
+            icon: Icon(
+              Icons.search_rounded,
+              color: colorScheme.primary,
+            ),
+            onPressed: () {
+              showSearch(
+                context: context,
+                delegate:
+                    JournalSearchDelegate(context.read<JournalProvider>()),
+              );
+            },
+            tooltip: 'Search entries',
+          ),
           IconButton(
             icon: Icon(
               Icons.help_outline_rounded,

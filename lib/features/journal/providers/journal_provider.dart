@@ -371,10 +371,9 @@ class JournalProvider extends ChangeNotifier {
     if (query.isEmpty) return entries;
 
     try {
+      final searchQuery = query.toLowerCase();
       final List<Map<String, dynamic>> maps = await _database!.query(
         'journal_entries',
-        where: 'title LIKE ? OR content LIKE ?',
-        whereArgs: ['%$query%', '%$query%'],
         orderBy: 'date DESC',
       );
 
@@ -401,6 +400,29 @@ class JournalProvider extends ChangeNotifier {
               ? DateTime.fromMillisecondsSinceEpoch(map['last_edited'] as int)
               : DateTime.fromMillisecondsSinceEpoch(map['date'] as int),
         );
+      }).where((entry) {
+        // Search in title
+        if (entry.title.toLowerCase().contains(searchQuery)) {
+          return true;
+        }
+
+        // Search in content
+        if (entry.content.toLowerCase().contains(searchQuery)) {
+          return true;
+        }
+
+        // Search in tags
+        if (entry.tags.any((tag) => tag.toLowerCase().contains(searchQuery))) {
+          return true;
+        }
+
+        // Search in mood
+        if (entry.mood != null &&
+            entry.mood!.toLowerCase().contains(searchQuery)) {
+          return true;
+        }
+
+        return false;
       }).toList();
     } catch (e) {
       _error = 'Failed to search entries: $e';

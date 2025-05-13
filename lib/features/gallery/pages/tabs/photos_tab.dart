@@ -86,6 +86,23 @@ class _PhotosTabState extends State<PhotosTab> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                     const Spacer(),
+                    if (!photoOps.isSelectionMode) ...[
+                      FutureBuilder<bool>(
+                        future: mediaProvider.isGoogleDriveSignedIn(),
+                        builder: (context, snapshot) {
+                          final isSignedIn = snapshot.data ?? false;
+                          return IconButton(
+                            icon: Icon(
+                              isSignedIn ? Icons.backup : Icons.backup_outlined,
+                              color: isSignedIn ? Colors.blue : null,
+                            ),
+                            onPressed: () =>
+                                _showBackupDialog(context, mediaProvider),
+                            tooltip: 'Backup to Google Drive',
+                          );
+                        },
+                      ),
+                    ],
                     if (photoOps.isSelectionMode) ...[
                       IconButton(
                         icon: const Icon(Icons.share),
@@ -760,5 +777,257 @@ class _PhotosTabState extends State<PhotosTab> {
       // Refresh the media list to show the edited image
       context.read<MediaProvider>().refreshMedia();
     }
+  }
+
+  Future<void> _showBackupDialog(
+      BuildContext context, MediaProvider mediaProvider) async {
+    final isSignedIn = await mediaProvider.isGoogleDriveSignedIn();
+
+    if (!isSignedIn) {
+      final shouldSignIn = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Google Drive Backup'),
+          content: const Text(
+            'Sign in to Google Drive to enable backup functionality.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Sign In'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldSignIn == true) {
+        try {
+          await mediaProvider.signInToGoogleDrive();
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to sign in: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      } else {
+        return;
+      }
+    }
+
+    final action = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Google Drive Backup'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.backup),
+              title: const Text('Backup to Google Drive'),
+              subtitle: const Text('Upload all photos to Google Drive'),
+              onTap: () => Navigator.pop(context, 'backup'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.restore),
+              title: const Text('Restore from Google Drive'),
+              subtitle: const Text('Download photos from Google Drive'),
+              onTap: () => Navigator.pop(context, 'restore'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Sign Out'),
+              subtitle: const Text('Sign out from Google Drive'),
+              onTap: () => Navigator.pop(context, 'signout'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (action == null) return;
+
+    switch (action) {
+      case 'backup':
+        _startBackup(context, mediaProvider);
+        break;
+      case 'restore':
+        _startRestore(context, mediaProvider);
+        break;
+      case 'signout':
+        await mediaProvider.signOutFromGoogleDrive();
+        break;
+    }
+  }
+
+  Future<void> _startBackup(
+      BuildContext context, MediaProvider mediaProvider) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Backup to Google Drive'),
+        content: const Text(
+          'This will upload all your photos to Google Drive. This may take a while depending on the number of photos.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Backup'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _BackupProgressDialog(
+          title: 'Backing up to Google Drive',
+          onCancel: () {
+            Navigator.pop(context);
+            mediaProvider.signOutFromGoogleDrive();
+          },
+        ),
+      );
+
+      try {
+        await mediaProvider.backupToGoogleDrive();
+        if (mounted) {
+          Navigator.pop(context); // Close progress dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Backup completed successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context); // Close progress dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Backup failed: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _startRestore(
+      BuildContext context, MediaProvider mediaProvider) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore from Google Drive'),
+        content: const Text(
+          'This will download all your backed up photos from Google Drive. This may take a while depending on the number of photos.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _BackupProgressDialog(
+          title: 'Restoring from Google Drive',
+          onCancel: () {
+            Navigator.pop(context);
+            mediaProvider.signOutFromGoogleDrive();
+          },
+        ),
+      );
+
+      try {
+        await mediaProvider.restoreFromGoogleDrive();
+        if (mounted) {
+          Navigator.pop(context); // Close progress dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Restore completed successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context); // Close progress dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Restore failed: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+}
+
+class _BackupProgressDialog extends StatelessWidget {
+  final String title;
+  final VoidCallback onCancel;
+
+  const _BackupProgressDialog({
+    required this.title,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<MediaProvider>(
+      builder: (context, mediaProvider, _) {
+        return AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LinearProgressIndicator(
+                value: mediaProvider.backupProgress,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '${(mediaProvider.backupProgress * 100).toStringAsFixed(1)}%',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: onCancel,
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
