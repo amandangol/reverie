@@ -62,120 +62,206 @@ class _JournalScreenState extends State<JournalScreen> {
 
   void _showHelpDialog() {
     showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.auto_stories_rounded,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Journaling Tips',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+        context: context,
+        builder: (context) => Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.auto_stories_rounded,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 28,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Journal Guide',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildTipSection(
+                        'Creating Entries',
+                        [
+                          _buildTipItem(
+                            'New Entry',
+                            'Tap the "New Entry" button to start writing. Add a title, content, mood, and tags.',
+                            Icons.edit_note_rounded,
+                          ),
+                          _buildTipItem(
+                            'AI Assistant',
+                            'Use the AI Assistant to generate content based on your mood, tags, and photos.',
+                            Icons.auto_awesome_rounded,
+                          ),
+                          _buildTipItem(
+                            'Media & Photos',
+                            'Add photos and videos to your entries. You can select multiple items.',
+                            Icons.photo_library_rounded,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildTipSection(
+                        'Organizing Content',
+                        [
+                          _buildTipItem(
+                            'Tags & Keywords',
+                            'Use tags to organize entries. Try suggested keywords or create your own.',
+                            Icons.label_rounded,
+                          ),
+                          _buildTipItem(
+                            'Mood Tracking',
+                            'Select your mood for each entry to track emotional patterns.',
+                            Icons.mood_rounded,
+                          ),
+                          _buildTipItem(
+                            'Calendar View',
+                            'View your entries by date in the calendar. Tap any date to see entries.',
+                            Icons.calendar_month_rounded,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildTipSection(
+                        'Tracking Progress',
+                        [
+                          _buildTipItem(
+                            'Streaks',
+                            'Maintain your journaling streak by writing daily. View your current and best streaks.',
+                            Icons.local_fire_department_rounded,
+                          ),
+                          _buildTipItem(
+                            'Monthly Stats',
+                            'Track your monthly progress and total entries in the insights section.',
+                            Icons.insights_rounded,
+                          ),
+                          _buildTipItem(
+                            'Entry History',
+                            'View all your entries sorted by date, title, or mood.',
+                            Icons.history_rounded,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildTipSection(
+                        'Managing Entries',
+                        [
+                          _buildTipItem(
+                            'Edit & Delete',
+                            'Edit or delete entries anytime. Changes are saved automatically.',
+                            Icons.edit_rounded,
+                          ),
+                          _buildTipItem(
+                            'Share Entries',
+                            'Share your entries with others, including photos and videos.',
+                            Icons.share_rounded,
+                          ),
+                          _buildTipItem(
+                            'Search & Filter',
+                            'Find entries using tags, dates, or keywords.',
+                            Icons.search_rounded,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'Got it',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _buildTipItem(
-                'Write Regularly',
-                'Try to write in your journal daily. Even a few sentences can help you track your thoughts and feelings.',
-                Icons.calendar_today_rounded,
-              ),
-              const SizedBox(height: 16),
-              _buildTipItem(
-                'Be Honest',
-                'Your journal is a safe space. Write authentically about your feelings and experiences.',
-                Icons.psychology_rounded,
-              ),
-              const SizedBox(height: 16),
-              _buildTipItem(
-                'Add Photos',
-                'Enhance your entries with photos to capture moments and memories visually.',
-                Icons.photo_library_rounded,
-              ),
-              const SizedBox(height: 16),
-              _buildTipItem(
-                'Use Tags',
-                'Organize your entries with tags to easily find and group related content.',
-                Icons.label_rounded,
-              ),
-              const SizedBox(height: 24),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Got it',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ));
+  }
+
+  Widget _buildTipSection(String title, List<Widget> tips) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.primary,
+              ),
         ),
-      ),
+        const SizedBox(height: 16),
+        ...tips,
+      ],
     );
   }
 
   Widget _buildTipItem(String title, String description, IconData icon) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color:
-                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(8),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+                  .withOpacity(0.3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
           ),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-            size: 20,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.7),
+                      ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.7),
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -297,127 +383,6 @@ class _JournalScreenState extends State<JournalScreen> {
               },
             ),
             const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _handleDateSelected(DateTime date) {
-    final entries = context.read<JournalProvider>().getEntriesForDate(date);
-    if (entries.isEmpty) {
-      // Show empty state or create new entry
-      _showCreateEntryDialog(date);
-    } else if (entries.length == 1) {
-      // Navigate to single entry
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => JournalDetailScreen(entry: entries.first),
-        ),
-      );
-    } else {
-      // Show list of entries for that date
-      _showEntriesForDate(date, entries);
-    }
-  }
-
-  void _showCreateEntryDialog(DateTime date) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.9,
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-        ),
-        child: JournalEntryForm(
-          initialDate: date,
-          onSave: (title, content, mediaIds, mood, tags) async {
-            final entry = JournalEntry(
-              id: const Uuid().v4(),
-              title: title,
-              content: content,
-              date: date,
-              mediaIds: mediaIds,
-              mood: mood,
-              tags: tags,
-            );
-            await context.read<JournalProvider>().addEntry(entry);
-            if (mounted) {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => JournalDetailScreen(entry: entry),
-                ),
-              );
-            }
-          },
-        ),
-      ),
-    );
-  }
-
-  void _showEntriesForDate(DateTime date, List<JournalEntry> entries) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    DateFormat('MMMM d, yyyy').format(date),
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: entries.length,
-                itemBuilder: (context, index) {
-                  final entry = entries[index];
-                  return ListTile(
-                    title: Text(entry.title),
-                    subtitle: Text(
-                      DateFormat('h:mm a').format(entry.date),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              JournalDetailScreen(entry: entry),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
           ],
         ),
       ),
@@ -770,133 +735,281 @@ class _JournalScreenState extends State<JournalScreen> {
     final journalTextTheme = AppTheme.journalTextTheme;
     final totalEntries = journalProvider.entries.length;
     final entriesThisMonth = journalProvider.getEntriesThisMonth();
-    final currentStreak = "3";
-    final longestStreak = "5";
+    final currentStreak = journalProvider.getCurrentStreak();
+    final longestStreak = journalProvider.getLongestStreak();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            'Journal Insights',
-            style: journalTextTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface.withOpacity(0.8),
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Journal Insights',
+                style: journalTextTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface.withOpacity(0.8),
+                ),
+              ),
+              IconButton(
+                onPressed: () =>
+                    _showDetailedStatsDialog(context, journalProvider),
+                icon: Icon(
+                  Icons.insights_rounded,
+                  color: colorScheme.primary,
+                  size: 20,
+                ),
+                tooltip: 'View detailed stats',
+              ),
+            ],
           ),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatItem(
+        GestureDetector(
+          onTap: () {
+            _showDetailedStatsDialog(context, journalProvider);
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatIcon(
                 context,
                 totalEntries.toString(),
-                'Total Entries',
+                'Entries',
                 Icons.auto_stories_rounded,
                 colorScheme.primary,
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildStatItem(
+              _buildStatIcon(
                 context,
                 entriesThisMonth.toString(),
                 'This Month',
                 Icons.calendar_view_month_rounded,
                 Colors.blue,
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatItem(
+              _buildStatIcon(
                 context,
-                '$currentStreak days',
-                'Current Streak',
+                currentStreak.toString(),
+                'Streak',
                 Icons.local_fire_department_rounded,
                 Colors.orange,
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildStatItem(
+              _buildStatIcon(
                 context,
-                '$longestStreak days',
-                'Best Streak',
+                longestStreak.toString(),
+                'Best',
                 Icons.emoji_events_rounded,
                 Colors.amber,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildStatItem(BuildContext context, String value, String label,
+  Widget _buildStatIcon(BuildContext context, String value, String label,
       IconData icon, Color color) {
     final colorScheme = Theme.of(context).colorScheme;
     final journalTextTheme = AppTheme.journalTextTheme;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withOpacity(0.15),
-            color.withOpacity(0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 20,
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: journalTextTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
+          child: Icon(
+            icon,
+            color: color,
+            size: 24,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: journalTextTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+        ),
+        Text(
+          label,
+          style: journalTextTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurface.withOpacity(0.6),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showDetailedStatsDialog(
+      BuildContext context, JournalProvider journalProvider) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final journalTextTheme = AppTheme.journalTextTheme;
+
+    final totalEntries = journalProvider.entries.length;
+    final entriesThisMonth = journalProvider.getEntriesThisMonth();
+    final currentStreak = journalProvider.getCurrentStreak();
+    final longestStreak = journalProvider.getLongestStreak();
+    final averageEntryLength =
+        journalProvider.getAverageEntryLength().toStringAsFixed(1);
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.insights_rounded,
+                    color: colorScheme.primary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Journal Insights',
+                    style: journalTextTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildDetailedStatItem(
+                context,
+                'Total Entries',
+                totalEntries.toString(),
+                'Total number of journal entries',
+                Icons.auto_stories_rounded,
+                colorScheme.primary,
+              ),
+              const SizedBox(height: 16),
+              _buildDetailedStatItem(
+                context,
+                'Entries This Month',
+                entriesThisMonth.toString(),
+                'Number of entries in the current month',
+                Icons.calendar_view_month_rounded,
+                Colors.blue,
+              ),
+              const SizedBox(height: 16),
+              _buildDetailedStatItem(
+                context,
+                'Current Streak',
+                '$currentStreak days',
+                'Consecutive days of journaling',
+                Icons.local_fire_department_rounded,
+                Colors.orange,
+              ),
+              const SizedBox(height: 16),
+              _buildDetailedStatItem(
+                context,
+                'Longest Streak',
+                '$longestStreak days',
+                'Best consecutive days of journaling',
+                Icons.emoji_events_rounded,
+                Colors.amber,
+              ),
+              const SizedBox(height: 16),
+              _buildDetailedStatItem(
+                context,
+                'Average Entry Length',
+                '$averageEntryLength words',
+                'Average number of words per entry',
+                Icons.text_fields_rounded,
+                Colors.green,
+              ),
+              const SizedBox(height: 24),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Close',
+                    style: TextStyle(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                Text(
-                  label,
-                  style: journalTextTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.6),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildDetailedStatItem(
+    BuildContext context,
+    String title,
+    String value,
+    String description,
+    IconData icon,
+    Color color,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final journalTextTheme = AppTheme.journalTextTheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            color: color,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: journalTextTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: journalTextTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: journalTextTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -907,7 +1020,6 @@ class _JournalScreenState extends State<JournalScreen> {
 
     return Scaffold(
       extendBody: true,
-      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text(
           'Reverie',
@@ -916,7 +1028,7 @@ class _JournalScreenState extends State<JournalScreen> {
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.surface,
+        backgroundColor: colorScheme.background,
         actions: [
           IconButton(
             icon: Icon(
@@ -924,7 +1036,7 @@ class _JournalScreenState extends State<JournalScreen> {
               color: colorScheme.primary,
             ),
             onPressed: _showHelpDialog,
-            tooltip: 'Journaling Tips',
+            tooltip: 'Journaling Guide',
           ),
           const SizedBox(width: 8),
         ],
@@ -989,7 +1101,7 @@ class _JournalScreenState extends State<JournalScreen> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        colorScheme.surface,
+                        colorScheme.background,
                         colorScheme.surface,
                       ],
                       stops: const [0.0, 0.3],

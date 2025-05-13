@@ -5,7 +5,6 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../commonwidgets/empty_state.dart';
 import '../../provider/media_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
-import '../../widgets/flashbacks_preview.dart';
 import '../album_page.dart';
 import '../video_albums_page.dart';
 import '../../../permissions/provider/permission_provider.dart';
@@ -227,11 +226,6 @@ class _AlbumsTabState extends State<AlbumsTab> {
                           child: _buildVideosListItem(),
                         ),
                       ),
-                    // Flashbacks Preview (full width)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: FlashbacksPreview(),
-                    ),
                   ],
                 ),
 

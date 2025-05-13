@@ -45,6 +45,7 @@ class _GalleryPageState extends State<GalleryPage>
   @override
   Widget build(BuildContext context) {
     final preferences = context.watch<GalleryPreferencesProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
 
     return DefaultTabController(
       length: 2,
@@ -54,6 +55,7 @@ class _GalleryPageState extends State<GalleryPage>
             'Reverie',
             style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
           ),
+          backgroundColor: colorScheme.background,
           actions: [
             IconButton(
               icon: Icon(
@@ -103,8 +105,7 @@ class _GalleryPageState extends State<GalleryPage>
               ),
             ],
             body: TabBarView(
-              controller:
-                  _tabController, // <-- Make sure controller is passed here
+              controller: _tabController,
               children: [
                 PhotosTab(
                   isGridView: preferences.isGridView,

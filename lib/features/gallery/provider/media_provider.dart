@@ -12,6 +12,7 @@ import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'dart:convert';
+import 'package:image/image.dart' as img;
 
 class MediaProvider extends ChangeNotifier {
   List<AssetEntity> _mediaItems = [];
@@ -94,6 +95,10 @@ class MediaProvider extends ChangeNotifier {
   static const String _weeklyFlashbacksCacheKey = 'weekly_flashbacks_cache';
   static const String _monthlyFlashbacksCacheKey = 'monthly_flashbacks_cache';
 
+  // Add new properties for collage and slideshow
+  final Map<String, List<File>> _slideshowCache = {};
+  bool _isGeneratingSlideshow = false;
+
   // Getters
   bool get isFlashbacksInitialized => _isFlashbacksInitialized;
   List<AssetEntity> get flashbackPhotos => _flashbackPhotos;
@@ -105,6 +110,7 @@ class MediaProvider extends ChangeNotifier {
   List<AssetEntity> get monthlyFlashbackPhotos => _monthlyFlashbackPhotos;
   bool get isLoadingMonthlyFlashbacks => _isLoadingMonthlyFlashbacks;
   String? get monthlyFlashbackError => _monthlyFlashbackError;
+  bool get isGeneratingSlideshow => _isGeneratingSlideshow;
 
   @override
   void dispose() {
@@ -1106,7 +1112,7 @@ Avoid repetition. Use clear and simple language. Return only the structured outp
 
       final bytes = await file.readAsBytes();
 
-      final prompt = '''
+      const prompt = '''
 You are a memory caption generator. Create a short, engaging caption (max 2 sentences) for this photo that captures the essence of the moment. Focus on:
 - The main subject or scene
 - The mood or feeling
@@ -1166,7 +1172,7 @@ Keep it personal and nostalgic, as if reminiscing about a past memory. Be concis
 
       final bytes = await file.readAsBytes();
 
-      final prompt = '''
+      const prompt = '''
 You are a memory analyst. Analyze this photo and provide insights about the memory it captures:
 
 1. **Memory Context**:
@@ -1270,9 +1276,10 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     return memoriesWithAnalysis.take(limit).toList();
   }
 
-  // Update clearFlashbacksCache to not clear the lists immediately
+  // Update clearFlashbacksCache to only clear slideshow cache
   Future<void> clearFlashbacksCache() async {
     _isFlashbacksInitialized = false;
+    _slideshowCache.clear();
     notifyListeners();
   }
 
@@ -1465,7 +1472,7 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
       );
 
       if (result != null) {
-        // Add the new edited image to our lists and caches
+        //  the new edited image to our lists and caches
         // Note: Original image remains untouched
         _allMediaList.insert(0, result);
         _allMediaItems[result.id] = result;
@@ -1515,6 +1522,45 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
           debugPrint('Error deleting temp file: $e');
         }
       }
+    }
+  }
+
+  // Remove generateCollage method and keep only generateSlideshow
+  Future<List<File>?> generateSlideshow(List<AssetEntity> memories) async {
+    if (_isGeneratingSlideshow) return null;
+    if (memories.isEmpty) return null;
+
+    try {
+      _isGeneratingSlideshow = true;
+      notifyListeners();
+
+      // Create a unique key for this set of memories
+      final memoryIds = memories.map((m) => m.id).join('_');
+
+      // Check cache first
+      if (_slideshowCache.containsKey(memoryIds)) {
+        return _slideshowCache[memoryIds];
+      }
+
+      // Get files for all memories
+      final files = await Future.wait(
+        memories.map((asset) => asset.file),
+      );
+      final validFiles = files.whereType<File>().toList();
+
+      if (validFiles.isEmpty) return null;
+
+      // Cache the result
+      _slideshowCache[memoryIds] = validFiles;
+      notifyListeners();
+
+      return validFiles;
+    } catch (e) {
+      debugPrint('Error generating slideshow: $e');
+      return null;
+    } finally {
+      _isGeneratingSlideshow = false;
+      notifyListeners();
     }
   }
 }

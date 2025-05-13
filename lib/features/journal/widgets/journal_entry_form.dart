@@ -761,7 +761,7 @@ class _JournalEntryFormState extends State<JournalEntryForm>
               label: Text(
                 _isGenerating ? 'Generating...' : 'Generate with AI',
                 style: TextStyle(
-                  color: theme.colorScheme.onPrimaryContainer,
+                  color: theme.colorScheme.onPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),

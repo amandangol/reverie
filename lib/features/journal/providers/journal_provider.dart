@@ -429,6 +429,87 @@ class JournalProvider extends ChangeNotifier {
         .length;
   }
 
+  //  streak calculation methods
+  int getCurrentStreak() {
+    if (_entries.isEmpty) return 0;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    var currentDate = today;
+    var streak = 0;
+
+    // Check if there's an entry for today
+    if (_hasEntryForDate(currentDate)) {
+      streak = 1;
+    } else {
+      // If no entry today, check yesterday
+      currentDate = currentDate.subtract(const Duration(days: 1));
+      if (_hasEntryForDate(currentDate)) {
+        streak = 1;
+      } else {
+        return 0; // No streak if no entry today or yesterday
+      }
+    }
+
+    // Count consecutive days backwards
+    while (true) {
+      currentDate = currentDate.subtract(const Duration(days: 1));
+      if (_hasEntryForDate(currentDate)) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  int getLongestStreak() {
+    if (_entries.isEmpty) return 0;
+
+    // Sort entries by date
+    final sortedEntries = List<JournalEntry>.from(_entries)
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    var longestStreak = 0;
+    var currentStreak = 1;
+    var lastDate = DateTime(
+      sortedEntries[0].date.year,
+      sortedEntries[0].date.month,
+      sortedEntries[0].date.day,
+    );
+
+    for (var i = 1; i < sortedEntries.length; i++) {
+      final currentDate = DateTime(
+        sortedEntries[i].date.year,
+        sortedEntries[i].date.month,
+        sortedEntries[i].date.day,
+      );
+
+      final difference = currentDate.difference(lastDate).inDays;
+
+      if (difference == 1) {
+        // Consecutive day
+        currentStreak++;
+        if (currentStreak > longestStreak) {
+          longestStreak = currentStreak;
+        }
+      } else if (difference > 1) {
+        // Streak broken
+        currentStreak = 1;
+      }
+
+      lastDate = currentDate;
+    }
+
+    return longestStreak;
+  }
+
+  bool _hasEntryForDate(DateTime date) {
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    return _calendarEntries.containsKey(normalizedDate);
+  }
+
   double getAverageEntryLength() {
     if (_entries.isEmpty) return 0;
     final totalWords = _entries.fold<int>(
