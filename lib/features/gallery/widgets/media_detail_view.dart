@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -10,6 +11,7 @@ import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
+import 'package:pro_image_editor/pro_image_editor.dart';
 import '../../../commonwidgets/custom_markdown.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../provider/media_provider.dart';
@@ -20,7 +22,6 @@ import '../../journal/models/journal_entry.dart';
 import '../pages/album_page.dart';
 import 'package:intl/intl.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
-import 'package:image_editor_plus/image_editor_plus.dart';
 
 class MediaDetailView extends StatefulWidget {
   final AssetEntity? asset;
@@ -467,29 +468,69 @@ class _MediaDetailViewState extends State<MediaDetailView>
           debugPrint('Error deleting temp file: $e');
         }
 
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ImageEditor(
-              image: bytes,
-            ),
+        // Create a unique hero tag for the editor
+        final editorHeroTag =
+            'editor_${currentAsset.id}_${DateTime.now().millisecondsSinceEpoch}';
+
+        // Show loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
           ),
         );
 
-        if (result != null && mounted) {
-          // Save the edited image to the gallery
-          final savedAsset = await mediaProvider.saveEditedImage(result);
+        try {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProImageEditor.memory(
+                bytes,
+                callbacks: ProImageEditorCallbacks(
+                  onImageEditingComplete: (editedImage) async {
+                    if (editedImage != null) {
+                      // Save the edited image to the gallery
+                      final savedAsset =
+                          await mediaProvider.saveEditedImage(editedImage);
+                      if (savedAsset != null && mounted) {
+                        // Update the current view and return the edited asset
+                        if (widget.assetList != null) {
+                          setState(() {
+                            widget.assetList![_currentIndex] = savedAsset;
+                          });
+                        }
+                        // Return the edited asset when popping back
+                        Navigator.pop(context, savedAsset);
+                      }
+                    }
+                  },
+                  onCloseEditor: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            ),
+          );
 
-          if (savedAsset != null && mounted) {
-            // Update the current view and return the edited asset
-            if (widget.assetList != null) {
-              setState(() {
-                widget.assetList![_currentIndex] = savedAsset;
-              });
-            }
-            // Return the edited asset when popping back
-            Navigator.pop(context, savedAsset);
+          // Remove loading indicator
+          if (mounted) {
+            Navigator.pop(context); // Remove loading dialog
           }
+
+          // Handle the result after the editor is closed
+          if (result != null && mounted) {
+            // Refresh the media list to show the edited image
+            await mediaProvider.refreshMedia();
+            // Pop back to the previous screen
+            Navigator.pop(context);
+          }
+        } catch (e) {
+          // Remove loading indicator
+          if (mounted) {
+            Navigator.pop(context); // Remove loading dialog
+          }
+          rethrow;
         }
       }
     } catch (e) {
@@ -820,10 +861,16 @@ class _MediaDetailViewState extends State<MediaDetailView>
   }
 
   Widget _buildPhotoView(File file, String? heroTag) {
+    // Create a unique hero tag for each view
+    final uniqueHeroTag = heroTag != null
+        ? '${heroTag}_${DateTime.now().millisecondsSinceEpoch}'
+        : null;
+
     return PhotoView(
       imageProvider: FileImage(file),
-      heroAttributes:
-          heroTag != null ? PhotoViewHeroAttributes(tag: heroTag) : null,
+      heroAttributes: uniqueHeroTag != null
+          ? PhotoViewHeroAttributes(tag: uniqueHeroTag)
+          : null,
       minScale: PhotoViewComputedScale.contained,
       maxScale: PhotoViewComputedScale.covered * 3,
       backgroundDecoration: const BoxDecoration(color: Colors.transparent),
