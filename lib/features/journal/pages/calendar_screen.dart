@@ -5,6 +5,8 @@ import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'package:reverie/utils/media_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import '../models/journal_entry.dart';
 import '../widgets/journal_entry_form.dart';
 import 'journal_detail_screen.dart';
@@ -538,17 +540,69 @@ class _CalendarScreenState extends State<CalendarScreen>
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color:
                                   colorScheme.primaryContainer.withOpacity(0.5),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(
-                              Icons.book,
-                              color: colorScheme.primary,
-                              size: 22,
-                            ),
+                            child: entry.mediaIds.isEmpty
+                                ? const SizedBox(
+                                    width: 60,
+                                    height: 60,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.article_outlined,
+                                        size: 24,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  )
+                                : FutureBuilder<AssetEntity?>(
+                                    future: context
+                                        .read<JournalProvider>()
+                                        .getImageAsset(entry.mediaIds.first),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const SizedBox(
+                                          width: 60,
+                                          height: 60,
+                                          child: Center(
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2),
+                                          ),
+                                        );
+                                      }
+
+                                      if (snapshot.hasError ||
+                                          !snapshot.hasData) {
+                                        return const SizedBox(
+                                          width: 60,
+                                          height: 60,
+                                          child: Center(
+                                            child: Icon(Icons.broken_image,
+                                                size: 24),
+                                          ),
+                                        );
+                                      }
+
+                                      return ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image(
+                                          image: AssetEntityImageProvider(
+                                            snapshot.data!,
+                                            isOriginal: false,
+                                            thumbnailSize:
+                                                const ThumbnailSize(200, 200),
+                                          ),
+                                          width: 60,
+                                          height: 60,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      );
+                                    },
+                                  ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -557,6 +611,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Container(

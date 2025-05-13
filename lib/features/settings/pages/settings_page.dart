@@ -5,6 +5,7 @@ import '../../gallery/provider/media_provider.dart';
 import '../../permissions/provider/permission_provider.dart';
 import '../../permissions/widgets/permission_dialog.dart';
 import '../widgets/setting_widgets.dart';
+import '../pages/legal_pages.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -93,6 +94,79 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'Media Access',
                 subtitle: 'Manage photo and video access',
                 onTap: () => _requestMediaPermission(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Legal Section
+          SettingsSection(
+            title: 'Legal',
+            children: [
+              SettingsTile(
+                icon: Icons.privacy_tip,
+                title: 'Privacy Policy',
+                subtitle: 'How we handle your data',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PrivacyPolicyPage(),
+                  ),
+                ),
+              ),
+              const SettingsDivider(),
+              SettingsTile(
+                icon: Icons.description,
+                title: 'Terms of Service',
+                subtitle: 'User agreement and terms',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TermsOfServicePage(),
+                  ),
+                ),
+              ),
+              const SettingsDivider(),
+              SettingsTile(
+                icon: Icons.gavel,
+                title: 'Licenses',
+                subtitle: 'Open source licenses',
+                onTap: () => showLicensePage(
+                  context: context,
+                  applicationName: 'Reverie',
+                  applicationVersion: _version,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Support Section
+          SettingsSection(
+            title: 'Support',
+            children: [
+              SettingsTile(
+                icon: Icons.help_outline,
+                title: 'Help & FAQ',
+                subtitle: 'Get help with using Reverie',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HelpAndFAQPage(),
+                  ),
+                ),
+              ),
+              const SettingsDivider(),
+              SettingsTile(
+                icon: Icons.bug_report,
+                title: 'Report an Issue',
+                subtitle: 'Help us improve Reverie',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ReportIssuePage(),
+                  ),
+                ),
               ),
             ],
           ),

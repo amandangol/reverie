@@ -1,88 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
+import 'package:reverie/features/gallery/widgets/asset_thumbnail.dart';
 
 class MediaGrid extends StatelessWidget {
   final List<AssetEntity> assets;
-  final Function(AssetEntity) onAssetTap;
-  final int crossAxisCount;
-  final double spacing;
+  final Function(int) onMediaTap;
 
   const MediaGrid({
     super.key,
     required this.assets,
-    required this.onAssetTap,
-    this.crossAxisCount = 3,
-    this.spacing = 2,
+    required this.onMediaTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      padding: EdgeInsets.zero,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        mainAxisSpacing: spacing,
-        crossAxisSpacing: spacing,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(2),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 2.0,
+        mainAxisSpacing: 2.0,
       ),
       itemCount: assets.length,
       itemBuilder: (context, index) {
         final asset = assets[index];
-        return GestureDetector(
-          onTap: () => onAssetTap(asset),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image(
-                image: AssetEntityImageProvider(
-                  asset,
-                  isOriginal: false,
-                  thumbnailSize: const ThumbnailSize(200, 200),
-                  thumbnailFormat: ThumbnailFormat.jpeg,
-                ),
-                fit: BoxFit.cover,
-              ),
-              if (asset.type == AssetType.video)
-                Positioned(
-                  right: 4,
-                  bottom: 4,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.play_arrow,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          _formatDuration(asset.duration),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
+        return AssetThumbnail(
+          asset: asset,
+          heroTag: 'flashback_${asset.id}',
+          onTap: () => onMediaTap(index),
         );
       },
     );
-  }
-
-  String _formatDuration(int seconds) {
-    final duration = Duration(seconds: seconds);
-    final minutes = duration.inMinutes;
-    final remainingSeconds = duration.inSeconds % 60;
-    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 }

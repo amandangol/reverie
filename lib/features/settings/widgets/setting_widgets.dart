@@ -1,6 +1,8 @@
 import 'dart:ui';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class SettingsSection extends StatelessWidget {
   final String title;
@@ -138,33 +140,271 @@ class ConfirmationDialog extends StatelessWidget {
   }
 }
 
-class AppLogo extends StatelessWidget {
+class AppLogo extends StatefulWidget {
   const AppLogo({super.key});
+
+  @override
+  State<AppLogo> createState() => _AppLogoState();
+}
+
+class _AppLogoState extends State<AppLogo> with TickerProviderStateMixin {
+  late AnimationController _bounceController;
+  late AnimationController _pulseController;
+  late AnimationController _rotationController;
+  late Animation<double> _bounceAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+  late Animation<Color?> _colorAnimation;
+
+  final int _bounceTimes = 3;
+  int _currentBounce = 0;
+  bool _isAnimating = false;
+  final double _logoSize = 100.0;
+
+  // Animation effects tracking
+  bool _enableRotation = false;
+  bool _enableColorChange = false;
+  int _clickCount = 0;
+  final int _clicksToUnlockRotation = 5;
+  final int _clicksToUnlockColor = 10;
+
+  @override
+  void initState() {
+    super.initState();
+    // Bounce animation setup
+    _bounceController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+
+    _bounceAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: -25.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 25.0,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: -25.0, end: 0.0)
+            .chain(CurveTween(curve: Curves.bounceOut)),
+        weight: 75.0,
+      ),
+    ]).animate(_bounceController);
+
+    // Pulse animation setup
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.15)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 50.0,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.15, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 50.0,
+      ),
+    ]).animate(_pulseController);
+
+    // Color animation setup
+    _colorAnimation = ColorTween(
+      begin: Colors.blue,
+      end: Colors.purple,
+    ).animate(
+      CurvedAnimation(
+        parent: _pulseController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Rotation animation setup
+    _rotationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _rotationAnimation = Tween<double>(
+      begin: 0,
+      end: 2 * pi,
+    ).animate(
+      CurvedAnimation(
+        parent: _rotationController,
+        curve: Curves.easeInOutBack,
+      ),
+    );
+
+    _bounceController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _currentBounce++;
+        if (_currentBounce < _bounceTimes) {
+          // Continue bouncing
+          _bounceController.reset();
+          _bounceController.forward();
+        } else {
+          // Reset bounce counter when done
+          _currentBounce = 0;
+          _isAnimating = false;
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _bounceController.dispose();
+    _pulseController.dispose();
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  void _unlockFeatures() {
+    _clickCount++;
+
+    // Unlock rotation after 5 clicks
+    if (_clickCount == _clicksToUnlockRotation) {
+      setState(() {
+        _enableRotation = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Spin animation unlocked!'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+
+    // Unlock color changes after 10 clicks
+    if (_clickCount == _clicksToUnlockColor) {
+      setState(() {
+        _enableColorChange = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Color effects unlocked!'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
+  void _playAnimations() {
+    if (_isAnimating) return;
+
+    _isAnimating = true;
+    _unlockFeatures();
+
+    // Always play bounce animation
+    _bounceController.reset();
+    _bounceController.forward();
+
+    // Always play pulse animation
+    _pulseController.reset();
+    _pulseController.forward();
+
+    // Conditionally play rotation
+    if (_enableRotation) {
+      _rotationController.reset();
+      _rotationController.forward();
+    }
+
+    // Add haptic feedback for a more tactile experience
+    HapticFeedback.mediumImpact();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Center(
-      child: Column(
-        children: [
-          Image.asset(
-            'assets/icon/icon.png',
-            width: 100,
-            height: 100,
+    return GestureDetector(
+      onTap: _playAnimations,
+      // Add double tap for an Easter egg
+      onDoubleTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You found a secret! ✨'),
+            duration: Duration(seconds: 1),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Reverie',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: colorScheme.primary,
-              fontSize: 24,
-              letterSpacing: 1.5,
-              fontWeight: FontWeight.bold,
+        );
+        // Perform a quick 360 spin
+        _rotationController.reset();
+        _rotationController.forward();
+      },
+      child: AnimatedBuilder(
+        animation: Listenable.merge(
+            [_bounceController, _pulseController, _rotationController]),
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, _bounceAnimation.value),
+            child: Transform.rotate(
+              angle: _enableRotation ? _rotationAnimation.value : 0.0,
+              child: Transform.scale(
+                scale: _scaleAnimation.value,
+                child: child,
+              ),
             ),
+          );
+        },
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Logo with shadow for depth
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(_logoSize / 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Image.asset(
+                  'assets/icon/icon.png',
+                  width: _logoSize,
+                  height: _logoSize,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // App title with gradients if color feature is unlocked
+              AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, _) {
+                  return ShaderMask(
+                    shaderCallback: (bounds) {
+                      return LinearGradient(
+                        colors: _enableColorChange
+                            ? [
+                                _colorAnimation.value ?? colorScheme.primary,
+                                colorScheme.primary,
+                                _colorAnimation.value ?? colorScheme.primary,
+                              ]
+                            : [colorScheme.primary, colorScheme.primary],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ).createShader(bounds);
+                    },
+                    child: Text(
+                      'Reverie',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color:
+                            Colors.white, // The ShaderMask will override this
+                        fontSize: 24,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

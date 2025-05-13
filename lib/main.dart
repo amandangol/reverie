@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'features/gallery/pages/gallery_page.dart';
+import 'features/journal/pages/journal_screen.dart';
 import 'features/permissions/provider/permission_provider.dart';
 import 'features/settings/pages/settings_page.dart';
 import 'features/gallery/provider/media_provider.dart';
 import 'features/gallery/provider/photo_operations_provider.dart';
 import 'theme/app_theme.dart';
-import 'features/journal/pages/journal_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'providers/gallery_preferences_provider.dart';
 import 'features/gallery/pages/flashbacks_screen.dart';
 import 'features/journal/widgets/journal_entry_form.dart';
+import 'features/discover/pages/discover_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,6 +85,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const GalleryPage(),
     const JournalScreen(),
+    const DiscoverScreen(),
     const SettingsPage(),
   ];
 
@@ -106,6 +108,10 @@ class _MainScreenState extends State<MainScreen> {
           NavigationDestination(
             icon: Icon(Icons.book),
             label: 'Journal',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.explore),
+            label: 'Discover',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings),
