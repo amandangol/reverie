@@ -53,7 +53,11 @@ class _GalleryPageState extends State<GalleryPage>
         appBar: AppBar(
           title: const Text(
             'Reverie',
-            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+              fontSize: 17,
+            ),
           ),
           backgroundColor: colorScheme.background,
           actions: [

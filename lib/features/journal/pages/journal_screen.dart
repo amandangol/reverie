@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:uuid/uuid.dart';
 import 'journal_detail_screen.dart';
 import 'calendar_screen.dart';
 import '../providers/journal_provider.dart';
@@ -570,11 +569,6 @@ class _JournalScreenState extends State<JournalScreen> {
     final colorScheme = theme.colorScheme;
     final journalTextTheme = AppTheme.journalTextTheme;
     String greeting = _getGreeting();
-    final entries = journalProvider.entries;
-    final latestEntry = entries.isNotEmpty ? entries[0] : null;
-    final lastEntryDate = latestEntry != null
-        ? _formatTimeAgo(latestEntry.date)
-        : 'No entries yet';
 
     // Get current date
     final now = DateTime.now();
@@ -1023,7 +1017,11 @@ class _JournalScreenState extends State<JournalScreen> {
       appBar: AppBar(
         title: const Text(
           'Reverie',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1,
+            fontSize: 17,
+          ),
         ),
         centerTitle: false,
         elevation: 0,

@@ -402,7 +402,7 @@ class _CalendarScreenState extends State<CalendarScreen>
               ),
             ),
             Text(
-              'Entries for ${DateFormat('MMMM d, yyyy').format(_selectedDay!)}',
+              'Journals for ${DateFormat('MMMM d, yyyy').format(_selectedDay!)}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,

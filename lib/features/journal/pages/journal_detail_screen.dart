@@ -111,77 +111,100 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                     }
                   },
                 ),
-                ListTile(
-                  leading: SvgPicture.asset(
-                    'assets/svg/insta.svg',
-                    width: 24,
-                    height: 24,
-                  ),
-                  title: const Text('Share on Instagram'),
-                  subtitle: const Text('Share photos with caption'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    try {
-                      await context.read<JournalProvider>().shareToSocialMedia(
-                            widget.entry,
-                            'instagram',
-                          );
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Failed to share on Instagram')),
-                        );
-                      }
-                    }
-                  },
-                ),
               ],
-              ListTile(
-                leading: SvgPicture.asset(
-                  'assets/svg/fb.svg',
-                  width: 24,
-                  height: 24,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showExportOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                title: const Text('Share on Facebook'),
-                subtitle: const Text('Open Facebook app'),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Export Entry',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf),
+                title: const Text('Export as PDF'),
+                subtitle: const Text('Save as PDF document'),
                 onTap: () async {
                   Navigator.pop(context);
                   try {
-                    await context.read<JournalProvider>().shareToSocialMedia(
+                    await context.read<JournalProvider>().exportJournalEntry(
                           widget.entry,
-                          'facebook',
+                          'pdf',
                         );
                   } catch (e) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Failed to share on Facebook')),
+                            content: Text('Failed to export as PDF')),
                       );
                     }
                   }
                 },
               ),
               ListTile(
-                leading: SvgPicture.asset(
-                  'assets/svg/x_twitter.svg',
-                  width: 24,
-                  height: 24,
-                ),
-                title: const Text('Share on Twitter'),
-                subtitle: const Text('Open Twitter app'),
+                leading: const Icon(Icons.code),
+                title: const Text('Export as JSON'),
+                subtitle: const Text('Save as JSON data'),
                 onTap: () async {
                   Navigator.pop(context);
                   try {
-                    await context.read<JournalProvider>().shareToSocialMedia(
+                    await context.read<JournalProvider>().exportJournalEntry(
                           widget.entry,
-                          'twitter',
+                          'json',
                         );
                   } catch (e) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Failed to share on Twitter')),
+                            content: Text('Failed to export as JSON')),
+                      );
+                    }
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.text_snippet),
+                title: const Text('Export as Text'),
+                subtitle: const Text('Save as plain text'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await context.read<JournalProvider>().exportJournalEntry(
+                          widget.entry,
+                          'text',
+                        );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Failed to export as text')),
                       );
                     }
                   }
@@ -280,6 +303,11 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
             elevation: 0,
             scrolledUnderElevation: 0,
             actions: [
+              IconButton(
+                icon: const Icon(Icons.download_rounded),
+                tooltip: 'Export Entry',
+                onPressed: _showExportOptions,
+              ),
               IconButton(
                 icon: const Icon(Icons.share_rounded),
                 tooltip: 'Share Entry',

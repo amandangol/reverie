@@ -8,9 +8,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import '../models/journal_entry.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 enum SortOption { dateDesc, dateAsc, titleAsc, titleDesc, moodAsc, moodDesc }
 
@@ -581,182 +582,6 @@ class JournalProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> shareToSocialMedia(JournalEntry entry, String platform) async {
-    List<XFile>? mediaFiles;
-    try {
-      String shareText = '';
-      String? appUrl;
-      String? webUrl;
-
-      // Prepare media files if available
-      if (entry.mediaIds.isNotEmpty) {
-        final tempDir = await getTemporaryDirectory();
-        mediaFiles = [];
-
-        for (final mediaId in entry.mediaIds) {
-          final asset = await AssetEntity.fromId(mediaId);
-          if (asset != null) {
-            final file = await asset.file;
-            if (file != null) {
-              final extension = asset.type == AssetType.video ? '.mp4' : '.jpg';
-              final tempFile = File(
-                  '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_$mediaId$extension');
-              await file.copy(tempFile.path);
-              mediaFiles.add(XFile(tempFile.path));
-            }
-          }
-        }
-      }
-
-      switch (platform.toLowerCase()) {
-        case 'facebook':
-          // Facebook format: Title + content + hashtags
-          shareText = '${entry.title}\n\n${entry.content}\n\n';
-          if (entry.tags.isNotEmpty) {
-            shareText += entry.tags.map((tag) => '#$tag').join(' ') + '\n';
-          }
-          if (entry.mood != null) {
-            shareText += '#${entry.mood!.toLowerCase()} ';
-          }
-
-          // Try to open Facebook app first
-          final encodedText = Uri.encodeComponent(shareText);
-          appUrl = 'fb://post?text=$encodedText';
-          final fbUri = Uri.parse(appUrl);
-
-          if (await canLaunchUrl(fbUri)) {
-            if (mediaFiles != null && mediaFiles.isNotEmpty) {
-              // Share with media using Share.shareXFiles
-              await Share.shareXFiles(
-                mediaFiles,
-                text: shareText,
-                subject: entry.title,
-              );
-            } else {
-              // Share text only using Facebook app
-              await launchUrl(fbUri);
-            }
-            return;
-          }
-
-          // Fallback to web URL
-          webUrl =
-              'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(shareText)}';
-          break;
-
-        case 'twitter':
-          // Twitter format: Title + content + hashtags (limited to 280 chars)
-          shareText = '${entry.title}\n\n';
-          if (entry.content.length > 100) {
-            shareText += entry.content.substring(0, 97) + '...\n\n';
-          } else {
-            shareText += entry.content + '\n\n';
-          }
-
-          if (entry.tags.isNotEmpty) {
-            shareText += entry.tags.map((tag) => '#$tag').join(' ') + '\n';
-          }
-          if (entry.mood != null) {
-            shareText += '#${entry.mood!.toLowerCase()} ';
-          }
-
-          // Truncate if too long
-          if (shareText.length > 280) {
-            shareText = shareText.substring(0, 277) + '...';
-          }
-
-          // Try to open Twitter app first
-          final encodedText = Uri.encodeComponent(shareText);
-          appUrl = 'twitter://post?message=$encodedText';
-          final twitterUri = Uri.parse(appUrl);
-
-          if (await canLaunchUrl(twitterUri)) {
-            if (mediaFiles != null && mediaFiles.isNotEmpty) {
-              // Share with media using Share.shareXFiles
-              await Share.shareXFiles(
-                mediaFiles,
-                text: shareText,
-                subject: entry.title,
-              );
-            } else {
-              // Share text only using Twitter app
-              await launchUrl(twitterUri);
-            }
-            return;
-          }
-
-          // Fallback to web URL
-          webUrl =
-              'https://twitter.com/intent/tweet?text=${Uri.encodeComponent(shareText)}';
-          break;
-
-        case 'instagram':
-          if (mediaFiles != null && mediaFiles.isNotEmpty) {
-            final caption =
-                '${entry.title}\n\n${entry.content}\n\n${entry.tags.map((tag) => '#$tag').join(' ')}';
-
-            // Try to open Instagram app first
-            final instagramUri = Uri.parse('instagram://camera');
-
-            if (await canLaunchUrl(instagramUri)) {
-              await launchUrl(instagramUri);
-              // Wait for Instagram to open
-              await Future.delayed(const Duration(seconds: 1));
-              await Share.shareXFiles(
-                mediaFiles,
-                text: caption,
-              );
-            } else {
-              // Fallback to general share if Instagram app is not installed
-              await Share.shareXFiles(
-                mediaFiles,
-                text: caption,
-              );
-            }
-            return;
-          }
-          break;
-
-        default:
-          shareText = '${entry.title}\n\n${entry.content}';
-      }
-
-      // Try to open the web URL if app launch failed
-      if (webUrl != null) {
-        final uri = Uri.parse(webUrl);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-          return;
-        }
-      }
-
-      // If both app and web URLs fail, fall back to general share
-      if (mediaFiles != null && mediaFiles.isNotEmpty) {
-        await Share.shareXFiles(
-          mediaFiles,
-          text: shareText,
-          subject: entry.title,
-        );
-      } else {
-        await Share.share(shareText, subject: entry.title);
-      }
-    } catch (e) {
-      debugPrint('Error sharing to social media: $e');
-      rethrow;
-    } finally {
-      // Clean up temporary files
-      if (mediaFiles != null) {
-        for (final file in mediaFiles) {
-          try {
-            await File(file.path).delete();
-          } catch (e) {
-            debugPrint('Error deleting temporary file: $e');
-          }
-        }
-      }
-    }
-  }
-
   Future<void> clearAll() async {
     if (_database == null) {
       _error = 'Database not initialized';
@@ -914,5 +739,122 @@ class JournalProvider extends ChangeNotifier {
   String? getMoodForDate(DateTime date) {
     final normalizedDate = DateTime(date.year, date.month, date.day);
     return _moodIndicators[normalizedDate];
+  }
+
+  Future<void> exportJournalEntry(JournalEntry entry, String format) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final fileName =
+          '${entry.title.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_${DateFormat('yyyyMMdd').format(entry.date)}';
+
+      switch (format.toLowerCase()) {
+        case 'pdf':
+          await _exportToPDF(entry, tempDir, fileName);
+          break;
+        case 'json':
+          await _exportToJSON(entry, tempDir, fileName);
+          break;
+        case 'text':
+          await _exportToText(entry, tempDir, fileName);
+          break;
+        default:
+          throw Exception('Unsupported export format');
+      }
+    } catch (e) {
+      debugPrint('Error exporting journal entry: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _exportToPDF(
+      JournalEntry entry, Directory tempDir, String fileName) async {
+    final pdf = pw.Document();
+
+    // Add content to PDF
+    pdf.addPage(
+      pw.Page(
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Header(
+              level: 0,
+              child: pw.Text(entry.title,
+                  style: pw.TextStyle(
+                      fontSize: 24, fontWeight: pw.FontWeight.bold)),
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text(
+              DateFormat('EEEE, MMMM d, yyyy').format(entry.date),
+              style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700),
+            ),
+            if (entry.mood != null) ...[
+              pw.SizedBox(height: 10),
+              pw.Text('Mood: ${entry.mood}', style: pw.TextStyle(fontSize: 14)),
+            ],
+            pw.SizedBox(height: 20),
+            pw.Text(entry.content, style: pw.TextStyle(fontSize: 16)),
+            if (entry.tags.isNotEmpty) ...[
+              pw.SizedBox(height: 20),
+              pw.Wrap(
+                spacing: 5,
+                children: entry.tags
+                    .map((tag) => pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.grey300,
+                            borderRadius: const pw.BorderRadius.all(
+                                pw.Radius.circular(4)),
+                          ),
+                          child: pw.Text('#$tag',
+                              style: pw.TextStyle(fontSize: 12)),
+                        ))
+                    .toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+
+    // Save PDF
+    final file = File('${tempDir.path}/$fileName.pdf');
+    await file.writeAsBytes(await pdf.save());
+    await Share.shareXFiles([XFile(file.path)], text: 'Journal Entry Export');
+  }
+
+  Future<void> _exportToJSON(
+      JournalEntry entry, Directory tempDir, String fileName) async {
+    final jsonData = {
+      'title': entry.title,
+      'content': entry.content,
+      'date': entry.date.toIso8601String(),
+      'mood': entry.mood,
+      'tags': entry.tags,
+      'lastEdited': entry.lastEdited?.toIso8601String(),
+    };
+
+    final file = File('${tempDir.path}/$fileName.json');
+    await file.writeAsString(jsonEncode(jsonData));
+    await Share.shareXFiles([XFile(file.path)], text: 'Journal Entry Export');
+  }
+
+  Future<void> _exportToText(
+      JournalEntry entry, Directory tempDir, String fileName) async {
+    final text = '''
+${entry.title}
+
+Date: ${DateFormat('EEEE, MMMM d, yyyy').format(entry.date)}
+${entry.mood != null ? 'Mood: ${entry.mood}\n' : ''}
+
+${entry.content}
+
+${entry.tags.isNotEmpty ? 'Tags: ${entry.tags.map((tag) => '#$tag').join(' ')}\n' : ''}
+Last Edited: ${DateFormat('MMMM d, yyyy • h:mm a').format(entry.lastEdited ?? entry.date)}
+''';
+
+    final file = File('${tempDir.path}/$fileName.txt');
+    await file.writeAsString(text);
+    await Share.shareXFiles([XFile(file.path)], text: 'Journal Entry Export');
   }
 }

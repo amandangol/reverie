@@ -5,7 +5,7 @@ import 'package:reverie/features/gallery/pages/gallery_page.dart';
 import 'package:reverie/features/journal/pages/journal_screen.dart';
 import 'package:reverie/features/gallery/pages/album_page.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:reverie/features/onboarding/pages/onboarding_screen.dart';
+import 'package:reverie/theme/app_theme.dart';
 
 import '../../gallery/pages/video_albums_page.dart';
 
@@ -16,16 +16,24 @@ class DiscoverScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final journalTextTheme = AppTheme.journalTextTheme;
 
     return Scaffold(
+      backgroundColor: colorScheme.background,
       appBar: AppBar(
         title: Text(
-          'Discover',
-          style: theme.textTheme.titleLarge?.copyWith(
+          'Reverie',
+          style: journalTextTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+            fontSize: 17,
+            letterSpacing: 1,
           ),
         ),
-        centerTitle: true,
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: colorScheme.background,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -33,16 +41,16 @@ class DiscoverScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Explore Features',
-              style: theme.textTheme.headlineSmall?.copyWith(
+              'Featured Shortcuts',
+              style: journalTextTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Discover new ways to relive your memories',
-              style: theme.textTheme.bodyLarge?.copyWith(
+              'Quick access to your favorite features',
+              style: journalTextTheme.bodyLarge?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -57,28 +65,9 @@ class DiscoverScreen extends StatelessWidget {
   Widget _buildFeatureGrid(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final journalTextTheme = AppTheme.journalTextTheme;
 
     final features = [
-      {
-        'title': 'Gallery',
-        'description': 'Browse your photos and videos',
-        'icon': Icons.photo_library_rounded,
-        'color': colorScheme.primary,
-        'onTap': () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const GalleryPage()),
-            ),
-      },
-      {
-        'title': 'Journal',
-        'description': 'Write and organize your thoughts',
-        'icon': Icons.auto_stories_rounded,
-        'color': colorScheme.secondary,
-        'onTap': () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const JournalScreen()),
-            ),
-      },
       {
         'title': 'Flashbacks',
         'description': 'Relive your past memories',
@@ -164,11 +153,16 @@ class DiscoverScreen extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final journalTextTheme = AppTheme.journalTextTheme;
 
     return Card(
-      elevation: 2,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: colorScheme.outline.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       child: InkWell(
         onTap: onTap,
@@ -198,21 +192,21 @@ class DiscoverScreen extends StatelessWidget {
                 child: Icon(
                   icon,
                   color: color,
-                  size: 28,
+                  size: 24,
                 ),
               ),
               const Spacer(),
               Text(
                 title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                style: journalTextTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 description,
-                style: theme.textTheme.bodySmall?.copyWith(
+                style: journalTextTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
                 maxLines: 2,
