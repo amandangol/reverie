@@ -11,7 +11,6 @@ import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
-import 'package:pro_image_editor/pro_image_editor.dart';
 import '../../../commonwidgets/custom_markdown.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../provider/media_provider.dart';
@@ -22,6 +21,10 @@ import '../../journal/models/journal_entry.dart';
 import '../pages/album_page.dart';
 import 'package:intl/intl.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'text_recognition_overlay.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/services.dart';
 
 class MediaDetailView extends StatefulWidget {
   final AssetEntity? asset;
@@ -58,6 +61,9 @@ class _MediaDetailViewState extends State<MediaDetailView>
   bool _showAnalysis = false;
   Map<String, dynamic>? _imageAnalysis;
   bool _isAnalyzing = false;
+  bool _showTextRecognition = false;
+  RecognizedText? _recognizedText;
+  bool _isRecognizingText = false;
 
   Timer? _controlsTimer;
   AnimationController? _animationController;
@@ -268,7 +274,7 @@ class _MediaDetailViewState extends State<MediaDetailView>
     }
   }
 
-  void _showImageAnalysis() async {
+  Future<void> _showImageAnalysis() async {
     final asset = widget.assetList != null
         ? widget.assetList![_currentIndex]
         : widget.asset;
@@ -382,6 +388,19 @@ class _MediaDetailViewState extends State<MediaDetailView>
                       ),
                       const Spacer(),
                       IconButton(
+                        icon: const Icon(Icons.copy, color: Colors.white),
+                        onPressed: () {
+                          Clipboard.setData(
+                              ClipboardData(text: analysis['rawResponse']));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Analysis copied to clipboard'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
                         icon: const Icon(Icons.close, color: Colors.white),
                         onPressed: () => Navigator.pop(context),
                       ),
@@ -431,113 +450,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to analyze image: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _editImage() async {
-    if (widget.asset == null) return;
-
-    try {
-      final mediaProvider = context.read<MediaProvider>();
-      final currentAsset = widget.assetList != null
-          ? widget.assetList![_currentIndex]
-          : widget.asset;
-
-      final file = await mediaProvider.editImage(currentAsset!);
-
-      if (file != null && mounted) {
-        // Read bytes using a stream to ensure proper resource handling
-        final bytes = await file
-            .openRead()
-            .fold<BytesBuilder>(
-              BytesBuilder(),
-              (builder, data) => builder..add(data),
-            )
-            .then((b) => b.takeBytes());
-
-        // Delete the temp file after reading
-        try {
-          if (await file.exists()) {
-            await file.delete();
-          }
-        } catch (e) {
-          debugPrint('Error deleting temp file: $e');
-        }
-
-        // Create a unique hero tag for the editor
-        final editorHeroTag =
-            'editor_${currentAsset.id}_${DateTime.now().millisecondsSinceEpoch}';
-
-        // Show loading indicator
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
-
-        try {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProImageEditor.memory(
-                bytes,
-                callbacks: ProImageEditorCallbacks(
-                  onImageEditingComplete: (editedImage) async {
-                    if (editedImage != null) {
-                      // Save the edited image to the gallery
-                      final savedAsset =
-                          await mediaProvider.saveEditedImage(editedImage);
-                      if (savedAsset != null && mounted) {
-                        // Update the current view and return the edited asset
-                        if (widget.assetList != null) {
-                          setState(() {
-                            widget.assetList![_currentIndex] = savedAsset;
-                          });
-                        }
-                        // Return the edited asset when popping back
-                        Navigator.pop(context, savedAsset);
-                      }
-                    }
-                  },
-                  onCloseEditor: () {
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            ),
-          );
-
-          // Remove loading indicator
-          if (mounted) {
-            Navigator.pop(context); // Remove loading dialog
-          }
-
-          // Handle the result after the editor is closed
-          if (result != null && mounted) {
-            // Refresh the media list to show the edited image
-            await mediaProvider.refreshMedia();
-            // Pop back to the previous screen
-            Navigator.pop(context);
-          }
-        } catch (e) {
-          // Remove loading indicator
-          if (mounted) {
-            Navigator.pop(context); // Remove loading dialog
-          }
-          rethrow;
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to edit image: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -602,7 +514,6 @@ class _MediaDetailViewState extends State<MediaDetailView>
                   showInfo: _showInfo,
                   showJournal: _showJournal,
                   currentIndex: _currentIndex,
-                  onEditImage: _editImage,
                   totalItems: widget.assetList?.length ?? 1,
                   onClose: () {
                     _resetSystemUI();
@@ -625,6 +536,7 @@ class _MediaDetailViewState extends State<MediaDetailView>
                   onDelete: _deleteMedia,
                   onDetectObjects: _showObjectDetectionResults,
                   onAnalyzeImage: _showImageAnalysis,
+                  onRecognizeText: _recognizeText,
                   favoriteButtonBuilder: (context) => Consumer<MediaProvider>(
                     builder: (context, mediaProvider, _) {
                       final asset = widget.assetList != null
@@ -866,19 +778,31 @@ class _MediaDetailViewState extends State<MediaDetailView>
         ? '${heroTag}_${DateTime.now().millisecondsSinceEpoch}'
         : null;
 
-    return PhotoView(
-      imageProvider: FileImage(file),
-      heroAttributes: uniqueHeroTag != null
-          ? PhotoViewHeroAttributes(tag: uniqueHeroTag)
-          : null,
-      minScale: PhotoViewComputedScale.contained,
-      maxScale: PhotoViewComputedScale.covered * 3,
-      backgroundDecoration: const BoxDecoration(color: Colors.transparent),
-      errorBuilder: (context, error, stackTrace) => const Center(
-        child: Icon(Icons.broken_image, color: Colors.white, size: 50),
-      ),
-      loadingBuilder: (context, event) => const Center(
-        child: CircularProgressIndicator(),
+    return GestureDetector(
+      onLongPress: () async {
+        if (widget.asset?.type == AssetType.image) {
+          await _recognizeText();
+        }
+      },
+      child: Stack(
+        children: [
+          PhotoView(
+            imageProvider: FileImage(file),
+            heroAttributes: uniqueHeroTag != null
+                ? PhotoViewHeroAttributes(tag: uniqueHeroTag)
+                : null,
+            minScale: PhotoViewComputedScale.contained,
+            maxScale: PhotoViewComputedScale.covered * 3,
+            backgroundDecoration:
+                const BoxDecoration(color: Colors.transparent),
+            errorBuilder: (context, error, stackTrace) => const Center(
+              child: Icon(Icons.broken_image, color: Colors.white, size: 50),
+            ),
+            loadingBuilder: (context, event) => const Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1620,6 +1544,230 @@ class _MediaDetailViewState extends State<MediaDetailView>
       ),
     );
   }
+
+  Future<void> _recognizeText() async {
+    if (_isRecognizingText) return;
+
+    // Show loading bottom sheet first
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black.withOpacity(0.9),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[600],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(
+              color: Colors.white,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Recognizing text...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'This may take a few moments',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final asset = widget.assetList != null
+          ? widget.assetList![_currentIndex]
+          : widget.asset;
+
+      if (asset == null) return;
+
+      final recognizedText =
+          await context.read<MediaProvider>().recognizeText(asset);
+
+      if (recognizedText != null) {
+        if (mounted) {
+          // Pop the loading sheet
+          Navigator.pop(context);
+
+          // Show the results sheet
+          showModalBottomSheet(
+            context: context,
+            backgroundColor: Colors.black.withOpacity(0.9),
+            isScrollControlled: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            builder: (context) => DraggableScrollableSheet(
+              initialChildSize: 0.6,
+              minChildSize: 0.4,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (context, scrollController) => Column(
+                children: [
+                  // Handle bar
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[600],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Text(
+                          'Text Recognition',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.copy, color: Colors.white),
+                          onPressed: () {
+                            Clipboard.setData(
+                                ClipboardData(text: recognizedText.text));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Text copied to clipboard'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: Colors.white30),
+                  // Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (recognizedText.text.isEmpty)
+                            const Center(
+                              child: Text(
+                                'No text detected',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            )
+                          else ...[
+                            Text(
+                              recognizedText.text,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Text Blocks',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: recognizedText.blocks.map((block) {
+                                return ActionChip(
+                                  label: Text(
+                                    block.text,
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                  backgroundColor: Colors.blue.withOpacity(0.3),
+                                  onPressed: () {
+                                    context
+                                        .read<MediaProvider>()
+                                        .searchOnGoogle(block.text);
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white10,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Tap on any text block to search it on Google.',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error recognizing text: $e');
+      if (mounted) {
+        // Pop the loading sheet
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to recognize text in image'),
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isRecognizingText = false;
+      });
+    }
+  }
 }
 
 class _MediaControls extends StatelessWidget {
@@ -1636,9 +1784,9 @@ class _MediaControls extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onDetectObjects;
   final VoidCallback onAnalyzeImage;
+  final VoidCallback onRecognizeText;
   final Widget Function(BuildContext) favoriteButtonBuilder;
   final AssetEntity? currentAsset;
-  final VoidCallback onEditImage;
 
   const _MediaControls({
     required this.showControls,
@@ -1654,9 +1802,9 @@ class _MediaControls extends StatelessWidget {
     required this.onDelete,
     required this.onDetectObjects,
     required this.onAnalyzeImage,
+    required this.onRecognizeText,
     required this.favoriteButtonBuilder,
     required this.currentAsset,
-    required this.onEditImage,
   });
 
   @override
@@ -1737,8 +1885,8 @@ class _MediaControls extends StatelessWidget {
                       onPressed: onAnalyzeImage,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.white),
-                      onPressed: onEditImage,
+                      icon: const Icon(Icons.text_fields, color: Colors.white),
+                      onPressed: onRecognizeText,
                     ),
                   ],
                   // More options menu

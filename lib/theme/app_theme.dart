@@ -63,7 +63,7 @@ class AppTheme {
         color: darkCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: darkOutline.withOpacity(0.3)),
         ),
       ),
@@ -74,7 +74,7 @@ class AppTheme {
         iconTheme: const IconThemeData(color: darkTextPrimary),
         titleTextStyle: _mainTextTheme.titleLarge?.copyWith(
           color: darkTextPrimary,
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -82,58 +82,73 @@ class AppTheme {
         displayLarge: _mainTextTheme.displayLarge?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.bold,
+          fontSize: 32,
         ),
         displayMedium: _mainTextTheme.displayMedium?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.bold,
+          fontSize: 28,
         ),
         displaySmall: _mainTextTheme.displaySmall?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.bold,
+          fontSize: 24,
         ),
         headlineLarge: _mainTextTheme.headlineLarge?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.bold,
+          fontSize: 22,
         ),
         headlineMedium: _mainTextTheme.headlineMedium?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.bold,
+          fontSize: 20,
         ),
         headlineSmall: _mainTextTheme.headlineSmall?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.bold,
+          fontSize: 18,
         ),
         titleLarge: _mainTextTheme.titleLarge?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.w600,
+          fontSize: 16,
         ),
         titleMedium: _mainTextTheme.titleMedium?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.w600,
+          fontSize: 15,
         ),
         titleSmall: _mainTextTheme.titleSmall?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.w600,
+          fontSize: 14,
         ),
         bodyLarge: _mainTextTheme.bodyLarge?.copyWith(
           color: darkTextPrimary,
+          fontSize: 15,
         ),
         bodyMedium: _mainTextTheme.bodyMedium?.copyWith(
           color: darkTextPrimary,
+          fontSize: 14,
         ),
         bodySmall: _mainTextTheme.bodySmall?.copyWith(
           color: darkTextSecondary,
+          fontSize: 13,
         ),
         labelLarge: _mainTextTheme.labelLarge?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.w600,
+          fontSize: 14,
         ),
         labelMedium: _mainTextTheme.labelMedium?.copyWith(
           color: darkTextPrimary,
           fontWeight: FontWeight.w600,
+          fontSize: 13,
         ),
         labelSmall: _mainTextTheme.labelSmall?.copyWith(
           color: darkTextSecondary,
+          fontSize: 12,
         ),
       ),
       iconTheme: const IconThemeData(
@@ -155,7 +170,7 @@ class AppTheme {
         foregroundColor: Colors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -164,16 +179,16 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
@@ -182,7 +197,7 @@ class AppTheme {
           foregroundColor: primaryColor,
           side: BorderSide(color: primaryColor.withOpacity(0.5)),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
@@ -190,23 +205,23 @@ class AppTheme {
         filled: true,
         fillColor: darkSurfaceVariant.withOpacity(0.5),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: darkOutline.withOpacity(0.3)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: darkOutline.withOpacity(0.3)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: primaryColor),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: errorColor),
         ),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         labelStyle:
             _mainTextTheme.bodyMedium?.copyWith(color: darkTextSecondary),
         hintStyle: _mainTextTheme.bodyMedium?.copyWith(color: darkTextHint),
@@ -214,16 +229,16 @@ class AppTheme {
       dialogTheme: DialogTheme(
         backgroundColor: darkSurface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
         titleTextStyle: _mainTextTheme.titleLarge?.copyWith(
           color: darkTextPrimary,
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
         contentTextStyle: _mainTextTheme.bodyMedium?.copyWith(
           color: darkTextSecondary,
-          fontSize: 16,
+          fontSize: 14,
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -231,14 +246,14 @@ class AppTheme {
         contentTextStyle:
             _mainTextTheme.bodyMedium?.copyWith(color: darkTextPrimary),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
         behavior: SnackBarBehavior.floating,
       ),
       popupMenuTheme: PopupMenuThemeData(
         color: darkCard,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
         textStyle: _mainTextTheme.bodyMedium?.copyWith(color: darkTextPrimary),
       ),
@@ -257,9 +272,9 @@ class AppTheme {
             _mainTextTheme.labelMedium?.copyWith(color: darkTextPrimary),
         secondaryLabelStyle:
             _mainTextTheme.labelMedium?.copyWith(color: darkTextPrimary),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: darkOutline.withOpacity(0.3)),
         ),
       ),

@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'dart:convert';
@@ -99,6 +100,10 @@ class MediaProvider extends ChangeNotifier {
   final Map<String, List<File>> _slideshowCache = {};
   bool _isGeneratingSlideshow = false;
 
+  final _textRecognizer = TextRecognizer();
+  final Map<String, RecognizedText> _textRecognitionCache = {};
+  final Map<String, bool> _textRecognitionInProgress = {};
+
   // Getters
   bool get isFlashbacksInitialized => _isFlashbacksInitialized;
   List<AssetEntity> get flashbackPhotos => _flashbackPhotos;
@@ -116,6 +121,7 @@ class MediaProvider extends ChangeNotifier {
   void dispose() {
     _mounted = false;
     _imageLabeler.close();
+    _textRecognizer.close();
     super.dispose();
   }
 
@@ -1421,110 +1427,6 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     }
   }
 
-  // Add new method to edit image
-  Future<File?> editImage(AssetEntity asset) async {
-    File? tempFile;
-    try {
-      final file = await asset.file;
-      if (file == null) return null;
-
-      // Create a copy in the temporary directory
-      final tempDir = await getTemporaryDirectory();
-      tempFile = File(path.join(tempDir.path, '${_uuid.v4()}.jpg'));
-
-      // ✅ Safer way to read bytes without resource warnings
-      final bytes = await file.readAsBytes();
-
-      // Write bytes to temp file
-      await tempFile.writeAsBytes(bytes);
-
-      return tempFile;
-    } catch (e) {
-      debugPrint('Error preparing image for editing: $e');
-      if (tempFile != null && await tempFile.exists()) {
-        try {
-          await tempFile.delete();
-        } catch (e) {
-          debugPrint('Error deleting temp file: $e');
-        }
-      }
-      return null;
-    }
-  }
-
-  Future<AssetEntity?> saveEditedImage(Uint8List imageData) async {
-    File? tempFile;
-    try {
-      // Create a temporary file
-      final tempDir = await getTemporaryDirectory();
-      final tempPath = path.join(tempDir.path, '${_uuid.v4()}.jpg');
-
-      // Create and write to the temp file
-      tempFile = File(tempPath);
-      await tempFile.writeAsBytes(imageData);
-
-      // Save as a new image in gallery (preserving the original)
-      // Using timestamp to ensure unique filename
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final result = await PhotoManager.editor.saveImageWithPath(
-        tempPath,
-        title: 'Edited_$timestamp', // Creates a new file with unique name
-      );
-
-      if (result != null) {
-        //  the new edited image to our lists and caches
-        // Note: Original image remains untouched
-        _allMediaList.insert(0, result);
-        _allMediaItems[result.id] = result;
-
-        // Add to current album items if we're in an album
-        if (_currentAlbumId != null) {
-          _currentAlbumItems.insert(0, result);
-        }
-
-        // Update grouped photos for all albums
-        final dateKey = DateTime(
-          result.createDateTime.year,
-          result.createDateTime.month,
-          result.createDateTime.day,
-        );
-
-        // Update main grouped photos
-        if (!_groupedPhotos.containsKey(dateKey)) {
-          _groupedPhotos[dateKey] = [];
-        }
-        _groupedPhotos[dateKey]!.insert(0, result);
-
-        // Update album grouped photos if we're in an album
-        if (_currentAlbumId != null) {
-          if (!_albumGroupedPhotos.containsKey(_currentAlbumId)) {
-            _albumGroupedPhotos[_currentAlbumId!] = {};
-          }
-          if (!_albumGroupedPhotos[_currentAlbumId]!.containsKey(dateKey)) {
-            _albumGroupedPhotos[_currentAlbumId]![dateKey] = [];
-          }
-          _albumGroupedPhotos[_currentAlbumId]![dateKey]!.insert(0, result);
-        }
-
-        notifyListeners();
-        return result;
-      }
-      return null;
-    } catch (e) {
-      debugPrint('Error saving edited image: $e');
-      return null;
-    } finally {
-      // Clean up temp file
-      if (tempFile != null && await tempFile.exists()) {
-        try {
-          await tempFile.delete();
-        } catch (e) {
-          debugPrint('Error deleting temp file: $e');
-        }
-      }
-    }
-  }
-
   // Remove generateCollage method and keep only generateSlideshow
   Future<List<File>?> generateSlideshow(List<AssetEntity> memories) async {
     if (_isGeneratingSlideshow) return null;
@@ -1562,5 +1464,47 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
       _isGeneratingSlideshow = false;
       notifyListeners();
     }
+  }
+
+  // Add getter for text recognition cache
+  Map<String, RecognizedText> get textRecognitionCache => _textRecognitionCache;
+
+  // Add method to recognize text in an image
+  Future<RecognizedText?> recognizeText(AssetEntity asset) async {
+    if (_textRecognitionCache.containsKey(asset.id)) {
+      return _textRecognitionCache[asset.id];
+    }
+
+    if (_textRecognitionInProgress[asset.id] == true) {
+      return null;
+    }
+
+    try {
+      _textRecognitionInProgress[asset.id] = true;
+      notifyListeners();
+
+      final file = await asset.file;
+      if (file == null) return null;
+
+      final inputImage = InputImage.fromFile(file);
+      final recognizedText = await _textRecognizer.processImage(inputImage);
+
+      _textRecognitionCache[asset.id] = recognizedText;
+      _textRecognitionInProgress[asset.id] = false;
+      notifyListeners();
+      return recognizedText;
+    } catch (e) {
+      debugPrint('Error recognizing text: $e');
+      _textRecognitionInProgress[asset.id] = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  // Add method to clear text recognition cache
+  void clearTextRecognitionCache() {
+    _textRecognitionCache.clear();
+    _textRecognitionInProgress.clear();
+    notifyListeners();
   }
 }

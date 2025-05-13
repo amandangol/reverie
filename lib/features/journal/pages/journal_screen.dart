@@ -1199,169 +1199,27 @@ class _JournalScreenState extends State<JournalScreen> {
   }
 
   Widget _buildShimmerLoading(ThemeData theme) {
-    return Shimmer.fromColors(
-      baseColor: theme.colorScheme.surface,
-      highlightColor: theme.colorScheme.surface.withOpacity(0.5),
-      child: SingleChildScrollView(
-        physics: const NeverScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header section
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        width: 80,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 160,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
+    return Stack(
+      children: [
+        // Background design
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  theme.colorScheme.background,
+                  theme.colorScheme.surface,
                 ],
+                stops: const [0.0, 0.3],
               ),
             ),
-
-            // Stats card
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildShimmerStatItem(),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildShimmerStatItem(),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildShimmerStatItem(),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Section title
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 120,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  Container(
-                    width: 80,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Grid
-            const JournalShimmer(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 100),
-            ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildShimmerStatItem() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 20,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            width: 60,
-            height: 12,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-        ],
-      ),
+        // Shimmer content
+        const JournalShimmer(),
+      ],
     );
   }
 
@@ -1541,14 +1399,12 @@ class _JournalScreenState extends State<JournalScreen> {
         transitionDuration: const Duration(milliseconds: 300),
       ),
     ).then((_) {
-      // Refresh entries when returning from all journals screen
-      final journalProvider =
-          Provider.of<JournalProvider>(context, listen: false);
-      journalProvider.loadEntries();
-      // Refresh widget cache
-      setState(() {
-        _entryWidgetCache.clear();
-      });
+      if (mounted) {
+        setState(() {
+          _entryWidgetCache.clear();
+        });
+        context.read<JournalProvider>().loadEntries();
+      }
     });
   }
 
@@ -1579,13 +1435,12 @@ class _JournalScreenState extends State<JournalScreen> {
         transitionDuration: const Duration(milliseconds: 300),
       ),
     ).then((_) {
-      final journalProvider =
-          Provider.of<JournalProvider>(context, listen: false);
-      journalProvider.loadEntries();
-      // Refresh widget cache
-      setState(() {
-        _entryWidgetCache.clear();
-      });
+      if (mounted) {
+        setState(() {
+          _entryWidgetCache.clear();
+        });
+        context.read<JournalProvider>().loadEntries();
+      }
     });
   }
 
@@ -1597,12 +1452,9 @@ class _JournalScreenState extends State<JournalScreen> {
             JournalEntryForm(
           onSave: (title, content, mediaIds, mood, tags,
               {DateTime? lastEdited}) async {
-            // The entry creation is now handled entirely in the JournalEntryForm
-            // We just need to refresh the entries list when returning
             if (mounted) {
               final journalProvider = context.read<JournalProvider>();
               await journalProvider.loadEntries();
-              // Clear cache on new entry
               setState(() {
                 _entryWidgetCache.clear();
               });
@@ -1628,10 +1480,12 @@ class _JournalScreenState extends State<JournalScreen> {
         transitionDuration: const Duration(milliseconds: 300),
       ),
     ).then((_) {
-      // Refresh entries when returning from form
-      final journalProvider =
-          Provider.of<JournalProvider>(context, listen: false);
-      journalProvider.loadEntries();
+      if (mounted) {
+        setState(() {
+          _entryWidgetCache.clear();
+        });
+        context.read<JournalProvider>().loadEntries();
+      }
     });
   }
 }

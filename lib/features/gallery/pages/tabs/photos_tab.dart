@@ -357,12 +357,16 @@ class _PhotosTabState extends State<PhotosTab> {
     MediaProvider mediaProvider,
     PhotoOperationsProvider photoOps,
   ) {
+    // Create a unique hero tag that includes the creation timestamp
+    final heroTag =
+        'grid_media_${asset.id}_${asset.createDateTime.millisecondsSinceEpoch}';
+
     return Stack(
       fit: StackFit.expand,
       children: [
         AssetThumbnail(
           asset: asset,
-          heroTag: 'media_${asset.id}',
+          heroTag: heroTag,
           onTap: photoOps.isSelectionMode
               ? () => photoOps.toggleItemSelection(asset.id)
               : () => _showMediaDetail(context, asset, mediaProvider),
@@ -484,206 +488,210 @@ class _PhotosTabState extends State<PhotosTab> {
                   ],
                 ),
               ),
-              ...photos.map((asset) => Card(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    elevation: 0.5,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: InkWell(
-                      onTap: photoOps.isSelectionMode
-                          ? () => photoOps.toggleItemSelection(asset.id)
-                          : () => _showMediaDetail(
-                                context,
-                                asset,
-                                mediaProvider,
-                              ),
-                      onLongPress: () {
-                        if (!photoOps.isSelectionMode) {
-                          photoOps.toggleSelectionMode();
-                          photoOps.toggleItemSelection(asset.id);
-                        }
-                      },
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 80,
-                            height: 80,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                AssetThumbnail(
-                                  asset: asset,
-                                  heroTag: 'media_${asset.id}',
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(8),
-                                    bottomLeft: Radius.circular(8),
-                                  ),
-                                  isSelected:
-                                      photoOps.selectedItems.contains(asset.id),
-                                  showSelectionIndicator:
-                                      photoOps.isSelectionMode,
-                                ),
-                                if (asset.type == AssetType.video)
-                                  Positioned(
-                                    bottom: 4,
-                                    right: 4,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.6),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: const Icon(
-                                        Icons.play_arrow,
-                                        color: Colors.white,
-                                        size: 12,
-                                      ),
-                                    ),
-                                  ),
-                              ],
+              ...photos.map((asset) {
+                // Create a unique hero tag that includes the creation timestamp
+                final heroTag =
+                    'list_media_${asset.id}_${asset.createDateTime.millisecondsSinceEpoch}';
+
+                return Card(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  elevation: 0.5,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: InkWell(
+                    onTap: photoOps.isSelectionMode
+                        ? () => photoOps.toggleItemSelection(asset.id)
+                        : () => _showMediaDetail(
+                              context,
+                              asset,
+                              mediaProvider,
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      asset.type == AssetType.video
-                                          ? Icons.videocam
-                                          : Icons.photo,
-                                      size: 16,
-                                      color: Colors.grey[600],
+                    onLongPress: () {
+                      if (!photoOps.isSelectionMode) {
+                        photoOps.toggleSelectionMode();
+                        photoOps.toggleItemSelection(asset.id);
+                      }
+                    },
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              AssetThumbnail(
+                                asset: asset,
+                                heroTag: heroTag,
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(8),
+                                  bottomLeft: Radius.circular(8),
+                                ),
+                                isSelected:
+                                    photoOps.selectedItems.contains(asset.id),
+                                showSelectionIndicator:
+                                    photoOps.isSelectionMode,
+                              ),
+                              if (asset.type == AssetType.video)
+                                Positioned(
+                                  bottom: 4,
+                                  right: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(4),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        asset.title ?? 'Untitled',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 14,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                    child: const Icon(
+                                      Icons.play_arrow,
+                                      color: Colors.white,
+                                      size: 12,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    asset.type == AssetType.video
+                                        ? Icons.videocam
+                                        : Icons.photo,
+                                    size: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      asset.title ?? 'Untitled',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Consumer<MediaProvider>(
+                                builder: (context, mediaProvider, child) {
+                                  final date =
+                                      mediaProvider.getCreateDate(asset.id);
+                                  if (date == null) return const SizedBox();
+
+                                  return Text(
+                                    MediaUtils.formatDimensions(asset.size),
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!photoOps.isSelectionMode)
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert),
+                            itemBuilder: (context) => [
+                              PopupMenuItem<String>(
+                                value: 'journal',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.book, size: 16),
+                                    const SizedBox(width: 8),
+                                    Builder(
+                                      builder: (context) {
+                                        final hasEntries = context
+                                            .read<JournalProvider>()
+                                            .getEntriesByDateRange(
+                                                DateTime.now(), DateTime.now())
+                                            .isNotEmpty;
+                                        return Text(
+                                          hasEntries
+                                              ? 'View in Journal'
+                                              : 'Add to Journal',
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Consumer<MediaProvider>(
-                                  builder: (context, mediaProvider, child) {
-                                    final date =
-                                        mediaProvider.getCreateDate(asset.id);
-                                    if (date == null) return const SizedBox();
-
-                                    return Text(
-                                      MediaUtils.formatDimensions(asset.size),
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    );
-                                  },
+                              ),
+                              PopupMenuItem<String>(
+                                value: 'favorite',
+                                child: Row(
+                                  children: [
+                                    Builder(
+                                      builder: (context) {
+                                        final isFavorite = context
+                                            .read<MediaProvider>()
+                                            .isFavorite(asset.id);
+                                        return Icon(
+                                          isFavorite
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          size: 16,
+                                          color: isFavorite ? Colors.red : null,
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Builder(
+                                      builder: (context) {
+                                        final isFavorite = context
+                                            .read<MediaProvider>()
+                                            .isFavorite(asset.id);
+                                        return Text(
+                                          isFavorite
+                                              ? 'Remove from Favorites'
+                                              : 'Add to Favorites',
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              const PopupMenuItem<String>(
+                                value: 'share',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.share, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('Share'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onSelected: (value) async {
+                              switch (value) {
+                                case 'journal':
+                                  await photoOps.addToJournal(asset);
+                                  break;
+                                case 'favorite':
+                                  await photoOps.toggleFavorite(asset);
+                                  break;
+                                case 'share':
+                                  await photoOps.shareMedia(asset);
+                                  break;
+                              }
+                            },
                           ),
-                          if (!photoOps.isSelectionMode)
-                            PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert),
-                              itemBuilder: (context) => [
-                                PopupMenuItem<String>(
-                                  value: 'journal',
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.book, size: 16),
-                                      const SizedBox(width: 8),
-                                      Builder(
-                                        builder: (context) {
-                                          final hasEntries = context
-                                              .read<JournalProvider>()
-                                              .getEntriesByDateRange(
-                                                  DateTime.now(),
-                                                  DateTime.now())
-                                              .isNotEmpty;
-                                          return Text(
-                                            hasEntries
-                                                ? 'View in Journal'
-                                                : 'Add to Journal',
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                PopupMenuItem<String>(
-                                  value: 'favorite',
-                                  child: Row(
-                                    children: [
-                                      Builder(
-                                        builder: (context) {
-                                          final isFavorite = context
-                                              .read<MediaProvider>()
-                                              .isFavorite(asset.id);
-                                          return Icon(
-                                            isFavorite
-                                                ? Icons.favorite
-                                                : Icons.favorite_border,
-                                            size: 16,
-                                            color:
-                                                isFavorite ? Colors.red : null,
-                                          );
-                                        },
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Builder(
-                                        builder: (context) {
-                                          final isFavorite = context
-                                              .read<MediaProvider>()
-                                              .isFavorite(asset.id);
-                                          return Text(
-                                            isFavorite
-                                                ? 'Remove from Favorites'
-                                                : 'Add to Favorites',
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem<String>(
-                                  value: 'share',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.share, size: 16),
-                                      SizedBox(width: 8),
-                                      Text('Share'),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              onSelected: (value) async {
-                                switch (value) {
-                                  case 'journal':
-                                    await photoOps.addToJournal(asset);
-                                    break;
-                                  case 'favorite':
-                                    await photoOps.toggleFavorite(asset);
-                                    break;
-                                  case 'share':
-                                    await photoOps.shareMedia(asset);
-                                    break;
-                                }
-                              },
-                            ),
-                        ],
-                      ),
+                      ],
                     ),
-                  )),
+                  ),
+                );
+              }),
               const SizedBox(height: 16),
             ],
           );
@@ -695,13 +703,17 @@ class _PhotosTabState extends State<PhotosTab> {
 
   void _showMediaDetail(
       BuildContext context, AssetEntity asset, MediaProvider mediaProvider) {
+    // Create a unique hero tag that includes the creation timestamp
+    final heroTag =
+        'detail_media_${asset.id}_${asset.createDateTime.millisecondsSinceEpoch}';
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MediaDetailView(
           asset: asset,
           assetList: mediaProvider.mediaItems,
-          heroTag: 'media_${asset.id}',
+          heroTag: heroTag,
         ),
         fullscreenDialog: true,
       ),
