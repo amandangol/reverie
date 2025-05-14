@@ -415,6 +415,25 @@ class GoogleDriveService {
       rethrow;
     }
   }
+
+  Future<Map<String, String>> getUserInfo() async {
+    try {
+      final account = await _googleSignIn.signInSilently();
+      if (account == null) {
+        throw Exception('Not signed in');
+      }
+
+      _userEmail = account.email;
+      return {
+        'email': account.email,
+        'name': account.displayName ?? account.email.split('@')[0],
+        'photoUrl': account.photoUrl ?? '',
+      };
+    } catch (e) {
+      print('Error getting user info: $e');
+      rethrow;
+    }
+  }
 }
 
 class GoogleAuthClient extends http.BaseClient {

@@ -32,9 +32,9 @@ class BackupScreen extends StatelessWidget {
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.background,
       ),
-      body: Consumer<BackupProvider>(
-        builder: (context, backupProvider, _) {
-          return SafeArea(
+      body: Stack(
+        children: [
+          SafeArea(
             child: CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(
@@ -48,8 +48,6 @@ class BackupScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-
-                // Main sections
                 SliverPadding(
                   padding: const EdgeInsets.all(16),
                   sliver: SliverList(
@@ -57,14 +55,85 @@ class BackupScreen extends StatelessWidget {
                       const _GoogleDriveSection(),
                       const SizedBox(height: 20),
                       const _BackupSection(),
-                      const SizedBox(height: 16),
+                      const SizedBox(
+                          height: 100), // Add padding for the bottom button
                     ]),
                   ),
                 ),
               ],
             ),
-          );
-        },
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: Consumer<BackupProvider>(
+              builder: (context, provider, _) {
+                final selectedAlbums = provider.selectedBackupAlbums;
+                final isBackingUp = provider.isBackingUp;
+
+                return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: (selectedAlbums.isEmpty || isBackingUp)
+                        ? null
+                        : () async {
+                            try {
+                              await provider.backupSelectedAlbums();
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        const Icon(Icons.error_outline,
+                                            color: Colors.white),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: Text(e.toString())),
+                                      ],
+                                    ),
+                                    backgroundColor: Colors.red.shade700,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    margin: const EdgeInsets.all(12),
+                                    duration: const Duration(seconds: 5),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                    icon: Icon(
+                      isBackingUp
+                          ? Icons.hourglass_empty_rounded
+                          : Icons.backup_rounded,
+                      size: 20,
+                    ),
+                    label: Text(
+                      selectedAlbums.isEmpty
+                          ? 'Select albums to backup'
+                          : isBackingUp
+                              ? 'Backing up...'
+                              : 'Backup ${selectedAlbums.length} ${selectedAlbums.length == 1 ? 'album' : 'albums'}',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: colorScheme.surfaceVariant,
+                      disabledForegroundColor: colorScheme.onSurfaceVariant,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -214,9 +283,13 @@ class _GoogleDriveSection extends StatelessWidget {
                 return Column(
                   children: [
                     if (isSignedIn) ...[
-                      Selector<BackupProvider, String?>(
-                        selector: (_, provider) => provider.userEmail,
-                        builder: (context, email, _) {
+                      Selector<BackupProvider, Map<String, String?>>(
+                        selector: (_, provider) => {
+                          'email': provider.userEmail,
+                          'name': provider.userName,
+                          'photoUrl': provider.userPhotoUrl,
+                        },
+                        builder: (context, userInfo, _) {
                           return Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -226,18 +299,28 @@ class _GoogleDriveSection extends StatelessWidget {
                             ),
                             child: Row(
                               children: [
-                                CircleAvatar(
-                                  radius: 22,
-                                  backgroundColor: const Color(0xFF4285F4),
-                                  child: Text(
-                                    email?[0].toUpperCase() ?? 'G',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
+                                if (userInfo['photoUrl'] != null &&
+                                    userInfo['photoUrl']!.isNotEmpty)
+                                  CircleAvatar(
+                                    radius: 22,
+                                    backgroundImage:
+                                        NetworkImage(userInfo['photoUrl']!),
+                                  )
+                                else
+                                  CircleAvatar(
+                                    radius: 22,
+                                    backgroundColor: const Color(0xFF4285F4),
+                                    child: Text(
+                                      userInfo['name']?[0].toUpperCase() ??
+                                          userInfo['email']?[0].toUpperCase() ??
+                                          'G',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
                                     ),
                                   ),
-                                ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
@@ -245,12 +328,24 @@ class _GoogleDriveSection extends StatelessWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        email ?? 'Google Account',
+                                        userInfo['name'] ??
+                                            userInfo['email'] ??
+                                            'Google Account',
                                         style: journalTextTheme.bodyMedium
                                             ?.copyWith(
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
+                                      if (userInfo['email'] != null) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          userInfo['email']!,
+                                          style: journalTextTheme.bodySmall
+                                              ?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
                                       const SizedBox(height: 4),
                                       Row(
                                         children: [
@@ -428,8 +523,6 @@ class _BackupSection extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-                _WifiBackupSettings(),
-                const SizedBox(height: 20),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: backupProvider.isBackingUp
@@ -482,77 +575,6 @@ class _BackupSection extends StatelessWidget {
         margin: const EdgeInsets.all(12),
         duration: const Duration(seconds: 5),
       ),
-    );
-  }
-}
-
-class _WifiBackupSettings extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final journalTextTheme = AppTheme.journalTextTheme;
-
-    return Consumer<BackupProvider>(
-      builder: (context, backupProvider, _) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceVariant.withOpacity(0.4),
-            borderRadius: BorderRadius.circular(16),
-            border: backupProvider.isWifiConnected
-                ? Border.all(
-                    color: const Color(0xFF34A853).withOpacity(0.3), width: 1)
-                : null,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.wifi_rounded,
-                    color: backupProvider.isWifiConnected
-                        ? const Color(0xFF34A853)
-                        : colorScheme.onSurfaceVariant,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Auto-backup on WiFi',
-                      style: journalTextTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  Switch(
-                    value: backupProvider.isAutoBackupEnabled,
-                    onChanged: backupProvider.isWifiConnected
-                        ? (value) => backupProvider.toggleAutoBackup(value)
-                        : null,
-                    activeColor: const Color(0xFF34A853),
-                    inactiveThumbColor: colorScheme.outline,
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 32),
-                child: Text(
-                  backupProvider.isWifiConnected
-                      ? 'Connected to WiFi - Auto-backup is available'
-                      : 'Connect to WiFi to enable auto-backup',
-                  style: journalTextTheme.bodySmall?.copyWith(
-                    color: backupProvider.isWifiConnected
-                        ? const Color(0xFF34A853)
-                        : colorScheme.error,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }
@@ -792,32 +814,6 @@ class _AlbumSelectionList extends StatelessWidget {
                   ),
                 ),
             ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Backup button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: selectedAlbums.isEmpty ? null : onBackupPressed,
-            icon: const Icon(Icons.backup_rounded, size: 20),
-            label: Text(
-              selectedAlbums.isEmpty
-                  ? 'Select albums to backup'
-                  : 'Backup ${selectedAlbums.length} ${selectedAlbums.length == 1 ? 'album' : 'albums'}',
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF34A853),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: colorScheme.surfaceVariant,
-              disabledForegroundColor: colorScheme.onSurfaceVariant,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
           ),
         ),
       ],

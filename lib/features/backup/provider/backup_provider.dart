@@ -5,7 +5,6 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../services/google_drive_service.dart';
 
 class BackupProvider extends ChangeNotifier {
@@ -19,15 +18,13 @@ class BackupProvider extends ChangeNotifier {
   String? _userEmail;
   bool _isSignedIn = false;
   final Set<String> _backedUpAlbums = {};
-  bool _isAutoBackupEnabled = false;
-  StreamSubscription? _connectivitySubscription;
-  bool _isWifiConnected = false;
   bool _isCancelling = false;
+  String? _userName;
+  String? _userPhotoUrl;
 
   static const String _signedInKey = 'google_drive_signed_in';
   static const String _userEmailKey = 'google_drive_user_email';
   static const String _backedUpAlbumsKey = 'backed_up_albums';
-  static const String _autoBackupKey = 'auto_backup_enabled';
 
   // Add new field to track backed-up files
   final Map<String, Set<String>> _backedUpFiles = {};
@@ -40,61 +37,55 @@ class BackupProvider extends ChangeNotifier {
   Set<AssetPathEntity> get selectedBackupAlbums => _selectedBackupAlbums;
   String? get userEmail => _userEmail;
   bool get isSignedIn => _isSignedIn;
-  bool get isAutoBackupEnabled => _isAutoBackupEnabled;
   Set<String> get backedUpAlbums => _backedUpAlbums;
-  bool get isWifiConnected => _isWifiConnected;
+  String? get userName => _userName;
+  String? get userPhotoUrl => _userPhotoUrl;
 
   BackupProvider() {
     _initializeSignInState();
     _initializeBackupState();
-    _initializeConnectivity();
-  }
-
-  Future<void> _initializeConnectivity() async {
-    try {
-      // Check initial connectivity
-      final connectivityResult = await Connectivity().checkConnectivity();
-      _isWifiConnected = connectivityResult == ConnectivityResult.wifi;
-      notifyListeners();
-
-      // Listen for connectivity changes
-      _connectivitySubscription =
-          Connectivity().onConnectivityChanged.listen((result) {
-        _isWifiConnected = result == ConnectivityResult.wifi;
-        notifyListeners();
-
-        if (_isWifiConnected && _isAutoBackupEnabled && _isSignedIn) {
-          _autoBackupAlbums();
-        }
-      });
-    } catch (e) {
-      print('Error initializing connectivity: $e');
-      // Don't throw the error, just log it and continue without auto-backup
-      _isWifiConnected = false;
-    }
   }
 
   Future<void> _initializeSignInState() async {
-    final prefs = await SharedPreferences.getInstance();
-    _isSignedIn = prefs.getBool(_signedInKey) ?? false;
-    _userEmail = prefs.getString(_userEmailKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _isSignedIn = prefs.getBool(_signedInKey) ?? false;
+      _userEmail = prefs.getString(_userEmailKey);
+      _userName = prefs.getString('google_drive_user_name');
+      _userPhotoUrl = prefs.getString('google_drive_user_photo');
 
-    if (_isSignedIn) {
-      // Only verify sign-in state if we don't have an email
-      if (_userEmail == null) {
+      // Always verify the actual sign-in state on initialization
+      if (_isSignedIn) {
         final isActuallySignedIn = await _driveService.isSignedIn();
         if (!isActuallySignedIn) {
+          // If not actually signed in, clear the stored state
           _isSignedIn = false;
           _userEmail = null;
+          _userName = null;
+          _userPhotoUrl = null;
           await prefs.remove(_signedInKey);
           await prefs.remove(_userEmailKey);
+          await prefs.remove('google_drive_user_name');
+          await prefs.remove('google_drive_user_photo');
         } else {
-          _userEmail = await _driveService.getUserEmail();
+          // If actually signed in, ensure we have the latest user info
+          final userInfo = await _driveService.getUserInfo();
+          _userEmail = userInfo['email'];
+          _userName = userInfo['name'];
+          _userPhotoUrl = userInfo['photoUrl'];
           await _saveSignInState(true, _userEmail);
         }
       }
+      notifyListeners();
+    } catch (e) {
+      print('Error initializing sign-in state: $e');
+      // If there's an error, assume not signed in
+      _isSignedIn = false;
+      _userEmail = null;
+      _userName = null;
+      _userPhotoUrl = null;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> _saveSignInState(bool isSignedIn, String? email) async {
@@ -102,8 +93,16 @@ class BackupProvider extends ChangeNotifier {
     await prefs.setBool(_signedInKey, isSignedIn);
     if (email != null) {
       await prefs.setString(_userEmailKey, email);
+      if (_userName != null) {
+        await prefs.setString('google_drive_user_name', _userName!);
+      }
+      if (_userPhotoUrl != null) {
+        await prefs.setString('google_drive_user_photo', _userPhotoUrl!);
+      }
     } else {
       await prefs.remove(_userEmailKey);
+      await prefs.remove('google_drive_user_name');
+      await prefs.remove('google_drive_user_photo');
     }
   }
 
@@ -111,7 +110,6 @@ class BackupProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _backedUpAlbums.addAll(prefs.getStringList(_backedUpAlbumsKey) ?? []);
-      _isAutoBackupEnabled = prefs.getBool(_autoBackupKey) ?? false;
 
       // Load backed-up files for each album
       for (final albumName in _backedUpAlbums) {
@@ -122,35 +120,6 @@ class BackupProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Error initializing backup state: $e');
-    }
-  }
-
-  Future<void> _autoBackupAlbums() async {
-    if (_isBackingUp || _selectedBackupAlbums.isEmpty) return;
-    try {
-      await backupSelectedAlbums();
-    } catch (e) {
-      print('Error during auto-backup: $e');
-      // Don't throw the error, just log it
-    }
-  }
-
-  Future<void> toggleAutoBackup(bool enabled) async {
-    _isAutoBackupEnabled = enabled;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_autoBackupKey, enabled);
-      notifyListeners();
-
-      // If enabling auto-backup and we're on WiFi, trigger a backup
-      if (enabled && _isWifiConnected && _isSignedIn) {
-        _autoBackupAlbums();
-      }
-    } catch (e) {
-      print('Error toggling auto-backup: $e');
-      // Revert the change if saving failed
-      _isAutoBackupEnabled = !enabled;
-      notifyListeners();
     }
   }
 
@@ -172,7 +141,6 @@ class BackupProvider extends ChangeNotifier {
   @override
   void dispose() {
     _mounted = false;
-    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
@@ -186,10 +154,15 @@ class BackupProvider extends ChangeNotifier {
     if (isActuallySignedIn != _isSignedIn) {
       _isSignedIn = isActuallySignedIn;
       if (isActuallySignedIn) {
-        _userEmail = await _driveService.getUserEmail();
+        final userInfo = await _driveService.getUserInfo();
+        _userEmail = userInfo['email'];
+        _userName = userInfo['name'];
+        _userPhotoUrl = userInfo['photoUrl'];
         await _saveSignInState(true, _userEmail);
       } else {
         _userEmail = null;
+        _userName = null;
+        _userPhotoUrl = null;
         await _saveSignInState(false, null);
       }
       notifyListeners();
@@ -202,13 +175,18 @@ class BackupProvider extends ChangeNotifier {
     try {
       await _driveService.signIn();
       _isSignedIn = true;
-      _userEmail = await _driveService.getUserEmail();
+      final userInfo = await _driveService.getUserInfo();
+      _userEmail = userInfo['email'];
+      _userName = userInfo['name'];
+      _userPhotoUrl = userInfo['photoUrl'];
       await _saveSignInState(true, _userEmail);
       notifyListeners();
     } catch (e) {
       _backupError = e.toString();
       _isSignedIn = false;
       _userEmail = null;
+      _userName = null;
+      _userPhotoUrl = null;
       await _saveSignInState(false, null);
       notifyListeners();
       rethrow;
@@ -221,6 +199,8 @@ class BackupProvider extends ChangeNotifier {
       await _driveService.signOut();
       _isSignedIn = false;
       _userEmail = null;
+      _userName = null;
+      _userPhotoUrl = null;
       await _saveSignInState(false, null);
       notifyListeners();
     } catch (e) {
@@ -233,29 +213,51 @@ class BackupProvider extends ChangeNotifier {
   // Methods to manage selected albums
   void addAlbumToBackup(AssetPathEntity album) {
     _selectedBackupAlbums.add(album);
-    // Only notify about album selection changes
     notifyListeners();
   }
 
   void removeAlbumFromBackup(AssetPathEntity album) {
     _selectedBackupAlbums.remove(album);
-    // Only notify about album selection changes
     notifyListeners();
   }
 
-  // Update cancelBackup method
   void cancelBackup() {
     if (_isBackingUp) {
       _isCancelling = true;
       _backupProgress = 0.0;
+      _isBackingUp = false;
+      // Create a copy of the set to avoid concurrent modification
+      final albumsToClear = Set<AssetPathEntity>.from(_selectedBackupAlbums);
+      _selectedBackupAlbums.clear();
       notifyListeners();
     }
   }
 
-  // Update backupSelectedAlbums method
   Future<void> backupSelectedAlbums() async {
     if (_isBackingUp || _selectedBackupAlbums.isEmpty) return;
-    if (!_isSignedIn) {
+
+    // Always verify sign-in state before backup
+    try {
+      final isActuallySignedIn = await _driveService.isSignedIn();
+      if (!isActuallySignedIn) {
+        // If not signed in, clear stored state
+        _isSignedIn = false;
+        _userEmail = null;
+        _userName = null;
+        _userPhotoUrl = null;
+        await _saveSignInState(false, null);
+        throw Exception('Please sign in to Google Drive first');
+      }
+
+      // If signed in, update state with latest info
+      _isSignedIn = true;
+      final userInfo = await _driveService.getUserInfo();
+      _userEmail = userInfo['email'];
+      _userName = userInfo['name'];
+      _userPhotoUrl = userInfo['photoUrl'];
+      await _saveSignInState(true, _userEmail);
+    } catch (e) {
+      print('Error verifying sign-in state: $e');
       throw Exception('Please sign in to Google Drive first');
     }
 
@@ -266,13 +268,17 @@ class BackupProvider extends ChangeNotifier {
       _backupError = null;
       notifyListeners();
 
-      final totalAlbums = _selectedBackupAlbums.length;
+      // Create a copy of selected albums to avoid concurrent modification
+      final albumsToProcess = Set<AssetPathEntity>.from(_selectedBackupAlbums);
+      final totalAlbums = albumsToProcess.length;
       var processedAlbums = 0;
 
-      for (final album in _selectedBackupAlbums) {
+      for (final album in albumsToProcess) {
         if (!_mounted || _isCancelling) {
           _isBackingUp = false;
           _isCancelling = false;
+          _backupProgress = 0.0;
+          _selectedBackupAlbums.clear();
           notifyListeners();
           return;
         }
@@ -318,6 +324,10 @@ class BackupProvider extends ChangeNotifier {
     } finally {
       _isBackingUp = false;
       _isCancelling = false;
+      if (_isCancelling) {
+        _backupProgress = 0.0;
+        _selectedBackupAlbums.clear();
+      }
       notifyListeners();
     }
   }
