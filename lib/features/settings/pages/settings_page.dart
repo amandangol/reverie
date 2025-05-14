@@ -6,6 +6,7 @@ import '../../permissions/provider/permission_provider.dart';
 import '../../permissions/widgets/permission_dialog.dart';
 import '../widgets/setting_widgets.dart';
 import '../pages/legal_pages.dart';
+import '../../backup/pages/backup_screen.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -62,6 +63,70 @@ class _SettingsPageState extends State<SettingsPage> {
                   onConfirm: () {
                     context.read<JournalProvider>().clearAll();
                     _showSnackBar(context, 'Journal data cleared');
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Backup & Security Section
+          SettingsSection(
+            title: 'Backup & Security',
+            children: [
+              Container(
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.5),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.backup_rounded,
+                      color: Color(0xFF0F9D58),
+                      size: 24,
+                    ),
+                  ),
+                  title: Text(
+                    'Google Drive Backup',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Keep your memories safe with backups and restoration',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const BackupScreen()),
+                    );
                   },
                 ),
               ),

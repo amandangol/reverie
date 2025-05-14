@@ -47,7 +47,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme: ColorScheme.dark(
+      colorScheme: const ColorScheme.dark(
         primary: primaryColor,
         secondary: secondaryColor,
         surface: darkSurface,
@@ -154,12 +154,12 @@ class AppTheme {
       iconTheme: const IconThemeData(
         color: darkTextPrimary,
       ),
-      dividerTheme: DividerThemeData(
+      dividerTheme: const DividerThemeData(
         color: darkDivider,
         thickness: 1,
         space: 1,
       ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: darkSurface,
         selectedItemColor: primaryColor,
         unselectedItemColor: darkTextSecondary,

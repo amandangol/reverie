@@ -8,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class GoogleDriveService {
   static const String _appFolderName = 'ReverieBackup';
-  static const String _credentialsKey = 'google_drive_credentials';
   static const String _accessTokenKey = 'google_drive_access_token';
   static const String _refreshTokenKey = 'google_drive_refresh_token';
 
@@ -232,11 +231,15 @@ class GoogleDriveService {
       final result = await _driveApi!.files.list(
         q: "'$_folderId' in parents and trashed = false",
         spaces: 'drive',
+        $fields: 'files(id,name,size,createdTime,mimeType)',
       );
 
-      // Filter and map the files to include only the fields we need
+      // Filter out Google Docs files and map the remaining files
       return result.files
-              ?.map((file) => drive.File()
+              ?.where((file) =>
+                  !(file.mimeType?.startsWith('application/vnd.google-apps.') ??
+                      false))
+              .map((file) => drive.File()
                 ..id = file.id
                 ..name = file.name
                 ..size = file.size
@@ -256,16 +259,31 @@ class GoogleDriveService {
     }
 
     try {
+      // First get the file metadata to check its type
+      final fileMetadata = await _driveApi!.files.get(
+        fileId,
+        $fields: 'id,name,mimeType',
+      ) as drive.File;
+
+      // Check if it's a Google Docs/Sheets/Slides file
+      if (fileMetadata.mimeType?.startsWith('application/vnd.google-apps.') ??
+          false) {
+        // Skip Google Docs files as they can't be directly downloaded
+        print('Skipping Google Docs file: ${fileMetadata.name}');
+        return;
+      }
+
+      // For regular files, proceed with download
       final response = await _driveApi!.files.get(
         fileId,
         downloadOptions: drive.DownloadOptions.fullMedia,
       ) as http.Response;
 
-      final file = File(localPath);
+      final localFile = File(localPath);
       final totalBytes = response.contentLength ?? 0;
       var receivedBytes = 0;
 
-      final sink = file.openWrite();
+      final sink = localFile.openWrite();
       final bytes = response.bodyBytes;
 
       // Process chunks of data

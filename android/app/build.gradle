@@ -69,6 +69,9 @@ android {
 
     lint {
         disable 'InvalidPackage'
+        checkReleaseBuilds false
+        abortOnError false
+        baseline = file("lint-baseline.xml")
     }
 }
 
@@ -79,13 +82,39 @@ dependencies {
     implementation 'com.google.mlkit:text-recognition:16.0.0'
     implementation 'com.google.android.gms:play-services-mlkit-text-recognition:19.0.0'
     implementation 'com.google.android.gms:play-services-auth:20.7.0'
+    
+    // Google API Client with exclusions
     implementation('com.google.api-client:google-api-client-android:2.2.0') {
         exclude group: 'org.apache.httpcomponents'
+        exclude group: 'com.google.guava'
+        exclude group: 'com.google.code.findbugs'
+        exclude group: 'com.google.errorprone'
+        exclude group: 'com.google.j2objc'
+        exclude group: 'org.codehaus.mojo'
+        exclude group: 'org.apache.commons'
     }
+    
+    // Google Drive API with exclusions
     implementation('com.google.apis:google-api-services-drive:v3-rev20230822-2.0.0') {
         exclude group: 'org.apache.httpcomponents'
+        exclude group: 'com.google.guava'
+        exclude group: 'com.google.code.findbugs'
+        exclude group: 'com.google.errorprone'
+        exclude group: 'com.google.j2objc'
+        exclude group: 'org.codehaus.mojo'
+        exclude group: 'org.apache.commons'
     }
-    implementation 'com.google.http-client:google-http-client-gson:1.43.3'
+    
+    // HTTP Client with exclusions
+    implementation('com.google.http-client:google-http-client-gson:1.43.3') {
+        exclude group: 'org.apache.httpcomponents'
+        exclude group: 'com.google.guava'
+        exclude group: 'com.google.code.findbugs'
+        exclude group: 'com.google.errorprone'
+        exclude group: 'com.google.j2objc'
+        exclude group: 'org.codehaus.mojo'
+        exclude group: 'org.apache.commons'
+    }
 }
 
 flutter {

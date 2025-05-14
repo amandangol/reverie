@@ -6,9 +6,11 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/google_drive_service.dart';
+import '../../../services/connectivity_service.dart';
 
 class BackupProvider extends ChangeNotifier {
   final GoogleDriveService _driveService = GoogleDriveService();
+  final ConnectivityService _connectivityService = ConnectivityService();
   bool _isBackingUp = false;
   bool _isRestoring = false;
   double _backupProgress = 0.0;
@@ -17,17 +19,18 @@ class BackupProvider extends ChangeNotifier {
   bool _mounted = true;
   String? _userEmail;
   bool _isSignedIn = false;
-  final Set<String> _backedUpAlbums = {};
+  final Map<String, Set<String>> _backedUpAlbumsPerAccount = {};
   bool _isCancelling = false;
   String? _userName;
   String? _userPhotoUrl;
+  String? _lastSuccessMessage;
 
   static const String _signedInKey = 'google_drive_signed_in';
   static const String _userEmailKey = 'google_drive_user_email';
   static const String _backedUpAlbumsKey = 'backed_up_albums';
 
   // Add new field to track backed-up files
-  final Map<String, Set<String>> _backedUpFiles = {};
+  final Map<String, Map<String, Set<String>>> _backedUpFilesPerAccount = {};
 
   // Getters
   bool get isBackingUp => _isBackingUp;
@@ -37,9 +40,10 @@ class BackupProvider extends ChangeNotifier {
   Set<AssetPathEntity> get selectedBackupAlbums => _selectedBackupAlbums;
   String? get userEmail => _userEmail;
   bool get isSignedIn => _isSignedIn;
-  Set<String> get backedUpAlbums => _backedUpAlbums;
+  Set<String> get backedUpAlbums => _backedUpAlbumsPerAccount[_userEmail] ?? {};
   String? get userName => _userName;
   String? get userPhotoUrl => _userPhotoUrl;
+  String? get lastSuccessMessage => _lastSuccessMessage;
 
   BackupProvider() {
     _initializeSignInState();
@@ -109,12 +113,20 @@ class BackupProvider extends ChangeNotifier {
   Future<void> _initializeBackupState() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _backedUpAlbums.addAll(prefs.getStringList(_backedUpAlbumsKey) ?? []);
+      final accounts = prefs.getStringList('backup_accounts') ?? [];
 
-      // Load backed-up files for each album
-      for (final albumName in _backedUpAlbums) {
-        final files = prefs.getStringList('backed_up_files_$albumName') ?? [];
-        _backedUpFiles[albumName] = files.toSet();
+      for (final account in accounts) {
+        final albums = prefs.getStringList('backed_up_albums_$account') ?? [];
+        _backedUpAlbumsPerAccount[account] = albums.toSet();
+
+        // Load backed-up files for each album per account
+        _backedUpFilesPerAccount[account] = {};
+        for (final albumName in albums) {
+          final files =
+              prefs.getStringList('backed_up_files_${account}_$albumName') ??
+                  [];
+          _backedUpFilesPerAccount[account]![albumName] = files.toSet();
+        }
       }
 
       notifyListeners();
@@ -124,18 +136,33 @@ class BackupProvider extends ChangeNotifier {
   }
 
   Future<void> _saveBackedUpAlbums() async {
+    if (_userEmail == null) return;
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_backedUpAlbumsKey, _backedUpAlbums.toList());
+
+    // Save all accounts
+    final accounts = _backedUpAlbumsPerAccount.keys.toList();
+    await prefs.setStringList('backup_accounts', accounts);
+
+    // Save albums for current account
+    await prefs.setStringList(
+      'backed_up_albums_$_userEmail',
+      _backedUpAlbumsPerAccount[_userEmail]?.toList() ?? [],
+    );
 
     // Save backed-up files for each album
-    for (final entry in _backedUpFiles.entries) {
+    final accountFiles = _backedUpFilesPerAccount[_userEmail] ?? {};
+    for (final entry in accountFiles.entries) {
       await prefs.setStringList(
-          'backed_up_files_${entry.key}', entry.value.toList());
+        'backed_up_files_${_userEmail}_${entry.key}',
+        entry.value.toList(),
+      );
     }
   }
 
   bool isAlbumBackedUp(AssetPathEntity album) {
-    return _backedUpAlbums.contains(album.name);
+    if (_userEmail == null) return false;
+    return _backedUpAlbumsPerAccount[_userEmail]?.contains(album.name) ?? false;
   }
 
   @override
@@ -172,6 +199,11 @@ class BackupProvider extends ChangeNotifier {
 
   // Sign in to Google Drive
   Future<void> signInToGoogleDrive() async {
+    if (!await _connectivityService.checkConnection()) {
+      throw Exception(
+          'No internet connection. Please check your connection and try again.');
+    }
+
     try {
       await _driveService.signIn();
       _isSignedIn = true;
@@ -180,6 +212,7 @@ class BackupProvider extends ChangeNotifier {
       _userName = userInfo['name'];
       _userPhotoUrl = userInfo['photoUrl'];
       await _saveSignInState(true, _userEmail);
+      _lastSuccessMessage = 'Successfully signed in to Google Drive';
       notifyListeners();
     } catch (e) {
       _backupError = e.toString();
@@ -235,6 +268,14 @@ class BackupProvider extends ChangeNotifier {
 
   Future<void> backupSelectedAlbums() async {
     if (_isBackingUp || _selectedBackupAlbums.isEmpty) return;
+    if (_userEmail == null) {
+      throw Exception('Please sign in to Google Drive first');
+    }
+
+    if (!await _connectivityService.checkConnection()) {
+      throw Exception(
+          'No internet connection. Please check your connection and try again.');
+    }
 
     // Always verify sign-in state before backup
     try {
@@ -304,7 +345,11 @@ class BackupProvider extends ChangeNotifier {
           );
 
           if (!_isCancelling) {
-            _backedUpAlbums.add(album.name);
+            // Initialize sets if they don't exist
+            _backedUpAlbumsPerAccount[_userEmail!] ??= {};
+            _backedUpFilesPerAccount[_userEmail!] ??= {};
+
+            _backedUpAlbumsPerAccount[_userEmail]!.add(album.name);
             await _saveBackedUpAlbums();
           }
         }
@@ -317,6 +362,8 @@ class BackupProvider extends ChangeNotifier {
       if (!_isCancelling) {
         _backupProgress = 1.0;
         _selectedBackupAlbums.clear();
+        _lastSuccessMessage =
+            'Successfully backed up ${totalAlbums} ${totalAlbums == 1 ? 'album' : 'albums'}';
       }
     } catch (e) {
       _backupError = e.toString();
@@ -378,6 +425,64 @@ class BackupProvider extends ChangeNotifier {
     } finally {
       _isRestoring = false;
       notifyListeners();
+    }
+  }
+
+  // Clear success message
+  void clearSuccessMessage() {
+    _lastSuccessMessage = null;
+    notifyListeners();
+  }
+
+  // Add restore UI method
+  Future<void> showRestoreDialog(BuildContext context) async {
+    if (!_isSignedIn) {
+      throw Exception('Please sign in to Google Drive first');
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore from Backup'),
+        content: const Text(
+          'This will restore all your backed up albums from Google Drive. '
+          'Any existing files with the same names will be overwritten. '
+          'Do you want to continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      try {
+        await restoreFromGoogleDrive();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Successfully restored from backup'),
+              backgroundColor: Color(0xFF34A853),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error restoring backup: ${e.toString()}'),
+              backgroundColor: Colors.red.shade700,
+            ),
+          );
+        }
+      }
     }
   }
 }
