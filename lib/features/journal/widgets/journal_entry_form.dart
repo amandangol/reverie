@@ -468,20 +468,31 @@ class _JournalEntryFormState extends State<JournalEntryForm>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(
-                  Icons.photo_library_rounded,
-                  color: theme.colorScheme.primary,
-                  size: 20,
+                Row(
+                  children: [
+                    Icon(
+                      Icons.photo_library_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Media',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Media',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+                if (_selectedMedia.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.more_vert_rounded),
+                    onPressed: () => _showMediaOptions(theme),
+                    tooltip: 'Media options',
                   ),
-                ),
               ],
             ),
           ),
@@ -491,6 +502,189 @@ class _JournalEntryFormState extends State<JournalEntryForm>
             _buildEmptyMediaPlaceholder(theme)
           else
             _buildMediaGrid(),
+        ],
+      ),
+    );
+  }
+
+  void _showMediaOptions(ThemeData theme) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Media Options',
+                style: theme.textTheme.titleLarge,
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.star_rounded),
+                title: const Text('Set as Cover Photo'),
+                subtitle: const Text('Use this photo as journal cover'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showCoverPhotoSelection(theme);
+                },
+              ),
+              ListTile(
+                leading:
+                    const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                title: const Text('Clear All Media'),
+                subtitle: const Text('Remove all photos and videos'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmClearMedia(theme);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCoverPhotoSelection(ThemeData theme) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Select Cover Photo',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1,
+                ),
+                itemCount: _selectedMedia.length,
+                itemBuilder: (context, index) {
+                  final asset = _selectedMedia[index];
+                  final isSelected = asset.id == widget.initialMediaIds?.first;
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        // Move the selected photo to the beginning of the list
+                        _selectedMedia.removeAt(index);
+                        _selectedMedia.insert(0, asset);
+                      });
+                    },
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image(
+                            image: AssetEntityImageProvider(
+                              asset,
+                              isOriginal: false,
+                              thumbnailSize: const ThumbnailSize(300, 300),
+                            ),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        if (isSelected)
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: theme.colorScheme.primary,
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.check_circle_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 32,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmClearMedia(ThemeData theme) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear All Media'),
+        content: const Text(
+            'Are you sure you want to remove all photos and videos from this entry? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: theme.colorScheme.primary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _selectedMedia.clear();
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
+            ),
+            child: const Text('Clear'),
+          ),
         ],
       ),
     );

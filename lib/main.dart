@@ -4,6 +4,7 @@ import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'features/gallery/pages/gallery_page.dart';
 import 'features/journal/pages/journal_screen.dart';
 import 'features/permissions/provider/permission_provider.dart';
+import 'features/quickaccess/pages/quickaccess_screen.dart';
 import 'features/settings/pages/settings_page.dart';
 import 'features/gallery/provider/media_provider.dart';
 import 'features/gallery/provider/photo_operations_provider.dart';
@@ -12,10 +13,9 @@ import 'features/splash/splash_screen.dart';
 import 'providers/gallery_preferences_provider.dart';
 import 'features/gallery/pages/flashbacks_screen.dart';
 import 'features/journal/widgets/journal_entry_form.dart';
-import 'features/discover/pages/discover_screen.dart';
 import 'features/onboarding/pages/onboarding_screen.dart';
 import 'features/onboarding/provider/onboarding_provider.dart';
-import 'features/backup/provider/backup_provider.dart';
+import 'features/backupdrive/provider/backup_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -91,7 +91,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const GalleryPage(),
     const JournalScreen(),
-    const QuicFeatureScreen(),
+    const QuickAccessScreen(),
     const SettingsPage(),
   ];
 

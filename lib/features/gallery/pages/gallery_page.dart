@@ -7,7 +7,7 @@ import '../provider/media_provider.dart';
 import '../widgets/flashbacks_preview.dart';
 import 'tabs/photos_tab.dart';
 import 'tabs/albums_tab.dart';
-import '../../backup/provider/backup_provider.dart';
+import '../../backupdrive/provider/backup_provider.dart';
 
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});

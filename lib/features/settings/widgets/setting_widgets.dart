@@ -159,14 +159,14 @@ class _AppLogoState extends State<AppLogo> with TickerProviderStateMixin {
   final int _bounceTimes = 3;
   int _currentBounce = 0;
   bool _isAnimating = false;
-  final double _logoSize = 100.0;
+  final double _logoSize = 70.0;
 
   // Animation effects tracking
   bool _enableRotation = false;
   bool _enableColorChange = false;
   int _clickCount = 0;
-  final int _clicksToUnlockRotation = 5;
-  final int _clicksToUnlockColor = 10;
+  final int _clicksToUnlockRotation = 2;
+  final int _clicksToUnlockColor = 5;
 
   @override
   void initState() {
@@ -263,7 +263,7 @@ class _AppLogoState extends State<AppLogo> with TickerProviderStateMixin {
   void _unlockFeatures() {
     _clickCount++;
 
-    // Unlock rotation after 5 clicks
+    // Unlock rotation after 2 clicks
     if (_clickCount == _clicksToUnlockRotation) {
       setState(() {
         _enableRotation = true;
@@ -276,7 +276,7 @@ class _AppLogoState extends State<AppLogo> with TickerProviderStateMixin {
       );
     }
 
-    // Unlock color changes after 10 clicks
+    // Unlock color changes after 5 clicks
     if (_clickCount == _clicksToUnlockColor) {
       setState(() {
         _enableColorChange = true;

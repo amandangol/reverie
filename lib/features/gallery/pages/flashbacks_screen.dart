@@ -11,7 +11,7 @@ import 'package:video_player/video_player.dart';
 
 import '../provider/media_provider.dart';
 import '../widgets/asset_thumbnail.dart';
-import '../widgets/media_detail_view.dart';
+import 'media_detail_view.dart';
 
 class FlashbacksScreen extends StatefulWidget {
   const FlashbacksScreen({super.key});

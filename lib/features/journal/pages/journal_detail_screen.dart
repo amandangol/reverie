@@ -13,7 +13,7 @@ import '../../../commonwidgets/custom_markdown.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../gallery/provider/media_provider.dart';
 import '../widgets/journal_entry_form.dart';
-import 'package:reverie/features/gallery/widgets/media_detail_view.dart';
+import 'package:reverie/features/gallery/pages/media_detail_view.dart';
 
 class JournalDetailScreen extends StatefulWidget {
   final JournalEntry entry;

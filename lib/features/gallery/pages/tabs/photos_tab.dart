@@ -7,7 +7,7 @@ import '../../../journal/providers/journal_provider.dart';
 import '../../provider/media_provider.dart';
 import '../../provider/photo_operations_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
-import '../../widgets/media_detail_view.dart';
+import '../media_detail_view.dart';
 import 'package:reverie/utils/media_utils.dart';
 import '../../../permissions/provider/permission_provider.dart';
 import '../../../../commonwidgets/shimmer_loading.dart';

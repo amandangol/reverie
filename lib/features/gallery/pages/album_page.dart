@@ -7,7 +7,7 @@ import '../../../utils/snackbar_utils.dart';
 import '../provider/media_provider.dart';
 import '../provider/photo_operations_provider.dart';
 import '../widgets/asset_thumbnail.dart';
-import '../widgets/media_detail_view.dart';
+import 'media_detail_view.dart';
 import '../../../commonwidgets/shimmer_loading.dart';
 import '../../journal/providers/journal_provider.dart';
 

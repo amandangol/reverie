@@ -10,6 +10,7 @@ class JournalEntry {
   final List<String> tags;
   final DateTime date;
   final DateTime? lastEdited;
+  final String? coverPhotoId;
 
   const JournalEntry({
     required this.id,
@@ -20,6 +21,7 @@ class JournalEntry {
     required this.tags,
     required this.date,
     this.lastEdited,
+    this.coverPhotoId,
   });
 
   JournalEntry copyWith({
@@ -31,6 +33,7 @@ class JournalEntry {
     List<String>? tags,
     DateTime? date,
     DateTime? lastEdited,
+    String? coverPhotoId,
   }) {
     return JournalEntry(
       id: id ?? this.id,
@@ -41,6 +44,7 @@ class JournalEntry {
       tags: tags ?? this.tags,
       date: date ?? this.date,
       lastEdited: lastEdited ?? this.lastEdited,
+      coverPhotoId: coverPhotoId ?? this.coverPhotoId,
     );
   }
 
@@ -54,6 +58,7 @@ class JournalEntry {
       'tags': tags,
       'date': date.toIso8601String(),
       'lastEdited': lastEdited?.toIso8601String(),
+      'coverPhotoId': coverPhotoId,
     };
   }
 
@@ -69,6 +74,7 @@ class JournalEntry {
       lastEdited: json['lastEdited'] != null
           ? DateTime.parse(json['lastEdited'] as String)
           : null,
+      coverPhotoId: json['coverPhotoId'] as String?,
     );
   }
 
@@ -83,7 +89,8 @@ class JournalEntry {
         other.mood == mood &&
         listEquals(other.tags, tags) &&
         other.date == date &&
-        other.lastEdited == lastEdited;
+        other.lastEdited == lastEdited &&
+        other.coverPhotoId == coverPhotoId;
   }
 
   @override
@@ -97,6 +104,7 @@ class JournalEntry {
       Object.hashAll(tags),
       date,
       lastEdited,
+      coverPhotoId,
     );
   }
 }

@@ -7,7 +7,8 @@ import '../../permissions/provider/permission_provider.dart';
 import '../../permissions/widgets/permission_dialog.dart';
 import '../widgets/setting_widgets.dart';
 import '../pages/legal_pages.dart';
-import '../../backup/pages/backup_screen.dart';
+import '../../backupdrive/pages/backup_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -76,7 +77,7 @@ class _SettingsPageState extends State<SettingsPage> {
             title: 'Backup & Security',
             children: [
               Container(
-                margin: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   color: Theme.of(context)
@@ -235,9 +236,36 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
 
-          // Logo at the bottom
+          // Logo and Social Media Section
           const SizedBox(height: 40),
-          const AppLogo(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _SocialMediaButton(
+                  image: 'assets/svg/xxx.svg',
+                  onTap: () =>
+                      _launchSocialMedia('https://twitter.com/amand4ngol'),
+                ),
+                _SocialMediaButton(
+                  image: 'assets/svg/discord_icon.svg',
+                  onTap: () => _launchSocialMedia('https://discord.gg/4m.4n'),
+                ),
+                const AppLogo(),
+                _SocialMediaButton(
+                  image: 'assets/svg/github.svg',
+                  onTap: () => _launchSocialMedia(
+                      'https://github.com/amandangol/reverie'),
+                ),
+                _SocialMediaButton(
+                  image: 'assets/svg/google-icon.svg',
+                  onTap: () => _launchSocialMedia(
+                      'https://www.google.com/search?q=amandangol'),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 32),
         ],
       ),
@@ -301,6 +329,52 @@ class _SettingsPageState extends State<SettingsPage> {
           },
           onOpenSettings: () =>
               context.read<PermissionProvider>().openSettings()),
+    );
+  }
+
+  Future<void> _launchSocialMedia(String url) async {
+    try {
+      if (await canLaunchUrl(Uri.parse(url))) {
+        await launchUrl(
+          Uri.parse(url),
+          mode: LaunchMode.externalApplication,
+        );
+      } else {
+        throw 'Could not launch $url';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open social media link: $e')),
+        );
+      }
+    }
+  }
+}
+
+class _SocialMediaButton extends StatelessWidget {
+  final String image;
+  final VoidCallback onTap;
+
+  const _SocialMediaButton({
+    required this.image,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      icon: SvgPicture.asset(
+        image,
+        width: 30,
+        height: 30,
+      ),
+      style: IconButton.styleFrom(
+        backgroundColor:
+            Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+        padding: const EdgeInsets.all(8),
+      ),
     );
   }
 }

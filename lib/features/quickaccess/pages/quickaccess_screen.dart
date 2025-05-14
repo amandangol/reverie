@@ -4,11 +4,11 @@ import 'package:reverie/features/journal/pages/calendar_screen.dart';
 import 'package:reverie/features/gallery/pages/album_page.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:reverie/theme/app_theme.dart';
-import 'package:reverie/features/backup/pages/backup_screen.dart';
+import 'package:reverie/features/backupdrive/pages/backup_screen.dart';
 import '../../gallery/pages/video_albums_page.dart';
 
-class QuicFeatureScreen extends StatelessWidget {
-  const QuicFeatureScreen({super.key});
+class QuickAccessScreen extends StatelessWidget {
+  const QuickAccessScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

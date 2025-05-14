@@ -25,6 +25,7 @@ class JournalProvider extends ChangeNotifier {
   Map<String, List<JournalEntry>> _tagCache = {};
   Map<String, List<JournalEntry>> _moodCache = {};
   Map<String, AssetEntity?> _imageCache = {};
+  Map<String, String?> _coverPhotoCache = {};
   GenerativeModel? _model;
 
   SortOption _currentSort = SortOption.dateDesc;
@@ -56,7 +57,7 @@ class JournalProvider extends ChangeNotifier {
 
       _database = await openDatabase(
         path,
-        version: 2,
+        version: 4,
         onCreate: (Database db, int version) async {
           await db.execute('''
             CREATE TABLE journal_entries(
@@ -67,7 +68,8 @@ class JournalProvider extends ChangeNotifier {
               media_ids TEXT,
               mood TEXT,
               tags TEXT,
-              last_edited INTEGER
+              last_edited INTEGER,
+              cover_photo_id TEXT
             )
           ''');
         },
@@ -75,6 +77,20 @@ class JournalProvider extends ChangeNotifier {
           if (oldVersion < 2) {
             await db.execute(
                 'ALTER TABLE journal_entries ADD COLUMN last_edited INTEGER');
+          }
+          if (oldVersion < 3) {
+            await db.execute(
+                'ALTER TABLE journal_entries ADD COLUMN cover_photo_id TEXT');
+          }
+          if (oldVersion < 4) {
+            // Add cover_photo_id column if it doesn't exist
+            try {
+              await db.execute(
+                  'ALTER TABLE journal_entries ADD COLUMN cover_photo_id TEXT');
+            } catch (e) {
+              // Column might already exist, ignore error
+              debugPrint('Error adding cover_photo_id column: $e');
+            }
           }
         },
       );
@@ -221,14 +237,6 @@ class JournalProvider extends ChangeNotifier {
     }
 
     try {
-      // Check if entry with same ID already exists
-      final existingEntry = _entryCache[entry.id];
-      if (existingEntry != null) {
-        _error = 'Entry already exists';
-        notifyListeners();
-        return false;
-      }
-
       final now = DateTime.now();
       final map = {
         'id': entry.id,
@@ -239,6 +247,7 @@ class JournalProvider extends ChangeNotifier {
         'mood': entry.mood,
         'tags': json.encode(entry.tags),
         'last_edited': now.millisecondsSinceEpoch,
+        'cover_photo_id': entry.coverPhotoId,
       };
 
       await _database!.insert(
@@ -300,6 +309,7 @@ class JournalProvider extends ChangeNotifier {
         'mood': updatedEntry.mood,
         'tags': json.encode(updatedEntry.tags),
         'last_edited': DateTime.now().millisecondsSinceEpoch,
+        'cover_photo_id': updatedEntry.coverPhotoId,
       };
 
       await _database!.update(
@@ -878,5 +888,63 @@ Last Edited: ${DateFormat('MMMM d, yyyy • h:mm a').format(entry.lastEdited ?? 
     final file = File('${tempDir.path}/$fileName.txt');
     await file.writeAsString(text);
     await Share.shareXFiles([XFile(file.path)], text: 'Journal Entry Export');
+  }
+
+  Future<void> setCoverPhoto(String entryId, String? mediaId) async {
+    if (_database == null) return;
+
+    try {
+      await _database!.update(
+        'journal_entries',
+        {'cover_photo_id': mediaId},
+        where: 'id = ?',
+        whereArgs: [entryId],
+      );
+
+      final entry = _entryCache[entryId];
+      if (entry != null) {
+        final updatedEntry = entry.copyWith(coverPhotoId: mediaId);
+        _entryCache[entryId] = updatedEntry;
+        final index = _entries.indexWhere((e) => e.id == entryId);
+        if (index != -1) {
+          _entries[index] = updatedEntry;
+        }
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Failed to set cover photo: $e');
+    }
+  }
+
+  Future<void> clearAllMedia(String entryId) async {
+    if (_database == null) return;
+
+    try {
+      await _database!.update(
+        'journal_entries',
+        {
+          'media_ids': json.encode([]),
+          'cover_photo_id': null,
+        },
+        where: 'id = ?',
+        whereArgs: [entryId],
+      );
+
+      final entry = _entryCache[entryId];
+      if (entry != null) {
+        final updatedEntry = entry.copyWith(
+          mediaIds: [],
+          coverPhotoId: null,
+        );
+        _entryCache[entryId] = updatedEntry;
+        final index = _entries.indexWhere((e) => e.id == entryId);
+        if (index != -1) {
+          _entries[index] = updatedEntry;
+        }
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Failed to clear media: $e');
+    }
   }
 }
