@@ -12,7 +12,6 @@ import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import '../../../services/google_drive_service.dart';
 
 // Add sorting enum at the top level
 enum AlbumSortOption { nameAsc, nameDesc, countAsc, countDesc }
@@ -108,69 +107,6 @@ class MediaProvider extends ChangeNotifier {
 
   AlbumSortOption _currentSortOption = AlbumSortOption.nameAsc;
   AlbumSortOption get currentSortOption => _currentSortOption;
-
-  final GoogleDriveService _driveService = GoogleDriveService();
-  bool _isBackingUp = false;
-  bool _isRestoring = false;
-  double _backupProgress = 0.0;
-  String? _backupError;
-
-  // Add getter for sorted albums
-  Future<List<AssetPathEntity>> getSortedAlbums() async {
-    final albums = List<AssetPathEntity>.from(_albums);
-
-    if (_currentSortOption == AlbumSortOption.nameAsc) {
-      albums.sort((a, b) => a.name.compareTo(b.name));
-      return albums;
-    } else if (_currentSortOption == AlbumSortOption.nameDesc) {
-      albums.sort((a, b) => b.name.compareTo(a.name));
-      return albums;
-    } else {
-      // For count-based sorting, we need to get the counts first
-      final albumCounts = await Future.wait(
-        albums.map((album) =>
-            album.assetCountAsync.then((count) => MapEntry(album, count))),
-      );
-
-      final countMap = Map.fromEntries(albumCounts);
-
-      if (_currentSortOption == AlbumSortOption.countAsc) {
-        albums.sort((a, b) => countMap[a]!.compareTo(countMap[b]!));
-      } else {
-        albums.sort((a, b) => countMap[b]!.compareTo(countMap[a]!));
-      }
-
-      return albums;
-    }
-  }
-
-  // Add method to change sort option
-  Future<void> changeSortOption(AlbumSortOption option) async {
-    if (_currentSortOption == option) return;
-    _currentSortOption = option;
-    notifyListeners();
-  }
-
-  // Getters
-  bool get isFlashbacksInitialized => _isFlashbacksInitialized;
-  List<AssetEntity> get flashbackPhotos => _flashbackPhotos;
-  bool get isLoadingFlashbacks => _isLoadingFlashbacks;
-  String? get flashbackError => _flashbackError;
-  List<AssetEntity> get weeklyFlashbackPhotos => _weeklyFlashbackPhotos;
-  bool get isLoadingWeeklyFlashbacks => _isLoadingWeeklyFlashbacks;
-  String? get weeklyFlashbackError => _weeklyFlashbackError;
-  List<AssetEntity> get monthlyFlashbackPhotos => _monthlyFlashbackPhotos;
-  bool get isLoadingMonthlyFlashbacks => _isLoadingMonthlyFlashbacks;
-  String? get monthlyFlashbackError => _monthlyFlashbackError;
-  bool get isGeneratingSlideshow => _isGeneratingSlideshow;
-
-  @override
-  void dispose() {
-    _mounted = false;
-    _imageLabeler.close();
-    _textRecognizer.close();
-    super.dispose();
-  }
 
   MediaProvider() {
     _initSharedPreferences();
@@ -1555,109 +1491,60 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     notifyListeners();
   }
 
-  // Add getters for backup state
-  bool get isBackingUp => _isBackingUp;
-  bool get isRestoring => _isRestoring;
-  double get backupProgress => _backupProgress;
-  String? get backupError => _backupError;
+  // Add getter for sorted albums
+  Future<List<AssetPathEntity>> getSortedAlbums() async {
+    final albums = List<AssetPathEntity>.from(_albums);
 
-  // Add method to check Google Drive sign-in status
-  Future<bool> isGoogleDriveSignedIn() async {
-    return await _driveService.isSignedIn();
-  }
+    if (_currentSortOption == AlbumSortOption.nameAsc) {
+      albums.sort((a, b) => a.name.compareTo(b.name));
+      return albums;
+    } else if (_currentSortOption == AlbumSortOption.nameDesc) {
+      albums.sort((a, b) => b.name.compareTo(a.name));
+      return albums;
+    } else {
+      // For count-based sorting, we need to get the counts first
+      final albumCounts = await Future.wait(
+        albums.map((album) =>
+            album.assetCountAsync.then((count) => MapEntry(album, count))),
+      );
 
-  // Add method to sign in to Google Drive
-  Future<void> signInToGoogleDrive() async {
-    try {
-      await _driveService.signIn();
-      notifyListeners();
-    } catch (e) {
-      _backupError = e.toString();
-      notifyListeners();
-      rethrow;
-    }
-  }
+      final countMap = Map.fromEntries(albumCounts);
 
-  // Add method to sign out from Google Drive
-  Future<void> signOutFromGoogleDrive() async {
-    try {
-      await _driveService.signOut();
-      notifyListeners();
-    } catch (e) {
-      _backupError = e.toString();
-      notifyListeners();
-      rethrow;
-    }
-  }
-
-  // Add method to backup media to Google Drive
-  Future<void> backupToGoogleDrive() async {
-    if (_isBackingUp) return;
-
-    try {
-      _isBackingUp = true;
-      _backupProgress = 0.0;
-      _backupError = null;
-      notifyListeners();
-
-      final totalItems = _allMediaList.length;
-      var processedItems = 0;
-
-      for (final asset in _allMediaList) {
-        if (!_mounted) break;
-
-        final file = await asset.file;
-        if (file != null) {
-          final fileName = '${asset.id}_${path.basename(file.path)}';
-          await _driveService.backupFile(file, fileName);
-        }
-
-        processedItems++;
-        _backupProgress = processedItems / totalItems;
-        notifyListeners();
+      if (_currentSortOption == AlbumSortOption.countAsc) {
+        albums.sort((a, b) => countMap[a]!.compareTo(countMap[b]!));
+      } else {
+        albums.sort((a, b) => countMap[b]!.compareTo(countMap[a]!));
       }
 
-      _backupProgress = 1.0;
-    } catch (e) {
-      _backupError = e.toString();
-    } finally {
-      _isBackingUp = false;
-      notifyListeners();
+      return albums;
     }
   }
 
-  // Add method to restore media from Google Drive
-  Future<void> restoreFromGoogleDrive() async {
-    if (_isRestoring) return;
+  // Add method to change sort option
+  Future<void> changeSortOption(AlbumSortOption option) async {
+    if (_currentSortOption == option) return;
+    _currentSortOption = option;
+    notifyListeners();
+  }
 
-    try {
-      _isRestoring = true;
-      _backupProgress = 0.0;
-      _backupError = null;
-      notifyListeners();
+  // Getters
+  bool get isFlashbacksInitialized => _isFlashbacksInitialized;
+  List<AssetEntity> get flashbackPhotos => _flashbackPhotos;
+  bool get isLoadingFlashbacks => _isLoadingFlashbacks;
+  String? get flashbackError => _flashbackError;
+  List<AssetEntity> get weeklyFlashbackPhotos => _weeklyFlashbackPhotos;
+  bool get isLoadingWeeklyFlashbacks => _isLoadingWeeklyFlashbacks;
+  String? get weeklyFlashbackError => _weeklyFlashbackError;
+  List<AssetEntity> get monthlyFlashbackPhotos => _monthlyFlashbackPhotos;
+  bool get isLoadingMonthlyFlashbacks => _isLoadingMonthlyFlashbacks;
+  String? get monthlyFlashbackError => _monthlyFlashbackError;
+  bool get isGeneratingSlideshow => _isGeneratingSlideshow;
 
-      final backedUpFiles = await _driveService.listBackedUpFiles();
-      final totalItems = backedUpFiles.length;
-      var processedItems = 0;
-
-      for (final file in backedUpFiles) {
-        if (!_mounted) break;
-
-        final tempDir = await getTemporaryDirectory();
-        final localPath = path.join(tempDir.path, file.name!);
-        await _driveService.restoreFile(file.id!, localPath);
-
-        processedItems++;
-        _backupProgress = processedItems / totalItems;
-        notifyListeners();
-      }
-
-      _backupProgress = 1.0;
-    } catch (e) {
-      _backupError = e.toString();
-    } finally {
-      _isRestoring = false;
-      notifyListeners();
-    }
+  @override
+  void dispose() {
+    _mounted = false;
+    _imageLabeler.close();
+    _textRecognizer.close();
+    super.dispose();
   }
 }

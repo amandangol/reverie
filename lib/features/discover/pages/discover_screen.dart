@@ -6,8 +6,10 @@ import 'package:reverie/features/journal/pages/journal_screen.dart';
 import 'package:reverie/features/gallery/pages/album_page.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:reverie/theme/app_theme.dart';
+import 'package:reverie/features/backup/pages/backup_screen.dart';
 
 import '../../gallery/pages/video_albums_page.dart';
+import '../../gallery/provider/media_provider.dart';
 
 class DiscoverScreen extends StatelessWidget {
   const DiscoverScreen({super.key});
@@ -115,6 +117,16 @@ class DiscoverScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (context) => const VideoAlbumsPage(),
               ),
+            ),
+      },
+      {
+        'title': 'Backup',
+        'description': 'Backup your albums to Google Drive',
+        'icon': Icons.backup_rounded,
+        'color': Colors.green,
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BackupScreen()),
             ),
       },
     ];
