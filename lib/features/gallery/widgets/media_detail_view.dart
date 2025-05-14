@@ -22,8 +22,6 @@ import 'package:intl/intl.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
-import '../provider/photo_operations_provider.dart';
-
 class MediaDetailView extends StatefulWidget {
   final AssetEntity? asset;
   final File? file;

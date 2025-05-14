@@ -4,29 +4,93 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GoogleDriveService {
   static const String _appFolderName = 'ReverieBackup';
   static const String _credentialsKey = 'google_drive_credentials';
+  static const String _accessTokenKey = 'google_drive_access_token';
+  static const String _refreshTokenKey = 'google_drive_refresh_token';
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: [
       'email',
       'https://www.googleapis.com/auth/drive.file',
     ],
+    signInOption: SignInOption.standard,
   );
 
   drive.DriveApi? _driveApi;
   String? _folderId;
   String? _userEmail;
+  String? _accessToken;
+  String? _refreshToken;
 
   Future<bool> isSignedIn() async {
-    return await _googleSignIn.isSignedIn();
+    try {
+      final account = await _googleSignIn.signInSilently();
+      if (account == null) {
+        // Try to restore from saved tokens
+        final prefs = await SharedPreferences.getInstance();
+        _accessToken = prefs.getString(_accessTokenKey);
+        _refreshToken = prefs.getString(_refreshTokenKey);
+
+        if (_accessToken != null) {
+          try {
+            final client = GoogleAuthClient(_accessToken!);
+            _driveApi = drive.DriveApi(client);
+            _folderId = await _getOrCreateAppFolder();
+            return true;
+          } catch (e) {
+            // Token is invalid, clear it
+            await prefs.remove(_accessTokenKey);
+            await prefs.remove(_refreshTokenKey);
+            _accessToken = null;
+            _refreshToken = null;
+            return false;
+          }
+        }
+        return false;
+      }
+
+      final auth = await account.authentication;
+      if (auth.accessToken == null) {
+        return false;
+      }
+
+      _accessToken = auth.accessToken;
+      _refreshToken = auth.idToken;
+
+      // Save tokens
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_accessTokenKey, _accessToken!);
+      if (_refreshToken != null) {
+        await prefs.setString(_refreshTokenKey, _refreshToken!);
+      }
+
+      final client = GoogleAuthClient(_accessToken!);
+      _driveApi = drive.DriveApi(client);
+      _folderId = await _getOrCreateAppFolder();
+      _userEmail = account.email;
+      return true;
+    } catch (e) {
+      print('Error checking sign-in status: $e');
+      return false;
+    }
   }
 
   Future<String?> getUserEmail() async {
-    final account = await _googleSignIn.signInSilently();
-    return account?.email;
+    try {
+      final account = await _googleSignIn.signInSilently();
+      if (account != null) {
+        _userEmail = account.email;
+        return _userEmail;
+      }
+      return _userEmail;
+    } catch (e) {
+      print('Error getting user email: $e');
+      return null;
+    }
   }
 
   Future<void> signIn() async {
@@ -37,7 +101,21 @@ class GoogleDriveService {
       }
 
       final auth = await account.authentication;
-      final client = GoogleAuthClient(auth.accessToken!);
+      if (auth.accessToken == null) {
+        throw Exception('Failed to get access token');
+      }
+
+      _accessToken = auth.accessToken;
+      _refreshToken = auth.idToken;
+
+      // Save tokens
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_accessTokenKey, _accessToken!);
+      if (_refreshToken != null) {
+        await prefs.setString(_refreshTokenKey, _refreshToken!);
+      }
+
+      final client = GoogleAuthClient(_accessToken!);
       _driveApi = drive.DriveApi(client);
       _folderId = await _getOrCreateAppFolder();
       _userEmail = account.email;
@@ -45,14 +123,39 @@ class GoogleDriveService {
       _driveApi = null;
       _folderId = null;
       _userEmail = null;
+      _accessToken = null;
+      _refreshToken = null;
+
+      // Clear saved tokens on error
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_accessTokenKey);
+        await prefs.remove(_refreshTokenKey);
+      } catch (_) {
+        // Ignore errors during cleanup
+      }
+
       rethrow;
     }
   }
 
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    _driveApi = null;
-    _folderId = null;
+    try {
+      await _googleSignIn.signOut();
+      // Clear saved tokens
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_accessTokenKey);
+      await prefs.remove(_refreshTokenKey);
+
+      _driveApi = null;
+      _folderId = null;
+      _userEmail = null;
+      _accessToken = null;
+      _refreshToken = null;
+    } catch (e) {
+      print('Error signing out: $e');
+      rethrow;
+    }
   }
 
   Future<String?> _getOrCreateAppFolder() async {
@@ -193,14 +296,33 @@ class GoogleDriveService {
     }
 
     try {
-      // Create album folder in Google Drive
-      final albumFolder = drive.File()
-        ..name = albumName
-        ..mimeType = 'application/vnd.google-apps.folder'
-        ..parents = [_folderId!];
+      // Get or create album folder
+      String? albumFolderId;
+      final result = await _driveApi!.files.list(
+        q: "name = '$albumName' and mimeType = 'application/vnd.google-apps.folder' and '$_folderId' in parents and trashed = false",
+        spaces: 'drive',
+      );
 
-      final createdFolder = await _driveApi!.files.create(albumFolder);
-      final albumFolderId = createdFolder.id;
+      if (result.files != null && result.files!.isNotEmpty) {
+        albumFolderId = result.files!.first.id;
+      } else {
+        final albumFolder = drive.File()
+          ..name = albumName
+          ..mimeType = 'application/vnd.google-apps.folder'
+          ..parents = [_folderId!];
+
+        final createdFolder = await _driveApi!.files.create(albumFolder);
+        albumFolderId = createdFolder.id;
+      }
+
+      // Get list of existing files in the album
+      final existingFiles = await _driveApi!.files.list(
+        q: "'$albumFolderId' in parents and trashed = false",
+        spaces: 'drive',
+      );
+
+      final existingFileNames =
+          existingFiles.files?.map((file) => file.name).toSet() ?? {};
 
       final totalFiles = files.length;
       var processedFiles = 0;
@@ -211,14 +333,42 @@ class GoogleDriveService {
         }
 
         final fileName = path.basename(file.path);
-        await backupFile(file, fileName, onProgress: (progress) {
-          if (onProgress != null) {
-            final fileProgress = progress / totalFiles;
-            final overallProgress =
-                (processedFiles + fileProgress) / totalFiles;
-            onProgress(overallProgress);
-          }
-        });
+
+        // Skip if file already exists
+        if (existingFileNames.contains(fileName)) {
+          processedFiles++;
+          continue;
+        }
+
+        // Create file in the album folder
+        final driveFile = drive.File()
+          ..name = fileName
+          ..parents = [albumFolderId!];
+
+        final fileStream = file.openRead();
+        final fileSize = await file.length();
+        var uploadedBytes = 0;
+
+        // Create a stream transformer to track upload progress
+        final progressStream = fileStream.transform(
+          StreamTransformer<List<int>, List<int>>.fromHandlers(
+            handleData: (data, sink) {
+              uploadedBytes += data.length;
+              if (onProgress != null) {
+                final fileProgress = uploadedBytes / fileSize;
+                final overallProgress =
+                    (processedFiles + fileProgress) / totalFiles;
+                onProgress(overallProgress);
+              }
+              sink.add(data);
+            },
+          ),
+        );
+
+        await _driveApi!.files.create(
+          driveFile,
+          uploadMedia: drive.Media(progressStream, fileSize),
+        );
 
         processedFiles++;
       }

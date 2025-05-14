@@ -25,7 +25,6 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   late TabController _tabController;
   int? _selectedYear;
   List<File>? _currentSlideshow;
-  List<AssetEntity>? _currentSlideshowAssets;
   bool _isViewingSlideshow = false;
   int _currentSlideshowIndex = 0;
   bool _isAutoPlaying = false;
@@ -33,7 +32,6 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isMusicPlaying = false;
   VideoPlayerController? _videoController;
-  bool _isVideoPlaying = false;
 
   String _getMonthName(int month) {
     const months = [
