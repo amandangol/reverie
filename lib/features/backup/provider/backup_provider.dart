@@ -200,8 +200,7 @@ class BackupProvider extends ChangeNotifier {
   // Sign in to Google Drive
   Future<void> signInToGoogleDrive() async {
     if (!await _connectivityService.checkConnection()) {
-      throw Exception(
-          'No internet connection. Please check your connection and try again.');
+      throw NoInternetException();
     }
 
     try {
@@ -273,8 +272,7 @@ class BackupProvider extends ChangeNotifier {
     }
 
     if (!await _connectivityService.checkConnection()) {
-      throw Exception(
-          'No internet connection. Please check your connection and try again.');
+      throw NoInternetException();
     }
 
     // Always verify sign-in state before backup

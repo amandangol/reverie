@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import '../../gallery/provider/media_provider.dart';
@@ -94,10 +95,10 @@ class _SettingsPageState extends State<SettingsPage> {
                           .withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.backup_rounded,
-                      color: Color(0xFF0F9D58),
-                      size: 24,
+                    child: SvgPicture.asset(
+                      'assets/svg/google_drive.svg',
+                      width: 24,
+                      height: 24,
                     ),
                   ),
                   title: Text(

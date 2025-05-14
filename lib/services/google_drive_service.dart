@@ -396,7 +396,7 @@ class GoogleDriveService {
     }
   }
 
-  // Add method to list backed up albums
+  //  method to list backed up albums
   Future<List<drive.File>> listBackedUpAlbums() async {
     if (_driveApi == null || _folderId == null) {
       throw Exception('Not signed in to Google Drive');
@@ -415,7 +415,7 @@ class GoogleDriveService {
     }
   }
 
-  // Add method to list files in a backed up album
+  //  method to list files in a backed up album
   Future<List<drive.File>> listFilesInAlbum(String albumId) async {
     if (_driveApi == null) {
       throw Exception('Not signed in to Google Drive');

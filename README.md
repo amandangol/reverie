@@ -12,6 +12,11 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 - Smart organization with albums and collections
 - Video library for easy access to your video memories
 - Favorites collection for quick access to special moments
+- Google Drive integration for secure backup and restoration
+  - One-click backup of selected albums
+  - Automatic organization in Google Drive
+  - Easy restoration of backed-up content
+  - Secure authentication with Google accounts
 
 ### 📝 Journal & Memories
 - Create rich journal entries with photos and videos
@@ -31,6 +36,15 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 - Object Labeling for image
 - Intelligent memory organization
 - Personalized content suggestions
+
+### 🔄 Backup & Sync
+- Secure Google Drive integration
+- Selective album backup
+- Progress tracking during backup
+- Easy restoration process
+- Account-specific backup management
+- Automatic backup status indicators
+- Secure authentication with Google accounts
 
 ## 🎥 Demo Video
 
@@ -81,6 +95,7 @@ flutter build ios --release
 - Uses Provider for state management
 - Implements Material Design 3 for modern UI
 - Follows clean architecture principles
+- Google Drive API integration for backup functionality
 
 ### Key Dependencies
 - `provider`: State management
@@ -88,6 +103,8 @@ flutter build ios --release
 - `photo_manager`: Media handling
 - `photo_manager_image_provider`: Image loading
 - `url_launcher`: External link handling
+- `google_sign_in`: Google authentication
+- `googleapis`: Google Drive API integration
 
 ## 📱 Screenshots
 
@@ -96,10 +113,13 @@ flutter build ios --release
 ## 🔒 Privacy & Security
 
 Reverie takes your privacy seriously:
-- All data is stored locally on your device
+- All data is stored locally on your device by default
+- Optional Google Drive backup with secure authentication
 - No cloud synchronization without explicit permission
 - Secure media handling
 - Optional data export functionality
+- Account-specific backup management
+- Secure token management for Google Drive access
 
 ## 🤝 Contributing
 
@@ -125,19 +145,21 @@ If you encounter any issues or have questions:
 ## 🌟 Why Choose Reverie?
 
 1. **Beautiful Design**: Modern, intuitive interface that makes memory-keeping a joy
-2. **Privacy-Focused**: Your memories stay on your device
+2. **Privacy-Focused**: Your memories stay on your device with optional cloud backup
 3. **AI-Enhanced**: Smart features that make organizing memories easier
 4. **Cross-Platform**: Seamless experience on both iOS and Android
 5. **Regular Updates**: Continuous improvements and new features
+6. **Secure Backup**: Reliable Google Drive integration for your memories
 
 ## 📈 Roadmap
 
-- [ ] Cloud sync option
+- [x] Cloud sync option with Google Drive
 - [ ] Memory sharing features
 - [ ] Advanced AI capabilities
 - [ ] Custom themes
 - [ ] Export functionality
 - [ ] Social features
+- [ ] Additional cloud storage providers
 
 ---
 

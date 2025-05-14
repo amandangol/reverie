@@ -42,3 +42,13 @@ class ConnectivityService {
     _connectionStatusController.close();
   }
 }
+
+class NoInternetException implements Exception {
+  final String message;
+  NoInternetException(
+      [this.message =
+          'No internet connection. Please check your connection and try again.']);
+
+  @override
+  String toString() => message;
+}

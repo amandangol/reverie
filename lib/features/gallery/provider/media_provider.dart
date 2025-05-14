@@ -13,6 +13,8 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
+import '../../../services/connectivity_service.dart';
+
 // Add sorting enum at the top level
 enum AlbumSortOption { nameAsc, nameDesc, countAsc, countDesc }
 
@@ -57,6 +59,8 @@ class MediaProvider extends ChangeNotifier {
   String? _currentAlbumId;
   bool _isFavoritesAlbum = false;
   bool _isVideosAlbum = false;
+
+  final ConnectivityService _connectivityService = ConnectivityService();
 
   final _imageLabeler = ImageLabeler(
     options: ImageLabelerOptions(confidenceThreshold: 0.7),
@@ -1001,6 +1005,9 @@ class MediaProvider extends ChangeNotifier {
     // Check if analysis is already in progress
     if (_analysisInProgress[asset.id] == true) {
       throw Exception('Analysis already in progress');
+    }
+    if (!await _connectivityService.checkConnection()) {
+      throw NoInternetException();
     }
 
     // Check cache first
