@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
+import 'package:reverie/widgets/empty_state.dart';
 import 'package:shimmer/shimmer.dart';
-import '../../../../commonwidgets/empty_state.dart';
 import '../../provider/media_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
 import '../albums/album_page.dart';

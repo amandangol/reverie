@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:reverie/utils/media_utils.dart';
-import '../../../../commonwidgets/empty_state.dart';
 import '../../../../utils/snackbar_utils.dart';
+import '../../../../widgets/empty_state.dart';
+import '../../../../widgets/shimmer_loading.dart';
 import '../../provider/media_provider.dart';
 import '../../provider/photo_operations_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
 import '../media_detail_view.dart';
-import '../../../../commonwidgets/shimmer_loading.dart';
 import '../../../journal/providers/journal_provider.dart';
+import '../../../journal/widgets/journal_entry_form.dart';
 
 class AlbumPage extends StatefulWidget {
   final AssetPathEntity album;
@@ -418,17 +419,34 @@ class _AlbumPageState extends State<AlbumPage> {
 
   Future<void> _handleJournalSelected(PhotoOperationsProvider photoOps) async {
     try {
-      final mediaIds = await photoOps.addToJournalSelected(_mediaItems);
-      if (mounted && mediaIds.isNotEmpty) {
-        // Navigate to journal entry form with selected media
-        Navigator.pushNamed(
-          context,
-          '/journal/new',
-          arguments: {
-            'mediaIds': mediaIds,
-            'title': 'New Journal Entry',
-          },
-        );
+      final hasEntries = context
+          .read<JournalProvider>()
+          .getEntriesByDateRange(DateTime.now(), DateTime.now())
+          .isNotEmpty;
+
+      if (hasEntries) {
+        // If there are entries, navigate to journal screen
+        Navigator.pushNamed(context, '/journal');
+      } else {
+        // If no entries, create new entry
+        final mediaIds = await photoOps.addToJournalSelected(_mediaItems);
+        if (mounted && mediaIds.isNotEmpty) {
+          showDialog(
+            context: context,
+            builder: (context) => JournalEntryForm(
+              initialMediaIds: mediaIds,
+              onSave: (title, content, mediaIds, mood, tags, {lastEdited}) {
+                // Let the form handle the entry creation
+                Navigator.pop(context);
+              },
+            ),
+          ).then((_) {
+            // Refresh the media provider to update any changes
+            if (mounted) {
+              context.read<MediaProvider>().loadMedia();
+            }
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -765,6 +783,8 @@ class _MediaListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool mounted = true;
+
     final mediaProvider = context.watch<MediaProvider>();
     final photoOps = context.watch<PhotoOperationsProvider>();
 
@@ -869,7 +889,37 @@ class _MediaListItem extends StatelessWidget {
                 onSelected: (value) async {
                   switch (value) {
                     case 'journal':
-                      await photoOps.addToJournal(asset);
+                      // Check if this specific media is in any journal entries
+                      final hasEntries = context
+                          .read<JournalProvider>()
+                          .entries
+                          .any((entry) => entry.mediaIds.contains(asset.id));
+
+                      if (hasEntries) {
+                        // If there are entries, navigate to journal screen
+                        Navigator.pushNamed(context, '/journal');
+                      } else {
+                        // If no entries, create new entry
+                        final mediaIds = await photoOps.addToJournal(asset);
+                        if (mounted && mediaIds.isNotEmpty) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => JournalEntryForm(
+                              initialMediaIds: mediaIds,
+                              onSave: (title, content, mediaIds, mood, tags,
+                                  {lastEdited}) {
+                                // Let the form handle the entry creation
+                                Navigator.pop(context);
+                              },
+                            ),
+                          ).then((_) {
+                            // Refresh the media provider to update any changes
+                            if (mounted) {
+                              context.read<MediaProvider>().loadMedia();
+                            }
+                          });
+                        }
+                      }
                       break;
                     case 'favorite':
                       await photoOps.toggleFavorite(asset);
@@ -888,10 +938,9 @@ class _MediaListItem extends StatelessWidget {
                         const SizedBox(width: 8),
                         Consumer<JournalProvider>(
                           builder: (context, journalProvider, _) {
-                            final hasEntries = journalProvider
-                                .getEntriesByDateRange(
-                                    DateTime.now(), DateTime.now())
-                                .isNotEmpty;
+                            // Check if this specific media is in any journal entries
+                            final hasEntries = journalProvider.entries.any(
+                                (entry) => entry.mediaIds.contains(asset.id));
                             return Text(
                               hasEntries ? 'View in Journal' : 'Add to Journal',
                             );

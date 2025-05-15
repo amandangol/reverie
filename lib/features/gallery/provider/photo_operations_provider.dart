@@ -113,13 +113,11 @@ class PhotoOperationsProvider extends ChangeNotifier {
 
     final mediaIds = selectedAssets.map((asset) => asset.id).toList();
 
-    // Ensure media is loaded in the provider
-    final mediaProvider = MediaProvider();
-    for (var asset in selectedAssets) {
-      await mediaProvider.cacheAssetData(asset);
-    }
+    // Clear selection mode and selected items before returning
+    _selectedItems.clear();
+    _isSelectionMode = false;
+    notifyListeners();
 
-    // Return the media IDs so the UI can navigate to the journal entry form
     return mediaIds;
   }
 
@@ -144,19 +142,24 @@ class PhotoOperationsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addToJournal(AssetEntity asset) async {
-    final entry = JournalEntry(
-      id: const Uuid().v4(),
-      title: 'New Journal Entry',
-      content: '',
-      mediaIds: [asset.id],
-      mood: null,
-      tags: [],
-      date: DateTime.now(),
-    );
+  Future<List<String>> addToJournal(AssetEntity asset) async {
+    try {
+      // Check if the asset is already in a journal entry
+      final journalProvider = JournalProvider();
+      final entries = journalProvider.entries
+          .where((entry) => entry.mediaIds.contains(asset.id))
+          .toList();
 
-    final journalProvider = JournalProvider();
-    await journalProvider.addEntry(entry);
-    notifyListeners();
+      // If the asset is already in a journal entry, return empty list
+      if (entries.isNotEmpty) {
+        return [];
+      }
+
+      // Return a list with single media ID
+      return [asset.id];
+    } catch (e) {
+      debugPrint('Error checking journal entries: $e');
+      return [];
+    }
   }
 }

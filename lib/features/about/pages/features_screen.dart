@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/custom_app_bar.dart';
+import '../../settings/widgets/setting_widgets.dart';
 
 class FeaturesScreen extends StatelessWidget {
   const FeaturesScreen({super.key});
@@ -37,11 +38,16 @@ class FeaturesScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const AppLogo(),
+                  const SizedBox(height: 4),
                   Center(
-                    child: Image.asset(
-                      'assets/icon/icon.png',
-                      width: 120,
-                      height: 120,
+                    child: Text(
+                      '~TAP ME~',
+                      style: journalTextTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w100,
+                        color: colorScheme.onBackground,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),

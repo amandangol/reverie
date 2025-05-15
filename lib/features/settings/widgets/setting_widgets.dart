@@ -159,7 +159,7 @@ class _AppLogoState extends State<AppLogo> with TickerProviderStateMixin {
   final int _bounceTimes = 3;
   int _currentBounce = 0;
   bool _isAnimating = false;
-  final double _logoSize = 70.0;
+  final double _logoSize = 100.0;
 
   // Animation effects tracking
   bool _enableRotation = false;

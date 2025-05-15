@@ -383,6 +383,9 @@ class BackupProvider extends ChangeNotifier {
     if (!_isSignedIn) {
       throw Exception('Please sign in to Google Drive first');
     }
+    if (!await _connectivityService.checkConnection()) {
+      throw NoInternetException();
+    }
 
     try {
       _isRestoring = true;
@@ -432,7 +435,7 @@ class BackupProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Add restore UI method
+  //  restore UI method
   Future<void> showRestoreDialog(BuildContext context) async {
     if (!_isSignedIn) {
       throw Exception('Please sign in to Google Drive first');

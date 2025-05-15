@@ -218,12 +218,37 @@ class _JournalEntryFormState extends State<JournalEntryForm>
 
     try {
       final journalProvider = context.read<JournalProvider>();
+
+      // Check if we're editing an existing entry
+      final existingEntry = widget.initialTitle != null
+          ? journalProvider.entries.firstWhere(
+              (e) => e.title == widget.initialTitle,
+              orElse: () => JournalEntry(
+                id: '',
+                title: '',
+                content: '',
+                date: DateTime.now(),
+                mediaIds: [],
+                tags: [],
+              ),
+            )
+          : null;
+
+      // Skip if no existing entry found when editing
+      if (widget.initialTitle != null && existingEntry?.id.isEmpty == true) {
+        if (mounted) {
+          SnackbarUtils.showError(
+              context, 'Could not find existing entry to edit');
+          setState(() {
+            _isSaving = false;
+          });
+        }
+        return;
+      }
+
       final entry = JournalEntry(
-        id: widget.initialTitle != null
-            ? journalProvider.entries
-                .firstWhere((e) => e.title == widget.initialTitle)
-                .id
-            : DateTime.now().millisecondsSinceEpoch.toString(),
+        id: existingEntry?.id ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleController.text,
         content: _contentController.text,
         date: _selectedDate,
@@ -234,13 +259,14 @@ class _JournalEntryFormState extends State<JournalEntryForm>
       );
 
       bool success = false;
-      if (widget.initialTitle != null) {
+      if (existingEntry != null) {
         success = await journalProvider.updateEntry(entry);
       } else {
         success = await journalProvider.addEntry(entry);
       }
 
       if (success && mounted) {
+        // Call onSave callback first
         widget.onSave(
           entry.title,
           entry.content,
@@ -248,16 +274,27 @@ class _JournalEntryFormState extends State<JournalEntryForm>
           entry.mood,
           entry.tags,
         );
-        Navigator.pop(context);
 
-        if (widget.initialTitle == null) {
-          SnackbarUtils.showJournalEntryCreated(
-            context,
-            title: entry.title,
-            onView: () {
-              Navigator.pushNamed(context, '/journal');
-            },
-          );
+        // Ensure we're in a valid context before proceeding
+        if (!mounted) return;
+
+        // Pop the form dialog
+        Navigator.of(context).pop();
+
+        // Show success message after navigation
+        if (mounted && existingEntry == null) {
+          // Use a post-frame callback to ensure the snackbar shows after navigation
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              SnackbarUtils.showJournalEntryCreated(
+                context,
+                title: entry.title,
+                onView: () {
+                  Navigator.pushNamed(context, '/journal');
+                },
+              );
+            }
+          });
         }
       } else if (mounted) {
         SnackbarUtils.showError(context, 'Failed to save journal entry');

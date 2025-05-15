@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
+import 'package:reverie/widgets/custom_app_bar.dart';
 import 'journal_detail_screen.dart';
 import 'calendar_screen.dart';
 import '../providers/journal_provider.dart';
@@ -12,7 +13,6 @@ import '../widgets/journal_card.dart';
 import '../widgets/journal_shimmer.dart';
 import 'all_journals_screen.dart';
 import '../widgets/journal_search_delegate.dart';
-import '../../../widgets/custom_app_bar.dart';
 
 class JournalScreen extends StatefulWidget {
   final VoidCallback? onMenuPressed;
@@ -1485,7 +1485,6 @@ class _JournalScreenState extends State<JournalScreen> {
         setState(() {
           _entryWidgetCache.clear();
         });
-        context.read<JournalProvider>().loadEntries();
       }
     });
   }

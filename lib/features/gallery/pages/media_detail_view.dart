@@ -5,12 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:reverie/features/journal/pages/journal_detail_screen.dart';
-import 'package:uuid/uuid.dart';
+import 'package:reverie/widgets/custom_markdown.dart';
 import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
-import '../../../commonwidgets/custom_markdown.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../provider/media_provider.dart';
 import '../../../utils/media_utils.dart';
@@ -1354,20 +1353,16 @@ class _MediaDetailViewState extends State<MediaDetailView>
       builder: (context) => JournalEntryForm(
         initialMediaIds: [asset!.id],
         onSave: (title, content, mediaIds, mood, tags, {DateTime? lastEdited}) {
-          final entry = JournalEntry(
-            id: const Uuid().v4(),
-            title: title,
-            content: content,
-            mediaIds: mediaIds,
-            mood: mood,
-            tags: tags,
-            date: DateTime.now(),
-          );
-          context.read<JournalProvider>().addEntry(entry);
+          // Let the form handle the entry creation
           Navigator.pop(context);
         },
       ),
-    );
+    ).then((_) {
+      // Refresh the media provider to update any changes
+      if (mounted) {
+        context.read<MediaProvider>().loadMedia();
+      }
+    });
   }
 
   void _showJournalDetailDialog(JournalEntry entry) {

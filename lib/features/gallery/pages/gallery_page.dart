@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:reverie/widgets/custom_app_bar.dart';
 import '../../../providers/gallery_preferences_provider.dart';
 import '../../backupdrive/pages/backup_screen.dart';
 import '../../permissions/provider/permission_provider.dart';
@@ -9,7 +10,6 @@ import '../widgets/flashbacks_preview.dart';
 import 'tabs/photos_tab.dart';
 import 'tabs/albums_tab.dart';
 import '../../backupdrive/provider/backup_provider.dart';
-import '../../../widgets/custom_app_bar.dart';
 
 class GalleryPage extends StatefulWidget {
   final VoidCallback? onMenuPressed;
