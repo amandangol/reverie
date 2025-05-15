@@ -9,7 +9,6 @@ import '../widgets/flashbacks_preview.dart';
 import 'tabs/photos_tab.dart';
 import 'tabs/albums_tab.dart';
 import '../../backupdrive/provider/backup_provider.dart';
-import '../../../theme/app_theme.dart';
 import '../../../widgets/custom_app_bar.dart';
 
 class GalleryPage extends StatefulWidget {
@@ -54,8 +53,6 @@ class _GalleryPageState extends State<GalleryPage>
   @override
   Widget build(BuildContext context) {
     final preferences = context.watch<GalleryPreferencesProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
-    final journalTextTheme = AppTheme.journalTextTheme;
 
     return DefaultTabController(
       length: 2,

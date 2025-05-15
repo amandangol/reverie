@@ -8,10 +8,9 @@ import 'package:photo_view/photo_view.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:async';
 import 'package:video_player/video_player.dart';
-
-import '../provider/media_provider.dart';
-import '../widgets/asset_thumbnail.dart';
-import 'media_detail_view.dart';
+import '../../provider/media_provider.dart';
+import '../../widgets/asset_thumbnail.dart';
+import '../media_detail_view.dart';
 
 class FlashbacksScreen extends StatefulWidget {
   const FlashbacksScreen({super.key});
@@ -49,13 +48,6 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
       'December'
     ];
     return months[month - 1];
-  }
-
-  String _getSeasonName(int month) {
-    if (month >= 3 && month <= 5) return 'Spring';
-    if (month >= 6 && month <= 8) return 'Summer';
-    if (month >= 9 && month <= 11) return 'Autumn';
-    return 'Winter';
   }
 
   String _getTitleForTab(int tabIndex, List<AssetEntity> memories) {

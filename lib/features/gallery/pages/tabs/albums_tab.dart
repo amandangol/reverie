@@ -5,8 +5,8 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../commonwidgets/empty_state.dart';
 import '../../provider/media_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
-import '../album_page.dart';
-import '../video_albums_page.dart';
+import '../albums/album_page.dart';
+import '../albums/video_albums_page.dart';
 import '../../../permissions/provider/permission_provider.dart';
 
 class AlbumsTab extends StatefulWidget {

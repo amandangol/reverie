@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
+import 'features/about/pages/features_screen.dart';
 import 'features/gallery/pages/gallery_page.dart';
 import 'features/journal/pages/journal_screen.dart';
 import 'features/permissions/provider/permission_provider.dart';
@@ -11,11 +12,12 @@ import 'features/gallery/provider/photo_operations_provider.dart';
 import 'theme/app_theme.dart';
 import 'features/splash/splash_screen.dart';
 import 'providers/gallery_preferences_provider.dart';
-import 'features/gallery/pages/flashbacks_screen.dart';
+import 'features/gallery/pages/flashbacks/flashbacks_screen.dart';
 import 'features/journal/widgets/journal_entry_form.dart';
 import 'features/onboarding/pages/onboarding_screen.dart';
 import 'features/onboarding/provider/onboarding_provider.dart';
 import 'features/backupdrive/provider/backup_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -102,7 +104,8 @@ class _MainScreenState extends State<MainScreen> {
     _scaffoldKey.currentState?.closeDrawer();
     if (page is QuickAccessScreen ||
         page is FlashbacksScreen ||
-        page is SettingsPage) {
+        page is SettingsPage ||
+        page is FeaturesScreen) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => page),
@@ -163,6 +166,11 @@ class _MainScreenState extends State<MainScreen> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.info_outline_rounded),
+              title: const Text('Features'),
+              onTap: () => _handleDrawerNavigation(const FeaturesScreen()),
+            ),
+            ListTile(
+              leading: const Icon(Icons.help_outline_rounded),
               title: const Text('About'),
               onTap: () {
                 _scaffoldKey.currentState?.closeDrawer();
@@ -180,6 +188,25 @@ class _MainScreenState extends State<MainScreen> {
                     Text(
                       'Reverie is your personal digital memory keeper, helping you preserve and relive your precious moments.',
                       style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          launchUrl(
+                            Uri.parse(
+                                'https://github.com/amandangol/reverie/blob/main/README.md'),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                        icon: const Icon(Icons.document_scanner_rounded),
+                        label: const Text('View Docs'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
+                        ),
+                      ),
                     ),
                   ],
                 );

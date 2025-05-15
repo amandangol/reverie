@@ -17,7 +17,7 @@ import '../../../utils/media_utils.dart';
 import '../../journal/providers/journal_provider.dart';
 import '../../journal/widgets/journal_entry_form.dart';
 import '../../journal/models/journal_entry.dart';
-import 'album_page.dart';
+import 'albums/album_page.dart';
 import 'package:intl/intl.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';

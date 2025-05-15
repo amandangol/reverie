@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:reverie/utils/media_utils.dart';
-import '../../../commonwidgets/empty_state.dart';
-import '../../../utils/snackbar_utils.dart';
-import '../provider/media_provider.dart';
-import '../provider/photo_operations_provider.dart';
-import '../widgets/asset_thumbnail.dart';
-import 'media_detail_view.dart';
-import '../../../commonwidgets/shimmer_loading.dart';
-import '../../journal/providers/journal_provider.dart';
+import '../../../../commonwidgets/empty_state.dart';
+import '../../../../utils/snackbar_utils.dart';
+import '../../provider/media_provider.dart';
+import '../../provider/photo_operations_provider.dart';
+import '../../widgets/asset_thumbnail.dart';
+import '../media_detail_view.dart';
+import '../../../../commonwidgets/shimmer_loading.dart';
+import '../../../journal/providers/journal_provider.dart';
 
 class AlbumPage extends StatefulWidget {
   final AssetPathEntity album;

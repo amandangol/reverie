@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:reverie/features/gallery/pages/flashbacks_screen.dart';
+import 'package:reverie/features/gallery/pages/flashbacks/flashbacks_screen.dart';
 import 'package:reverie/features/journal/pages/calendar_screen.dart';
-import 'package:reverie/features/gallery/pages/album_page.dart';
+import 'package:reverie/features/gallery/pages/albums/album_page.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:reverie/theme/app_theme.dart';
 import 'package:reverie/features/backupdrive/pages/backup_screen.dart';
-import 'package:reverie/features/gallery/pages/video_albums_page.dart';
+import 'package:reverie/features/gallery/pages/albums/video_albums_page.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/features/backupdrive/provider/backup_provider.dart';
 import 'package:reverie/features/gallery/provider/media_provider.dart';

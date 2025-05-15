@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
-import '../provider/media_provider.dart';
+import '../../provider/media_provider.dart';
 import 'album_page.dart';
 
 class VideoAlbumsPage extends StatelessWidget {

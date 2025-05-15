@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../features/gallery/pages/album_page.dart';
+import '../features/gallery/pages/albums/album_page.dart';
 import '../features/gallery/provider/media_provider.dart';
 import '../features/journal/pages/journal_screen.dart';
 
