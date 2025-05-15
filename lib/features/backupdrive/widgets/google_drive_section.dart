@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
@@ -93,10 +94,39 @@ class GoogleDriveSection extends StatelessWidget {
                               children: [
                                 if (userInfo['photoUrl'] != null &&
                                     userInfo['photoUrl']!.isNotEmpty)
-                                  CircleAvatar(
-                                    radius: 22,
-                                    backgroundImage:
-                                        NetworkImage(userInfo['photoUrl']!),
+                                  ClipOval(
+                                    child: Image.network(
+                                      userInfo['photoUrl']!,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                        if (loadingProgress == null) {
+                                          return child;
+                                        }
+                                        return const CupertinoActivityIndicator();
+                                      },
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return CircleAvatar(
+                                            radius: 22,
+                                            backgroundColor:
+                                                const Color(0xFF4285F4),
+                                            child: Text(
+                                              userInfo['name']?[0]
+                                                      .toUpperCase() ??
+                                                  userInfo['email']?[0]
+                                                      .toUpperCase() ??
+                                                  'G',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18,
+                                              ),
+                                            ));
+                                      },
+                                    ),
                                   )
                                 else
                                   CircleAvatar(

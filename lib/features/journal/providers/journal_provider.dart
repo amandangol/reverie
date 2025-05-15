@@ -79,17 +79,12 @@ class JournalProvider extends ChangeNotifier {
                 'ALTER TABLE journal_entries ADD COLUMN last_edited INTEGER');
           }
           if (oldVersion < 3) {
-            await db.execute(
-                'ALTER TABLE journal_entries ADD COLUMN cover_photo_id TEXT');
-          }
-          if (oldVersion < 4) {
-            // Add cover_photo_id column if it doesn't exist
-            try {
+            // Check if cover_photo_id column exists before adding it
+            final columns =
+                await db.query('journal_entries', columns: ['cover_photo_id']);
+            if (columns.isEmpty) {
               await db.execute(
                   'ALTER TABLE journal_entries ADD COLUMN cover_photo_id TEXT');
-            } catch (e) {
-              // Column might already exist, ignore error
-              debugPrint('Error adding cover_photo_id column: $e');
             }
           }
         },

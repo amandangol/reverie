@@ -537,7 +537,7 @@ class _JournalEntryFormState extends State<JournalEntryForm>
               const SizedBox(height: 24),
               ListTile(
                 leading: const Icon(Icons.star_rounded),
-                title: const Text('Set as Cover Photo'),
+                title: const Text('Change Cover Photo'),
                 subtitle: const Text('Use this photo as journal cover'),
                 onTap: () {
                   Navigator.pop(context);

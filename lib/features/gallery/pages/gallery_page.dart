@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/gallery_preferences_provider.dart';
+import '../../backupdrive/pages/backup_screen.dart';
 import '../../permissions/provider/permission_provider.dart';
 import '../../permissions/widgets/permission_aware_widget.dart';
 import '../provider/media_provider.dart';
@@ -8,9 +9,16 @@ import '../widgets/flashbacks_preview.dart';
 import 'tabs/photos_tab.dart';
 import 'tabs/albums_tab.dart';
 import '../../backupdrive/provider/backup_provider.dart';
+import '../../../theme/app_theme.dart';
+import '../../../widgets/custom_app_bar.dart';
 
 class GalleryPage extends StatefulWidget {
-  const GalleryPage({super.key});
+  final VoidCallback? onMenuPressed;
+
+  const GalleryPage({
+    super.key,
+    this.onMenuPressed,
+  });
 
   @override
   State<GalleryPage> createState() => _GalleryPageState();
@@ -47,20 +55,14 @@ class _GalleryPageState extends State<GalleryPage>
   Widget build(BuildContext context) {
     final preferences = context.watch<GalleryPreferencesProvider>();
     final colorScheme = Theme.of(context).colorScheme;
+    final journalTextTheme = AppTheme.journalTextTheme;
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Reverie',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1,
-              fontSize: 17,
-            ),
-          ),
-          backgroundColor: colorScheme.background,
+        appBar: CustomAppBar(
+          title: 'Gallery',
+          onMenuPressed: widget.onMenuPressed,
           actions: [
             Consumer<BackupProvider>(
               builder: (context, backupProvider, _) {
@@ -68,7 +70,7 @@ class _GalleryPageState extends State<GalleryPage>
                   icon: Icon(
                     Icons.cloud_rounded,
                     color: backupProvider.isSignedIn
-                        ? const Color(0xFF34A853) // Google green when connected
+                        ? const Color(0xFF34A853)
                         : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   onPressed: () =>
@@ -98,13 +100,6 @@ class _GalleryPageState extends State<GalleryPage>
                 tooltip: 'Change grid size',
               ),
           ],
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Photos'),
-              Tab(text: 'Albums'),
-            ],
-          ),
         ),
         body: PermissionAwareWidget(
           onPermissionGranted: () {
@@ -124,6 +119,18 @@ class _GalleryPageState extends State<GalleryPage>
                     );
                   },
                 ),
+              ),
+              SliverPersistentHeader(
+                delegate: _SliverAppBarDelegate(
+                  TabBar(
+                    controller: _tabController,
+                    tabs: const [
+                      Tab(text: 'Photos'),
+                      Tab(text: 'Albums'),
+                    ],
+                  ),
+                ),
+                pinned: true,
               ),
             ],
             body: TabBarView(
@@ -234,6 +241,27 @@ class _GalleryPageState extends State<GalleryPage>
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BackupScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.backup_rounded),
+                  label: const Text('Manage Backup'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF34A853),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
                   onPressed: () async {
                     Navigator.pop(context);
                     await backupProvider.signOutFromGoogleDrive();
@@ -301,5 +329,30 @@ class _GalleryPageState extends State<GalleryPage>
         ),
       ),
     );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar _tabBar;
+
+  _SliverAppBarDelegate(this._tabBar);
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }

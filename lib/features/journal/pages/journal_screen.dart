@@ -12,16 +12,22 @@ import '../widgets/journal_card.dart';
 import '../widgets/journal_shimmer.dart';
 import 'all_journals_screen.dart';
 import '../widgets/journal_search_delegate.dart';
+import '../../../widgets/custom_app_bar.dart';
 
 class JournalScreen extends StatefulWidget {
-  const JournalScreen({super.key});
+  final VoidCallback? onMenuPressed;
+
+  const JournalScreen({
+    super.key,
+    this.onMenuPressed,
+  });
 
   @override
   State<JournalScreen> createState() => _JournalScreenState();
 }
 
 class _JournalScreenState extends State<JournalScreen> {
-  final ScrollController _scrollController = ScrollController();
+  late final ScrollController _scrollController;
   bool _showFab = true;
   Map<String, Widget> _entryWidgetCache = {};
   static const int _gridCrossAxisCount = 2;
@@ -29,37 +35,28 @@ class _JournalScreenState extends State<JournalScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_scrollListener);
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
   }
 
-  void _scrollListener() {
+  void _onScroll() {
     if (_scrollController.position.userScrollDirection ==
         ScrollDirection.reverse) {
-      if (_showFab) {
-        setState(() {
-          _showFab = false;
-        });
-      }
-    }
-    if (_scrollController.position.userScrollDirection ==
-        ScrollDirection.forward) {
-      if (!_showFab) {
-        setState(() {
-          _showFab = true;
-        });
-      }
+      if (_showFab) setState(() => _showFab = false);
+    } else {
+      if (!_showFab) setState(() => _showFab = true);
     }
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _entryWidgetCache.clear();
     super.dispose();
   }
 
-  void _showHelpDialog() {
+  void _showHelpDialog(BuildContext context) {
     showDialog(
         context: context,
         builder: (context) => Dialog(
@@ -1014,19 +1011,9 @@ class _JournalScreenState extends State<JournalScreen> {
 
     return Scaffold(
       extendBody: true,
-      appBar: AppBar(
-        title: const Text(
-          'Reverie',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
-            fontSize: 17,
-          ),
-        ),
-        centerTitle: false,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.background,
+      appBar: CustomAppBar(
+        title: 'Journal',
+        onMenuPressed: widget.onMenuPressed,
         actions: [
           IconButton(
             icon: Icon(
@@ -1047,7 +1034,7 @@ class _JournalScreenState extends State<JournalScreen> {
               Icons.help_outline_rounded,
               color: colorScheme.primary,
             ),
-            onPressed: _showHelpDialog,
+            onPressed: () => _showHelpDialog(context),
             tooltip: 'Journaling Guide',
           ),
           const SizedBox(width: 8),
@@ -1292,7 +1279,7 @@ class _JournalScreenState extends State<JournalScreen> {
           ),
           const SizedBox(height: 16),
           TextButton.icon(
-            onPressed: _showHelpDialog,
+            onPressed: () => _showHelpDialog(context),
             icon: Icon(
               Icons.help_outline_rounded,
               size: 18,

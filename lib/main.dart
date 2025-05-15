@@ -59,17 +59,15 @@ class MyApp extends StatelessWidget {
               },
             ),
         '/journal/edit': (context) => JournalEntryForm(
-              initialTitle: '', // Pass the entry to edit
+              initialTitle: '',
               initialContent: '',
               initialMediaIds: const [],
               initialMood: '',
               initialTags: const [],
               onSave: (title, content, mediaIds, mood, tags, {lastEdited}) {
-                // Handle updating journal entry
                 Navigator.pop(context);
               },
               onDelete: () {
-                // Handle deleting journal entry
                 Navigator.pop(context);
               },
             ),
@@ -86,42 +84,132 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  int _selectedIndex = 0;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final List<Widget> _pages = [
     const GalleryPage(),
     const JournalScreen(),
-    const QuickAccessScreen(),
-    const SettingsPage(),
   ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _handleDrawerNavigation(Widget page) {
+    _scaffoldKey.currentState?.closeDrawer();
+    if (page is QuickAccessScreen ||
+        page is FlashbacksScreen ||
+        page is SettingsPage) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => page),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      body: _pages[_currentIndex],
+      key: _scaffoldKey,
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: colorScheme.primary,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'Reverie',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: colorScheme.onPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your Digital Memory Keeper',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onPrimary.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.dashboard_rounded),
+              title: const Text('Quick Access'),
+              onTap: () => _handleDrawerNavigation(const QuickAccessScreen()),
+            ),
+            ListTile(
+              leading: const Icon(Icons.history_rounded),
+              title: const Text('Flashbacks'),
+              onTap: () => _handleDrawerNavigation(const FlashbacksScreen()),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_rounded),
+              title: const Text('Settings'),
+              onTap: () => _handleDrawerNavigation(const SettingsPage()),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.info_outline_rounded),
+              title: const Text('About'),
+              onTap: () {
+                _scaffoldKey.currentState?.closeDrawer();
+                showAboutDialog(
+                  context: context,
+                  applicationName: 'Reverie',
+                  applicationVersion: '1.0.0',
+                  applicationIcon: Image.asset(
+                    'assets/icon/icon.png',
+                    width: 48,
+                    height: 48,
+                  ),
+                  children: [
+                    const SizedBox(height: 16),
+                    Text(
+                      'Reverie is your personal digital memory keeper, helping you preserve and relive your precious moments.',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          GalleryPage(
+            onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+          JournalScreen(
+            onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: _onItemTapped,
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.photo_library),
+            icon: Icon(Icons.photo_library_rounded),
             label: 'Gallery',
           ),
           NavigationDestination(
-            icon: Icon(Icons.book),
+            icon: Icon(Icons.book_rounded),
             label: 'Journal',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.explore),
-            label: 'Discover',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
           ),
         ],
       ),
