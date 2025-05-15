@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:reverie/features/backupdrive/provider/backup_provider.dart';
 import 'package:reverie/features/gallery/provider/media_provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
+import 'package:reverie/features/journal/widgets/journal_search_delegate.dart';
 
 class QuickAccessScreen extends StatelessWidget {
   const QuickAccessScreen({super.key});
@@ -24,7 +25,7 @@ class QuickAccessScreen extends StatelessWidget {
       backgroundColor: colorScheme.background,
       appBar: AppBar(
         title: Text(
-          'Quick Access',
+          'Quick Glance',
           style: journalTextTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
@@ -49,29 +50,10 @@ class QuickAccessScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Hero section with welcome message and stats
-              Container(
+              // Stats section
+              Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hello,',
-                      style: journalTextTheme.headlineSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      'What would you like to do today?',
-                      style: journalTextTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStatsRow(context),
-                  ],
-                ),
+                child: _buildStatsRow(context),
               ),
 
               // Main features section
@@ -81,7 +63,7 @@ class QuickAccessScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Quick Access',
+                      'Quick Actions',
                       style: journalTextTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onSurface,
@@ -89,6 +71,36 @@ class QuickAccessScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     _buildMainFeaturesGrid(context),
+                  ],
+                ),
+              ),
+
+              // Recent Journals section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Recent Journals',
+                          style: journalTextTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/journals');
+                          },
+                          child: const Text('View All'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildRecentJournals(context),
                   ],
                 ),
               ),
@@ -188,6 +200,81 @@ class QuickAccessScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildRecentJournals(BuildContext context) {
+    return Consumer<JournalProvider>(
+      builder: (context, journalProvider, _) {
+        final recentEntries = journalProvider.entries.take(2).toList();
+
+        if (recentEntries.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.auto_stories_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'No journal entries yet',
+                  style: AppTheme.journalTextTheme.bodyMedium,
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: recentEntries.map((entry) {
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.edit_note_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                title: Text(
+                  entry.title,
+                  style: AppTheme.journalTextTheme.titleMedium,
+                ),
+                subtitle: Text(
+                  entry.content,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.journalTextTheme.bodyMedium,
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/journal-detail',
+                    arguments: entry,
+                  );
+                },
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
   Widget _buildMainFeaturesGrid(BuildContext context) {
     final features = [
       {
@@ -234,6 +321,23 @@ class QuickAccessScreen extends StatelessWidget {
                 builder: (context) => const VideoAlbumsPage(),
               ),
             ),
+      },
+      {
+        'title': 'All Journals',
+        'icon': Icons.auto_stories_rounded,
+        'color': Colors.green,
+        'onTap': () => Navigator.pushNamed(context, '/journals'),
+      },
+      {
+        'title': 'Search',
+        'icon': Icons.search_rounded,
+        'color': Colors.teal,
+        'onTap': () {
+          showSearch(
+            context: context,
+            delegate: JournalSearchDelegate(context.read<JournalProvider>()),
+          );
+        },
       },
     ];
 
@@ -342,9 +446,7 @@ class QuickAccessScreen extends StatelessWidget {
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              backupProvider.isSignedIn
-                  ? 'Your memories are safely backed up'
-                  : 'Keep your memories safe with automatic backups',
+              'Keep your memories safe with backups and restorations',
               style: journalTextTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),

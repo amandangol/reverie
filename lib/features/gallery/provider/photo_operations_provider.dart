@@ -4,9 +4,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'media_provider.dart';
-import '../../journal/models/journal_entry.dart';
 import '../../journal/providers/journal_provider.dart';
-import 'package:uuid/uuid.dart';
 
 class PhotoOperationsProvider extends ChangeNotifier {
   bool _isSelectionMode = false;

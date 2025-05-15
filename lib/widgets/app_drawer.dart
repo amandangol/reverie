@@ -169,7 +169,7 @@ class AppDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   icon: Icons.dashboard_rounded,
-                  title: 'Quick Access',
+                  title: 'Quick Glance',
                   onTap: () => onNavigation(const QuickAccessScreen()),
                 ),
 

@@ -87,15 +87,15 @@ class _GalleryPageState extends State<GalleryPage>
               onPressed: () => preferences.toggleViewMode(),
               tooltip: preferences.isGridView ? 'List view' : 'Grid view',
             ),
-            if (preferences.isGridView)
-              IconButton(
-                icon: Icon(preferences.gridCrossAxisCount == 3
-                    ? Icons.grid_4x4
-                    : Icons.grid_3x3),
-                onPressed: () => preferences.setGridCrossAxisCount(
-                    preferences.gridCrossAxisCount == 3 ? 4 : 3),
-                tooltip: 'Change grid size',
-              ),
+            // if (preferences.isGridView)
+            //   IconButton(
+            //     icon: Icon(preferences.gridCrossAxisCount == 3
+            //         ? Icons.grid_4x4
+            //         : Icons.grid_3x3),
+            //     onPressed: () => preferences.setGridCrossAxisCount(
+            //         preferences.gridCrossAxisCount == 3 ? 4 : 3),
+            //     tooltip: 'Change grid size',
+            //   ),
           ],
         ),
         body: PermissionAwareWidget(

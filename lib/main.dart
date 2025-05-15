@@ -6,6 +6,7 @@ import 'features/about/pages/features_screen.dart';
 import 'features/gallery/pages/gallery_page.dart';
 import 'features/gallery/pages/media_detail_view.dart';
 import 'features/journal/models/journal_entry.dart';
+import 'features/journal/pages/all_journals_screen.dart';
 import 'features/journal/pages/journal_detail_screen.dart';
 import 'features/journal/pages/journal_screen.dart';
 import 'features/permissions/provider/permission_provider.dart';
@@ -89,6 +90,7 @@ class MyApp extends StatelessWidget {
                 lastEdited: DateTime.now(),
               ),
             ),
+        '/journals': (context) => const AllJournalsScreen(),
       },
     );
   }
