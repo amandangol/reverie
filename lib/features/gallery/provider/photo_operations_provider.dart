@@ -109,14 +109,31 @@ class PhotoOperationsProvider extends ChangeNotifier {
 
     if (selectedAssets.isEmpty) return [];
 
-    final mediaIds = selectedAssets.map((asset) => asset.id).toList();
+    try {
+      // Check if any of the selected assets are already in journal entries
+      final journalProvider = JournalProvider();
+      final existingEntries = journalProvider.entries
+          .where((entry) => entry.mediaIds
+              .any((id) => selectedAssets.any((asset) => asset.id == id)))
+          .toList();
 
-    // Clear selection mode and selected items before returning
-    _selectedItems.clear();
-    _isSelectionMode = false;
-    notifyListeners();
+      // If any assets are already in journal entries, filter them out
+      final mediaIds = selectedAssets
+          .where((asset) => !existingEntries
+              .any((entry) => entry.mediaIds.contains(asset.id)))
+          .map((asset) => asset.id)
+          .toList();
 
-    return mediaIds;
+      // Clear selection mode and selected items before returning
+      _selectedItems.clear();
+      _isSelectionMode = false;
+      notifyListeners();
+
+      return mediaIds;
+    } catch (e) {
+      debugPrint('Error checking journal entries: $e');
+      return [];
+    }
   }
 
   Future<void> shareMedia(AssetEntity asset) async {

@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import 'package:share_plus/share_plus.dart';
 import '../provider/media_provider.dart';
-import '../../journal/widgets/journal_entry_form.dart';
-import '../../journal/models/journal_entry.dart';
 import 'package:reverie/utils/media_utils.dart';
 import 'package:reverie/utils/snackbar_utils.dart';
 
@@ -224,31 +220,6 @@ class AssetThumbnail extends StatelessWidget {
                   ),
                   itemBuilder: (context) => [
                     PopupMenuItem<String>(
-                      value: 'journal',
-                      height: 32,
-                      child: Row(
-                        children: [
-                          const Icon(Icons.book, size: 14),
-                          const SizedBox(width: 8),
-                          Builder(
-                            builder: (context) {
-                              final hasEntries = context
-                                  .read<JournalProvider>()
-                                  .getEntriesByDateRange(
-                                      DateTime.now(), DateTime.now())
-                                  .isNotEmpty;
-                              return Text(
-                                hasEntries
-                                    ? 'View in Journal'
-                                    : 'Add to Journal',
-                                style: const TextStyle(fontSize: 13),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem<String>(
                       value: 'favorite',
                       height: 32,
                       child: Row(
@@ -315,9 +286,6 @@ class AssetThumbnail extends StatelessWidget {
                   ],
                   onSelected: (value) {
                     switch (value) {
-                      case 'journal':
-                        _showQuickJournalEntryDialog(context, asset);
-                        break;
                       case 'favorite':
                         _toggleFavorite(context, asset);
                         break;
@@ -338,37 +306,6 @@ class AssetThumbnail extends StatelessWidget {
     }
 
     return content;
-  }
-
-  void _showQuickJournalEntryDialog(BuildContext context, AssetEntity asset) {
-    showDialog(
-      context: context,
-      builder: (context) => JournalEntryForm(
-        initialMediaIds: [asset.id],
-        onSave: (title, content, mediaIds, mood, tags,
-            {DateTime? lastEdited, backgr}) {
-          final entry = JournalEntry(
-            id: const Uuid().v4(),
-            title: title,
-            content: content,
-            mediaIds: mediaIds,
-            mood: mood,
-            tags: tags,
-            date: DateTime.now(),
-          );
-          context.read<JournalProvider>().addEntry(entry);
-          Navigator.pop(context);
-          SnackbarUtils.showJournalEntryCreated(
-            context,
-            title: title,
-            onView: () {
-              // Navigate to journal entry
-              Navigator.pushNamed(context, '/journal');
-            },
-          );
-        },
-      ),
-    );
   }
 
   void _toggleFavorite(BuildContext context, AssetEntity asset) async {

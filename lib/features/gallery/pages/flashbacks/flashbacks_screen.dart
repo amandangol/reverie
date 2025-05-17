@@ -9,6 +9,7 @@ import 'package:just_audio/just_audio.dart';
 import 'dart:async';
 import 'package:video_player/video_player.dart';
 import '../../provider/media_provider.dart';
+import '../../provider/flashback_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
 import '../media_detail_view.dart';
 
@@ -28,7 +29,7 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   int _currentSlideshowIndex = 0;
   bool _isAutoPlaying = false;
   Timer? _autoPlayTimer;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  AudioPlayer? _audioPlayer;
   bool _isMusicPlaying = false;
   VideoPlayerController? _videoController;
 
@@ -131,24 +132,28 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
 
   Future<void> _initAudioPlayer() async {
     try {
-      // Load a soothing background music file
-      await _audioPlayer.setAsset('assets/audio/floating-castle.mp3');
-      await _audioPlayer.setLoopMode(LoopMode.all);
-      await _audioPlayer.setVolume(0.5);
+      _audioPlayer = AudioPlayer();
+      await _audioPlayer?.setAsset('assets/audio/floating-castle.mp3');
+      await _audioPlayer?.setLoopMode(LoopMode.all);
+      await _audioPlayer?.setVolume(0.5);
+      await _audioPlayer?.stop();
+      _isMusicPlaying = false;
     } catch (e) {
       debugPrint('Error initializing audio player: $e');
-      // Don't throw the error, just log it and continue without audio
+      _isMusicPlaying = false;
     }
   }
 
   Future<void> _loadFlashbacks() async {
     final mediaProvider = context.read<MediaProvider>();
+    final flashbackProvider = context.read<FlashbackProvider>();
+
     // Always reload flashbacks when screen is shown
-    await mediaProvider.clearFlashbacksCache();
+    await flashbackProvider.clearFlashbacksCache();
     await Future.wait([
-      mediaProvider.loadFlashbackPhotos(),
-      mediaProvider.loadWeeklyFlashbackPhotos(),
-      mediaProvider.loadMonthlyFlashbackPhotos(),
+      flashbackProvider.loadFlashbackPhotos(mediaProvider.allMediaItems),
+      flashbackProvider.loadWeeklyFlashbackPhotos(mediaProvider.allMediaItems),
+      flashbackProvider.loadMonthlyFlashbackPhotos(mediaProvider.allMediaItems),
     ]);
   }
 
@@ -156,7 +161,10 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   void dispose() {
     _tabController.dispose();
     _autoPlayTimer?.cancel();
-    _audioPlayer.dispose();
+    _audioPlayer?.pause();
+    _audioPlayer?.stop();
+    _audioPlayer?.dispose();
+    _audioPlayer = null;
     _disposeVideoController();
     super.dispose();
   }
@@ -178,9 +186,10 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Consumer<MediaProvider>(
-          builder: (context, mediaProvider, child) {
-            final memories = _getMemoriesForCurrentTab(mediaProvider);
+        title: Consumer2<MediaProvider, FlashbackProvider>(
+          builder: (context, mediaProvider, flashbackProvider, child) {
+            final memories =
+                _getMemoriesForCurrentTab(mediaProvider, flashbackProvider);
             final filteredMemories = _filterMemoriesByYear(memories);
             return Text(
               _getTitleForTab(_tabController.index, filteredMemories),
@@ -214,9 +223,10 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
         children: [
           Column(
             children: [
-              Consumer<MediaProvider>(
-                builder: (context, mediaProvider, child) {
-                  final memories = _getMemoriesForCurrentTab(mediaProvider);
+              Consumer2<MediaProvider, FlashbackProvider>(
+                builder: (context, mediaProvider, flashbackProvider, child) {
+                  final memories = _getMemoriesForCurrentTab(
+                      mediaProvider, flashbackProvider);
                   final availableYears = _getAvailableYears(memories);
 
                   if (availableYears.isEmpty) return const SizedBox.shrink();
@@ -276,14 +286,15 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
     );
   }
 
-  List<AssetEntity> _getMemoriesForCurrentTab(MediaProvider mediaProvider) {
+  List<AssetEntity> _getMemoriesForCurrentTab(
+      MediaProvider mediaProvider, FlashbackProvider flashbackProvider) {
     switch (_tabController.index) {
       case 0:
-        return mediaProvider.flashbackPhotos;
+        return flashbackProvider.flashbackPhotos;
       case 1:
-        return mediaProvider.weeklyFlashbackPhotos;
+        return flashbackProvider.weeklyFlashbackPhotos;
       case 2:
-        return mediaProvider.monthlyFlashbackPhotos;
+        return flashbackProvider.monthlyFlashbackPhotos;
       default:
         return [];
     }
@@ -514,20 +525,20 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   }
 
   Widget _buildDailyFlashbacks() {
-    return Consumer<MediaProvider>(
-      builder: (context, mediaProvider, child) {
-        if (mediaProvider.isLoadingFlashbacks) {
+    return Consumer<FlashbackProvider>(
+      builder: (context, flashbackProvider, child) {
+        if (flashbackProvider.isLoadingFlashbacks) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (mediaProvider.flashbackError != null) {
+        if (flashbackProvider.flashbackError != null) {
           return Center(
-            child: Text('Error: ${mediaProvider.flashbackError}'),
+            child: Text('Error: ${flashbackProvider.flashbackError}'),
           );
         }
 
         return _buildFlashbackSection(
-          mediaProvider.flashbackPhotos,
+          flashbackProvider.flashbackPhotos,
           'No flashback memories for today',
         );
       },
@@ -535,20 +546,20 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   }
 
   Widget _buildWeeklyFlashbacks() {
-    return Consumer<MediaProvider>(
-      builder: (context, mediaProvider, child) {
-        if (mediaProvider.isLoadingWeeklyFlashbacks) {
+    return Consumer<FlashbackProvider>(
+      builder: (context, flashbackProvider, child) {
+        if (flashbackProvider.isLoadingWeeklyFlashbacks) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (mediaProvider.weeklyFlashbackError != null) {
+        if (flashbackProvider.weeklyFlashbackError != null) {
           return Center(
-            child: Text('Error: ${mediaProvider.weeklyFlashbackError}'),
+            child: Text('Error: ${flashbackProvider.weeklyFlashbackError}'),
           );
         }
 
         return _buildFlashbackSection(
-          mediaProvider.weeklyFlashbackPhotos,
+          flashbackProvider.weeklyFlashbackPhotos,
           'No flashback memories for this week',
         );
       },
@@ -556,20 +567,20 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   }
 
   Widget _buildMonthlyFlashbacks() {
-    return Consumer<MediaProvider>(
-      builder: (context, mediaProvider, child) {
-        if (mediaProvider.isLoadingMonthlyFlashbacks) {
+    return Consumer<FlashbackProvider>(
+      builder: (context, flashbackProvider, child) {
+        if (flashbackProvider.isLoadingMonthlyFlashbacks) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (mediaProvider.monthlyFlashbackError != null) {
+        if (flashbackProvider.monthlyFlashbackError != null) {
           return Center(
-            child: Text('Error: ${mediaProvider.monthlyFlashbackError}'),
+            child: Text('Error: ${flashbackProvider.monthlyFlashbackError}'),
           );
         }
 
         return _buildFlashbackSection(
-          mediaProvider.monthlyFlashbackPhotos,
+          flashbackProvider.monthlyFlashbackPhotos,
           'No flashback memories for this month',
         );
       },
@@ -579,7 +590,9 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   void _showMediaDetail(BuildContext context, AssetEntity asset) {
     // Get all memories for the current tab
     final mediaProvider = context.read<MediaProvider>();
-    final memories = _getMemoriesForCurrentTab(mediaProvider);
+    final flashbackProvider = context.read<FlashbackProvider>();
+    final memories =
+        _getMemoriesForCurrentTab(mediaProvider, flashbackProvider);
     final filteredMemories = _filterMemoriesByYear(memories);
 
     // Group memories by date
@@ -609,22 +622,29 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   }
 
   Future<void> _generateSlideshow(List<AssetEntity> memories) async {
-    final mediaProvider = Provider.of<MediaProvider>(context, listen: false);
-    // Filter out videos and only keep images
+    final flashbackProvider =
+        Provider.of<FlashbackProvider>(context, listen: false);
     final imageMemories =
         memories.where((asset) => asset.type == AssetType.image).toList();
-    final slideshow = await mediaProvider.generateSlideshow(imageMemories);
+    final slideshow = await flashbackProvider.generateSlideshow(imageMemories);
     if (slideshow != null) {
+      // Stop any existing audio
+      await _audioPlayer?.pause();
+      await _audioPlayer?.stop();
+      await flashbackProvider.stopMusic();
+
       setState(() {
         _currentSlideshow = slideshow;
         _isViewingSlideshow = true;
         _currentSlideshowIndex = 0;
         _isAutoPlaying = true;
+        _isMusicPlaying = false;
       });
-      // Start auto-play immediately
       _startAutoPlay();
-      // Start music
-      await _audioPlayer.play();
+
+      // Start new audio
+      await _audioPlayer?.play();
+      await flashbackProvider.toggleMusic();
       setState(() {
         _isMusicPlaying = true;
       });
@@ -653,8 +673,12 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   }
 
   void _closeSlideshow() async {
+    final flashbackProvider =
+        Provider.of<FlashbackProvider>(context, listen: false);
     _autoPlayTimer?.cancel();
-    await _audioPlayer.pause();
+    await _audioPlayer?.pause();
+    await _audioPlayer?.stop();
+    await flashbackProvider.stopMusic();
     setState(() {
       _isViewingSlideshow = false;
       _currentSlideshow = null;
@@ -662,30 +686,6 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
       _isAutoPlaying = false;
       _isMusicPlaying = false;
     });
-  }
-
-  Future<void> _toggleMusic() async {
-    try {
-      if (_isMusicPlaying) {
-        await _audioPlayer.pause();
-      } else {
-        await _audioPlayer.play();
-      }
-      setState(() {
-        _isMusicPlaying = !_isMusicPlaying;
-      });
-    } catch (e) {
-      debugPrint('Error toggling music: $e');
-      // Show a snackbar to inform the user
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unable to play music. Please try again.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
   }
 
   Widget _buildSlideshowView() {
@@ -791,7 +791,15 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
                         _isMusicPlaying ? Icons.music_note : Icons.music_off,
                         color: Colors.white,
                       ),
-                      onPressed: _toggleMusic,
+                      onPressed: () {
+                        final flashbackProvider =
+                            Provider.of<FlashbackProvider>(context,
+                                listen: false);
+                        flashbackProvider.toggleMusic();
+                        setState(() {
+                          _isMusicPlaying = !_isMusicPlaying;
+                        });
+                      },
                     ),
                     IconButton(
                       icon: Icon(

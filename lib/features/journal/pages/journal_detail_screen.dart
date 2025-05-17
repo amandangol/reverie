@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -10,6 +8,7 @@ import 'package:reverie/features/journal/models/journal_entry.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:reverie/widgets/custom_markdown.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../gallery/provider/media_provider.dart';
 import '../widgets/journal_entry_form.dart';
@@ -71,10 +70,15 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                 onTap: () async {
                   Navigator.pop(context);
                   try {
-                    await context.read<JournalProvider>().shareJournalEntry(
-                          widget.entry,
-                          includeMedia: false,
-                        );
+                    final shareText = '''
+${widget.entry.title}
+
+${widget.entry.content}
+
+${widget.entry.tags.isNotEmpty ? 'Tags: ${widget.entry.tags.map((tag) => '#$tag').join(' ')}\n' : ''}
+Date: ${DateFormat('MMMM d, yyyy').format(widget.entry.date)}
+''';
+                    await Share.share(shareText, subject: widget.entry.title);
                   } catch (e) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(

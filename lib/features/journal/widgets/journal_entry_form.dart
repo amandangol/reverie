@@ -10,6 +10,7 @@ import '../providers/journal_provider.dart';
 import 'media_selection_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:reverie/theme/app_theme.dart';
+import 'package:uuid/uuid.dart';
 
 class JournalEntryForm extends StatefulWidget {
   final String? initialTitle;
@@ -217,38 +218,12 @@ class _JournalEntryFormState extends State<JournalEntryForm>
     });
 
     try {
+      // Get the journal provider
       final journalProvider = context.read<JournalProvider>();
 
-      // Check if we're editing an existing entry
-      final existingEntry = widget.initialTitle != null
-          ? journalProvider.entries.firstWhere(
-              (e) => e.title == widget.initialTitle,
-              orElse: () => JournalEntry(
-                id: '',
-                title: '',
-                content: '',
-                date: DateTime.now(),
-                mediaIds: [],
-                tags: [],
-              ),
-            )
-          : null;
-
-      // Skip if no existing entry found when editing
-      if (widget.initialTitle != null && existingEntry?.id.isEmpty == true) {
-        if (mounted) {
-          SnackbarUtils.showError(
-              context, 'Could not find existing entry to edit');
-          setState(() {
-            _isSaving = false;
-          });
-        }
-        return;
-      }
-
+      // Create the journal entry
       final entry = JournalEntry(
-        id: existingEntry?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
+        id: const Uuid().v4(),
         title: _titleController.text,
         content: _contentController.text,
         date: _selectedDate,
@@ -258,46 +233,32 @@ class _JournalEntryFormState extends State<JournalEntryForm>
         lastEdited: DateTime.now(),
       );
 
-      bool success = false;
-      if (existingEntry != null) {
-        success = await journalProvider.updateEntry(entry);
-      } else {
-        success = await journalProvider.addEntry(entry);
-      }
+      // Save the entry
+      final success = await journalProvider.addEntry(entry);
 
       if (success && mounted) {
-        // Call onSave callback first
+        // Call the onSave callback with the form data
         widget.onSave(
-          entry.title,
-          entry.content,
-          entry.mediaIds,
-          entry.mood,
-          entry.tags,
+          _titleController.text,
+          _contentController.text,
+          _selectedMedia.map((e) => e.id).toList(),
+          _mood,
+          _tags,
         );
 
-        // Ensure we're in a valid context before proceeding
-        if (!mounted) return;
-
         // Pop the form dialog
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
 
-        // Show success message after navigation
-        if (mounted && existingEntry == null) {
-          // Use a post-frame callback to ensure the snackbar shows after navigation
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              SnackbarUtils.showJournalEntryCreated(
-                context,
-                title: entry.title,
-                onView: () {
-                  Navigator.pushNamed(context, '/journal');
-                },
-              );
-            }
-          });
-        }
-      } else if (mounted) {
-        SnackbarUtils.showError(context, 'Failed to save journal entry');
+        // Show success message
+        SnackbarUtils.showJournalEntryCreated(
+          context,
+          title: _titleController.text,
+          onView: () {
+            Navigator.pushNamed(context, '/journal');
+          },
+        );
+      } else {
+        throw Exception('Failed to save journal entry');
       }
     } catch (e) {
       if (mounted) {

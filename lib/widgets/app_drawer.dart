@@ -194,6 +194,7 @@ class AppDrawer extends StatelessWidget {
                   child: Divider(color: colorScheme.onSurface.withOpacity(0.2)),
                 ),
 
+                const Spacer(),
                 // Features Item
                 _buildDrawerItem(
                   context,
@@ -398,6 +399,7 @@ class AppDrawer extends StatelessWidget {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    String? badge,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -436,6 +438,26 @@ class AppDrawer extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                if (badge != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      badge,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 Icon(
                   Icons.chevron_right,

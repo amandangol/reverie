@@ -65,199 +65,113 @@ class _JournalScreenState extends State<JournalScreen> {
               ),
               child: Container(
                 padding: const EdgeInsets.all(24),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.auto_stories_rounded,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.auto_stories_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Quick Guide',
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _buildTipItem(
+                      'Create Entry',
+                      'Tap + to start a new journal entry. Add photos, mood, and tags.',
+                      Icons.edit_note_rounded,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTipItem(
+                      'View Calendar',
+                      'Check your journaling history and patterns in the calendar view.',
+                      Icons.calendar_month_rounded,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTipItem(
+                      'Track Progress',
+                      'Monitor your journaling streak and monthly stats.',
+                      Icons.insights_rounded,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTipItem(
+                      'Search & Sort',
+                      'Find entries by date, title, or mood using search and sort options.',
+                      Icons.search_rounded,
+                    ),
+                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Got it',
+                          style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
-                            size: 28,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Journal Guide',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _buildTipSection(
-                        'Creating Entries',
-                        [
-                          _buildTipItem(
-                            'New Entry',
-                            'Tap the "New Entry" button to start writing. Add a title, content, mood, and tags.',
-                            Icons.edit_note_rounded,
-                          ),
-                          _buildTipItem(
-                            'AI Assistant',
-                            'Use the AI Assistant to generate content based on your mood, tags, and photos.',
-                            Icons.auto_awesome_rounded,
-                          ),
-                          _buildTipItem(
-                            'Media & Photos',
-                            'Add photos and videos to your entries. You can select multiple items.',
-                            Icons.photo_library_rounded,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _buildTipSection(
-                        'Organizing Content',
-                        [
-                          _buildTipItem(
-                            'Tags & Keywords',
-                            'Use tags to organize entries. Try suggested keywords or create your own.',
-                            Icons.label_rounded,
-                          ),
-                          _buildTipItem(
-                            'Mood Tracking',
-                            'Select your mood for each entry to track emotional patterns.',
-                            Icons.mood_rounded,
-                          ),
-                          _buildTipItem(
-                            'Calendar View',
-                            'View your entries by date in the calendar. Tap any date to see entries.',
-                            Icons.calendar_month_rounded,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _buildTipSection(
-                        'Tracking Progress',
-                        [
-                          _buildTipItem(
-                            'Streaks',
-                            'Maintain your journaling streak by writing daily. View your current and best streaks.',
-                            Icons.local_fire_department_rounded,
-                          ),
-                          _buildTipItem(
-                            'Monthly Stats',
-                            'Track your monthly progress and total entries in the insights section.',
-                            Icons.insights_rounded,
-                          ),
-                          _buildTipItem(
-                            'Entry History',
-                            'View all your entries sorted by date, title, or mood.',
-                            Icons.history_rounded,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _buildTipSection(
-                        'Managing Entries',
-                        [
-                          _buildTipItem(
-                            'Edit & Delete',
-                            'Edit or delete entries anytime. Changes are saved automatically.',
-                            Icons.edit_rounded,
-                          ),
-                          _buildTipItem(
-                            'Share Entries',
-                            'Share your entries with others, including photos and videos.',
-                            Icons.share_rounded,
-                          ),
-                          _buildTipItem(
-                            'Search & Filter',
-                            'Find entries using tags, dates, or keywords.',
-                            Icons.search_rounded,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            'Got it',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ));
   }
 
-  Widget _buildTipSection(String title, List<Widget> tips) {
-    return Column(
+  Widget _buildTipItem(String title, String description, IconData icon) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color:
+                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
+          ),
         ),
-        const SizedBox(height: 16),
-        ...tips,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.7),
+                    ),
+              ),
+            ],
+          ),
+        ),
       ],
-    );
-  }
-
-  Widget _buildTipItem(String title, String description, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .primaryContainer
-                  .withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: Theme.of(context).colorScheme.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.7),
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 

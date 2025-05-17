@@ -77,40 +77,25 @@ class MediaProvider extends ChangeNotifier {
   // Add this map to track analysis state
   final Map<String, bool> _analysisInProgress = {};
 
-  // Add new properties for flashbacks and captions
+  // Add new properties for captions
   final Map<String, String> _captionCache = {};
-  List<AssetEntity> _flashbackPhotos = [];
-  bool _isLoadingFlashbacks = false;
-  String? _flashbackError;
 
-  // Weekly flashback properties
-  List<AssetEntity> _weeklyFlashbackPhotos = [];
-  bool _isLoadingWeeklyFlashbacks = false;
-  String? _weeklyFlashbackError;
-
-  // Add new properties for enhanced flashback features
+  // Keep memory analysis related properties
   final Map<String, Map<String, dynamic>> _memoryAnalysisCache = {};
   final Map<String, bool> _memoryAnalysisInProgress = {};
-  List<AssetEntity> _monthlyFlashbackPhotos = [];
-  bool _isLoadingMonthlyFlashbacks = false;
-  String? _monthlyFlashbackError;
 
-  // Add new properties for flashbacks initialization and caching
-  bool _isFlashbacksInitialized = false;
-  static const String _flashbacksCacheKey = 'flashbacks_cache';
-  static const String _weeklyFlashbacksCacheKey = 'weekly_flashbacks_cache';
-  static const String _monthlyFlashbacksCacheKey = 'monthly_flashbacks_cache';
+  AlbumSortOption _currentSortOption = AlbumSortOption.nameAsc;
+  AlbumSortOption get currentSortOption => _currentSortOption;
 
-  // Add new properties for collage and slideshow
-  final Map<String, List<File>> _slideshowCache = {};
-  bool _isGeneratingSlideshow = false;
-
+  // Keep text recognition related properties
   final _textRecognizer = TextRecognizer();
   final Map<String, RecognizedText> _textRecognitionCache = {};
   final Map<String, bool> _textRecognitionInProgress = {};
 
-  AlbumSortOption _currentSortOption = AlbumSortOption.nameAsc;
-  AlbumSortOption get currentSortOption => _currentSortOption;
+  // Add these properties after other properties
+  String _searchQuery = '';
+  List<AssetEntity> _searchResults = [];
+  bool _isSearching = false;
 
   MediaProvider() {
     _initSharedPreferences();
@@ -483,9 +468,6 @@ class MediaProvider extends ChangeNotifier {
           notifyListeners();
         }
       }
-
-      // Load flashbacks after all media is loaded
-      await loadFlashbackPhotos();
     } catch (e) {
       _isLoading = false;
       _error = e.toString();
@@ -822,7 +804,6 @@ class MediaProvider extends ChangeNotifier {
       _labelCache.remove(asset.id);
       _analysisCache.remove(asset.id);
       _captionCache.remove(asset.id);
-      _memoryAnalysisCache.remove(asset.id);
 
       // Update grouped photos
       for (var date in _groupedPhotos.keys.toList()) {
@@ -909,7 +890,6 @@ class MediaProvider extends ChangeNotifier {
 
   @override
   Future<void> refreshMedia() async {
-    await clearFlashbacksCache();
     _isInitialized = false;
     _mediaItems.clear();
     _videoItems.clear();
@@ -1149,7 +1129,7 @@ Keep it personal and nostalgic, as if reminiscing about a past memory. Be concis
     notifyListeners();
   }
 
-  // Add method to analyze memory
+  // Keep memory analysis related methods
   Future<Map<String, dynamic>> analyzeMemory(AssetEntity asset) async {
     if (_memoryAnalysisInProgress[asset.id] == true) {
       throw Exception('Memory analysis already in progress');
@@ -1219,247 +1199,51 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     }
   }
 
-  // Add method to check if memory analysis is in progress
   bool isMemoryAnalysisInProgress(String assetId) {
     return _memoryAnalysisInProgress[assetId] ?? false;
   }
 
-  // Add method to clear memory analysis cache
   void clearMemoryAnalysisCache() {
     _memoryAnalysisCache.clear();
     _memoryAnalysisInProgress.clear();
     notifyListeners();
   }
 
-  // Add method to get memory analysis
   Map<String, dynamic>? getMemoryAnalysis(String assetId) {
     return _memoryAnalysisCache[assetId];
   }
 
-  // Add method to get similar memories
   List<AssetEntity> getSimilarMemories(AssetEntity asset, {int limit = 5}) {
     final analysis = _memoryAnalysisCache[asset.id];
     if (analysis == null) return [];
 
-    // Get all memories with analysis
     final memoriesWithAnalysis = _allMediaItems.values
         .where((a) => _memoryAnalysisCache.containsKey(a.id))
         .toList();
 
-    // Sort by similarity (this is a simple implementation - you might want to use more sophisticated similarity metrics)
     memoriesWithAnalysis.sort((a, b) {
       final aAnalysis = _memoryAnalysisCache[a.id]!;
       final bAnalysis = _memoryAnalysisCache[b.id]!;
-
-      // Compare timestamps to get more recent memories first
       return bAnalysis['timestamp'].compareTo(aAnalysis['timestamp']);
     });
 
-    // Return top N similar memories
     return memoriesWithAnalysis.take(limit).toList();
   }
 
-  // Add method to get memory timeline
   List<AssetEntity> getMemoryTimeline({int limit = 10}) {
     final memoriesWithAnalysis = _allMediaItems.values
         .where((a) => _memoryAnalysisCache.containsKey(a.id))
         .toList();
 
-    // Sort by creation date
     memoriesWithAnalysis
         .sort((a, b) => b.createDateTime.compareTo(a.createDateTime));
 
     return memoriesWithAnalysis.take(limit).toList();
   }
 
-  // Update clearFlashbacksCache to only clear slideshow cache
-  Future<void> clearFlashbacksCache() async {
-    _isFlashbacksInitialized = false;
-    _slideshowCache.clear();
-    notifyListeners();
-  }
-
-  // Helper method to get week number
-  int _getWeekNumber(DateTime date) {
-    final firstDayOfYear = DateTime(date.year, 1, 1);
-    final daysSinceFirstDay = date.difference(firstDayOfYear).inDays;
-    return ((daysSinceFirstDay + firstDayOfYear.weekday - 1) / 7).ceil();
-  }
-
-  Future<void> loadFlashbackPhotos() async {
-    if (_isLoadingFlashbacks) return;
-
-    try {
-      _isLoadingFlashbacks = true;
-      _flashbackError = null;
-      notifyListeners();
-
-      final today = DateTime.now();
-      final currentDay = today.day;
-      final currentMonth = today.month;
-
-      // Get all photos from previous years for the same day and month
-      final allPhotos = _allMediaList.where((asset) {
-        final date = asset.createDateTime;
-        return date.day == currentDay &&
-            date.month == currentMonth &&
-            date.year < today.year;
-      }).toList();
-
-      // Sort by year in descending order
-      allPhotos.sort(
-          (a, b) => b.createDateTime.year.compareTo(a.createDateTime.year));
-
-      _flashbackPhotos = allPhotos;
-      _isLoadingFlashbacks = false;
-      _isFlashbacksInitialized = true;
-      notifyListeners();
-    } catch (e) {
-      _isLoadingFlashbacks = false;
-      _flashbackError = e.toString();
-      notifyListeners();
-    }
-  }
-
-  Future<void> loadWeeklyFlashbackPhotos() async {
-    if (_isLoadingWeeklyFlashbacks) return;
-
-    try {
-      _isLoadingWeeklyFlashbacks = true;
-      _weeklyFlashbackError = null;
-      notifyListeners();
-
-      final now = DateTime.now();
-      // Calculate the start of the current week (Monday)
-      final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
-      // Calculate the end of the current week (Sunday)
-      final currentWeekEnd = currentWeekStart.add(const Duration(days: 6));
-
-      final weeklyPhotos = <AssetEntity>[];
-
-      for (final photo in _allMediaList) {
-        final photoDate = photo.createDateTime;
-        // Check if the photo is from a previous year
-        if (photoDate.year < now.year) {
-          // Calculate the week start for the photo's date
-          final photoWeekStart = DateTime(
-            photoDate.year,
-            photoDate.month,
-            photoDate.day - (photoDate.weekday - 1),
-          );
-
-          // Calculate the week end for the photo's date
-          final photoWeekEnd = photoWeekStart.add(const Duration(days: 6));
-
-          // Check if the photo's week matches the current week
-          if (photoDate.month == currentWeekStart.month &&
-              photoDate.day >= currentWeekStart.day &&
-              photoDate.day <= currentWeekEnd.day) {
-            weeklyPhotos.add(photo);
-          }
-        }
-      }
-
-      // Sort by year and date in descending order
-      weeklyPhotos.sort((a, b) {
-        final yearCompare =
-            b.createDateTime.year.compareTo(a.createDateTime.year);
-        if (yearCompare != 0) return yearCompare;
-        return b.createDateTime.compareTo(a.createDateTime);
-      });
-
-      _weeklyFlashbackPhotos = weeklyPhotos;
-      _isLoadingWeeklyFlashbacks = false;
-      notifyListeners();
-    } catch (e) {
-      _weeklyFlashbackError = e.toString();
-      _isLoadingWeeklyFlashbacks = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> loadMonthlyFlashbackPhotos() async {
-    if (_isLoadingMonthlyFlashbacks) return;
-
-    try {
-      _isLoadingMonthlyFlashbacks = true;
-      _monthlyFlashbackError = null;
-      notifyListeners();
-
-      final now = DateTime.now();
-      final currentMonth = now.month;
-
-      final monthlyPhotos = <AssetEntity>[];
-
-      for (final photo in _allMediaList) {
-        final photoDate = photo.createDateTime;
-        // Check if the photo is from a previous year and same month
-        if (photoDate.month == currentMonth && photoDate.year < now.year) {
-          monthlyPhotos.add(photo);
-        }
-      }
-
-      // Sort by year and date in descending order
-      monthlyPhotos.sort((a, b) {
-        final yearCompare =
-            b.createDateTime.year.compareTo(a.createDateTime.year);
-        if (yearCompare != 0) return yearCompare;
-        return b.createDateTime.compareTo(a.createDateTime);
-      });
-
-      _monthlyFlashbackPhotos = monthlyPhotos;
-      _isLoadingMonthlyFlashbacks = false;
-      notifyListeners();
-    } catch (e) {
-      _monthlyFlashbackError = e.toString();
-      _isLoadingMonthlyFlashbacks = false;
-      notifyListeners();
-    }
-  }
-
-  // Remove generateCollage method and keep only generateSlideshow
-  Future<List<File>?> generateSlideshow(List<AssetEntity> memories) async {
-    if (_isGeneratingSlideshow) return null;
-    if (memories.isEmpty) return null;
-
-    try {
-      _isGeneratingSlideshow = true;
-      notifyListeners();
-
-      // Create a unique key for this set of memories
-      final memoryIds = memories.map((m) => m.id).join('_');
-
-      // Check cache first
-      if (_slideshowCache.containsKey(memoryIds)) {
-        return _slideshowCache[memoryIds];
-      }
-
-      // Get files for all memories
-      final files = await Future.wait(
-        memories.map((asset) => asset.file),
-      );
-      final validFiles = files.whereType<File>().toList();
-
-      if (validFiles.isEmpty) return null;
-
-      // Cache the result
-      _slideshowCache[memoryIds] = validFiles;
-      notifyListeners();
-
-      return validFiles;
-    } catch (e) {
-      debugPrint('Error generating slideshow: $e');
-      return null;
-    } finally {
-      _isGeneratingSlideshow = false;
-      notifyListeners();
-    }
-  }
-
-  // Add getter for text recognition cache
+  // Keep text recognition related methods
   Map<String, RecognizedText> get textRecognitionCache => _textRecognitionCache;
 
-  // Add method to recognize text in an image
   Future<RecognizedText?> recognizeText(AssetEntity asset) async {
     if (_textRecognitionCache.containsKey(asset.id)) {
       return _textRecognitionCache[asset.id];
@@ -1491,7 +1275,6 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     }
   }
 
-  // Add method to clear text recognition cache
   void clearTextRecognitionCache() {
     _textRecognitionCache.clear();
     _textRecognitionInProgress.clear();
@@ -1534,18 +1317,74 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     notifyListeners();
   }
 
-  // Getters
-  bool get isFlashbacksInitialized => _isFlashbacksInitialized;
-  List<AssetEntity> get flashbackPhotos => _flashbackPhotos;
-  bool get isLoadingFlashbacks => _isLoadingFlashbacks;
-  String? get flashbackError => _flashbackError;
-  List<AssetEntity> get weeklyFlashbackPhotos => _weeklyFlashbackPhotos;
-  bool get isLoadingWeeklyFlashbacks => _isLoadingWeeklyFlashbacks;
-  String? get weeklyFlashbackError => _weeklyFlashbackError;
-  List<AssetEntity> get monthlyFlashbackPhotos => _monthlyFlashbackPhotos;
-  bool get isLoadingMonthlyFlashbacks => _isLoadingMonthlyFlashbacks;
-  String? get monthlyFlashbackError => _monthlyFlashbackError;
-  bool get isGeneratingSlideshow => _isGeneratingSlideshow;
+  // Add these getters
+  String get searchQuery => _searchQuery;
+  List<AssetEntity> get searchResults => _searchResults;
+  bool get isSearching => _isSearching;
+
+  // Add this method to search media
+  Future<void> searchMedia(String query) async {
+    if (query.isEmpty) {
+      _searchQuery = '';
+      _searchResults = [];
+      _isSearching = false;
+      notifyListeners();
+      return;
+    }
+
+    _searchQuery = query;
+    _isSearching = true;
+    notifyListeners();
+
+    try {
+      // Search through all media items
+      final results = _allMediaItems.values.where((asset) {
+        // Search in file name
+        final fileName = asset.title?.toLowerCase() ?? '';
+        if (fileName.contains(query.toLowerCase())) {
+          return true;
+        }
+
+        // Search in labels if available
+        final labels = _labelCache[asset.id];
+        if (labels != null) {
+          return labels.any((label) =>
+              label.label.toLowerCase().contains(query.toLowerCase()));
+        }
+
+        // Search in captions if available
+        final caption = _captionCache[asset.id];
+        if (caption != null) {
+          return caption.toLowerCase().contains(query.toLowerCase());
+        }
+
+        // Search in memory analysis if available
+        final memoryAnalysis = _memoryAnalysisCache[asset.id];
+        if (memoryAnalysis != null) {
+          final analysis = memoryAnalysis['rawResponse'] as String;
+          return analysis.toLowerCase().contains(query.toLowerCase());
+        }
+
+        return false;
+      }).toList();
+
+      _searchResults = results;
+    } catch (e) {
+      debugPrint('Error searching media: $e');
+      _searchResults = [];
+    } finally {
+      _isSearching = false;
+      notifyListeners();
+    }
+  }
+
+  // Add method to clear search
+  void clearSearch() {
+    _searchQuery = '';
+    _searchResults = [];
+    _isSearching = false;
+    notifyListeners();
+  }
 
   @override
   void dispose() {

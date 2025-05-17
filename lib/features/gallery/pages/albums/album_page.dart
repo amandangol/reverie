@@ -9,8 +9,7 @@ import '../../provider/media_provider.dart';
 import '../../provider/photo_operations_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
 import '../media_detail_view.dart';
-import '../../../journal/providers/journal_provider.dart';
-import '../../../journal/widgets/journal_entry_form.dart';
+import 'package:uuid/uuid.dart';
 
 class AlbumPage extends StatefulWidget {
   final AssetPathEntity album;
@@ -307,13 +306,6 @@ class _AlbumPageState extends State<AlbumPage> {
                   tooltip: 'Add to favorites',
                 ),
                 IconButton(
-                  icon: const Icon(Icons.book),
-                  onPressed: photoOps.selectedItems.isEmpty
-                      ? null
-                      : () => _handleJournalSelected(photoOps),
-                  tooltip: 'Add to journal',
-                ),
-                IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: photoOps.toggleSelectionMode,
                   tooltip: 'Exit selection mode',
@@ -413,45 +405,6 @@ class _AlbumPageState extends State<AlbumPage> {
       if (mounted) {
         SnackbarUtils.showError(
             context, 'Failed to update favorites: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> _handleJournalSelected(PhotoOperationsProvider photoOps) async {
-    try {
-      final hasEntries = context
-          .read<JournalProvider>()
-          .getEntriesByDateRange(DateTime.now(), DateTime.now())
-          .isNotEmpty;
-
-      if (hasEntries) {
-        // If there are entries, navigate to journal screen
-        Navigator.pushNamed(context, '/journal');
-      } else {
-        // If no entries, create new entry
-        final mediaIds = await photoOps.addToJournalSelected(_mediaItems);
-        if (mounted && mediaIds.isNotEmpty) {
-          showDialog(
-            context: context,
-            builder: (context) => JournalEntryForm(
-              initialMediaIds: mediaIds,
-              onSave: (title, content, mediaIds, mood, tags, {lastEdited}) {
-                // Let the form handle the entry creation
-                Navigator.pop(context);
-              },
-            ),
-          ).then((_) {
-            // Refresh the media provider to update any changes
-            if (mounted) {
-              context.read<MediaProvider>().loadMedia();
-            }
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        SnackbarUtils.showError(
-            context, 'Failed to add to journal: ${e.toString()}');
       }
     }
   }
@@ -888,39 +841,6 @@ class _MediaListItem extends StatelessWidget {
                 icon: const Icon(Icons.more_vert),
                 onSelected: (value) async {
                   switch (value) {
-                    case 'journal':
-                      // Check if this specific media is in any journal entries
-                      final hasEntries = context
-                          .read<JournalProvider>()
-                          .entries
-                          .any((entry) => entry.mediaIds.contains(asset.id));
-
-                      if (hasEntries) {
-                        // If there are entries, navigate to journal screen
-                        Navigator.pushNamed(context, '/journal');
-                      } else {
-                        // If no entries, create new entry
-                        final mediaIds = await photoOps.addToJournal(asset);
-                        if (mounted && mediaIds.isNotEmpty) {
-                          showDialog(
-                            context: context,
-                            builder: (context) => JournalEntryForm(
-                              initialMediaIds: mediaIds,
-                              onSave: (title, content, mediaIds, mood, tags,
-                                  {lastEdited}) {
-                                // Let the form handle the entry creation
-                                Navigator.pop(context);
-                              },
-                            ),
-                          ).then((_) {
-                            // Refresh the media provider to update any changes
-                            if (mounted) {
-                              context.read<MediaProvider>().loadMedia();
-                            }
-                          });
-                        }
-                      }
-                      break;
                     case 'favorite':
                       await photoOps.toggleFavorite(asset);
                       break;
@@ -930,25 +850,6 @@ class _MediaListItem extends StatelessWidget {
                   }
                 },
                 itemBuilder: (context) => [
-                  PopupMenuItem<String>(
-                    value: 'journal',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.book, size: 16),
-                        const SizedBox(width: 8),
-                        Consumer<JournalProvider>(
-                          builder: (context, journalProvider, _) {
-                            // Check if this specific media is in any journal entries
-                            final hasEntries = journalProvider.entries.any(
-                                (entry) => entry.mediaIds.contains(asset.id));
-                            return Text(
-                              hasEntries ? 'View in Journal' : 'Add to Journal',
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
                   PopupMenuItem<String>(
                     value: 'favorite',
                     child: Row(

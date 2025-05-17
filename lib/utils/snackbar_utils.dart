@@ -126,15 +126,7 @@ class SnackbarUtils {
       context,
       message: 'Journal entry "$title" created successfully',
       actionLabel: 'View',
-      onAction: () {
-        // Navigate to the journal screen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const JournalScreen(),
-          ),
-        );
-      },
+      onAction: onView,
       icon: Icons.book,
       isError: false,
     );
@@ -150,19 +142,7 @@ class SnackbarUtils {
       message:
           count == 1 ? 'Added to favorites' : '$count items added to favorites',
       actionLabel: 'View Favorites',
-      onAction: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AlbumPage(
-              album: context.read<MediaProvider>().albums.first,
-              isGridView: true,
-              gridCrossAxisCount: 3,
-              isFavoritesAlbum: true,
-            ),
-          ),
-        );
-      },
+      onAction: onView,
       icon: Icons.favorite,
       isError: false,
     );

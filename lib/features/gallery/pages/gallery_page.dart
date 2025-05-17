@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/widgets/custom_app_bar.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import '../../../providers/gallery_preferences_provider.dart';
 import '../../backupdrive/pages/backup_screen.dart';
 import '../../permissions/provider/permission_provider.dart';
 import '../../permissions/widgets/permission_aware_widget.dart';
 import '../provider/media_provider.dart';
 import '../widgets/flashbacks_preview.dart';
+import '../widgets/gallery_search_delegate.dart';
 import 'tabs/photos_tab.dart';
 import 'tabs/albums_tab.dart';
 import '../../backupdrive/provider/backup_provider.dart';
+import '../pages/media_detail_view.dart';
 
 class GalleryPage extends StatefulWidget {
   final VoidCallback? onMenuPressed;
@@ -53,6 +57,8 @@ class _GalleryPageState extends State<GalleryPage>
   @override
   Widget build(BuildContext context) {
     final preferences = context.watch<GalleryPreferencesProvider>();
+    final mediaProvider = context.watch<MediaProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
 
     return DefaultTabController(
       length: 2,
@@ -61,6 +67,19 @@ class _GalleryPageState extends State<GalleryPage>
           title: 'Gallery',
           onMenuPressed: widget.onMenuPressed,
           actions: [
+            IconButton(
+              icon: Icon(
+                Icons.search_rounded,
+                color: colorScheme.primary,
+              ),
+              onPressed: () {
+                showSearch(
+                  context: context,
+                  delegate: GallerySearchDelegate(mediaProvider),
+                );
+              },
+              tooltip: 'Search media',
+            ),
             Consumer<BackupProvider>(
               builder: (context, backupProvider, _) {
                 return IconButton(
@@ -68,7 +87,7 @@ class _GalleryPageState extends State<GalleryPage>
                     Icons.cloud_rounded,
                     color: backupProvider.isSignedIn
                         ? const Color(0xFF34A853)
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                        : colorScheme.onSurfaceVariant,
                   ),
                   onPressed: () =>
                       _showGoogleDriveInfo(context, backupProvider),
@@ -87,15 +106,6 @@ class _GalleryPageState extends State<GalleryPage>
               onPressed: () => preferences.toggleViewMode(),
               tooltip: preferences.isGridView ? 'List view' : 'Grid view',
             ),
-            // if (preferences.isGridView)
-            //   IconButton(
-            //     icon: Icon(preferences.gridCrossAxisCount == 3
-            //         ? Icons.grid_4x4
-            //         : Icons.grid_3x3),
-            //     onPressed: () => preferences.setGridCrossAxisCount(
-            //         preferences.gridCrossAxisCount == 3 ? 4 : 3),
-            //     tooltip: 'Change grid size',
-            //   ),
           ],
         ),
         body: PermissionAwareWidget(

@@ -167,12 +167,6 @@ class _PhotosTabState extends State<PhotosTab> {
                                 : () => _handleFavoriteSelected(
                                     photoOps, mediaProvider),
                           ),
-                          _buildSelectionActionButton(
-                            icon: Icons.book,
-                            onPressed: photoOps.selectedItems.isEmpty
-                                ? null
-                                : () => _handleJournalSelected(photoOps),
-                          ),
                         ],
                       ),
                     ),
@@ -287,106 +281,6 @@ class _PhotosTabState extends State<PhotosTab> {
       if (mounted) {
         SnackbarUtils.showError(
             context, 'Failed to update favorites: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> _handleJournalSelected(PhotoOperationsProvider photoOps) async {
-    try {
-      final mediaIds = await photoOps
-          .addToJournalSelected(context.read<MediaProvider>().mediaItems);
-      if (!mounted || mediaIds.isEmpty) return;
-
-      // Check if any of these media items are already in journal entries
-      final journalProvider = context.read<JournalProvider>();
-      final existingEntries = journalProvider.entries
-          .where((entry) => entry.mediaIds.any((id) => mediaIds.contains(id)))
-          .toList();
-
-      if (existingEntries.isNotEmpty) {
-        if (!mounted) return;
-        // Show dialog to inform user
-        await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Media Already in Journal'),
-            content: Text(
-                'Some of the selected media are already in ${existingEntries.length} journal entry${existingEntries.length == 1 ? '' : 's'}. '
-                'Would you like to create a new entry anyway?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Create New Entry'),
-              ),
-            ],
-          ),
-        );
-      }
-
-      if (!mounted) return;
-
-      // Show journal entry form as a dialog
-      final result = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => JournalEntryForm(
-          initialMediaIds: mediaIds,
-          onSave: (title, content, mediaIds, mood, tags, {lastEdited}) async {
-            try {
-              final journalProvider = context.read<JournalProvider>();
-              final entry = JournalEntry(
-                id: const Uuid().v4(),
-                title: title,
-                content: content,
-                date: DateTime.now(),
-                mediaIds: mediaIds,
-                mood: mood,
-                tags: tags,
-                lastEdited: lastEdited,
-              );
-
-              final success = await journalProvider.addEntry(entry);
-              if (success && mounted) {
-                Navigator.pop(context, true);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Journal entry created successfully'),
-                    backgroundColor: Color(0xFF34A853),
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                Navigator.pop(context, false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content:
-                        Text('Failed to create journal entry: ${e.toString()}'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            }
-          },
-        ),
-      );
-
-      // Refresh the media provider to update any changes
-      if (result == true && mounted) {
-        await context.read<MediaProvider>().loadMedia();
-        // Ensure we're still mounted after the async operation
-        if (mounted) {
-          setState(() {}); // Force UI refresh
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        SnackbarUtils.showError(
-            context, 'Failed to add to journal: ${e.toString()}');
       }
     }
   }
@@ -741,29 +635,6 @@ class _PhotosTabState extends State<PhotosTab> {
                             icon: const Icon(Icons.more_vert),
                             itemBuilder: (context) => [
                               PopupMenuItem<String>(
-                                value: 'journal',
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.book, size: 16),
-                                    const SizedBox(width: 8),
-                                    Builder(
-                                      builder: (context) {
-                                        final hasEntries = context
-                                            .read<JournalProvider>()
-                                            .entries
-                                            .any((entry) => entry.mediaIds
-                                                .contains(asset.id));
-                                        return Text(
-                                          hasEntries
-                                              ? 'View in Journal'
-                                              : 'Add to Journal',
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              PopupMenuItem<String>(
                                 value: 'favorite',
                                 child: Row(
                                   children: [
@@ -810,86 +681,6 @@ class _PhotosTabState extends State<PhotosTab> {
                             ],
                             onSelected: (value) async {
                               switch (value) {
-                                case 'journal':
-                                  final mediaIds =
-                                      await photoOps.addToJournal(asset);
-                                  if (mounted && mediaIds.isNotEmpty) {
-                                    // Show journal entry form as a dialog
-                                    final result = await showDialog<bool>(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (context) => JournalEntryForm(
-                                        initialMediaIds: mediaIds,
-                                        onSave: (title, content, mediaIds, mood,
-                                            tags,
-                                            {lastEdited}) async {
-                                          try {
-                                            final journalProvider =
-                                                context.read<JournalProvider>();
-                                            final entry = JournalEntry(
-                                              id: const Uuid().v4(),
-                                              title: title,
-                                              content: content,
-                                              date: DateTime.now(),
-                                              mediaIds: mediaIds,
-                                              mood: mood,
-                                              tags: tags,
-                                              lastEdited: lastEdited,
-                                            );
-
-                                            final success =
-                                                await journalProvider
-                                                    .addEntry(entry);
-                                            if (success && mounted) {
-                                              Navigator.pop(context, true);
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                      'Journal entry created successfully'),
-                                                  backgroundColor:
-                                                      Color(0xFF34A853),
-                                                ),
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (mounted) {
-                                              Navigator.pop(context, false);
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                      'Failed to create journal entry: ${e.toString()}'),
-                                                  backgroundColor: Colors.red,
-                                                ),
-                                              );
-                                            }
-                                          }
-                                        },
-                                      ),
-                                    );
-
-                                    // Refresh the media provider to update any changes
-                                    if (result == true && mounted) {
-                                      await context
-                                          .read<MediaProvider>()
-                                          .loadMedia();
-                                      // Ensure we're still mounted after the async operation
-                                      if (mounted) {
-                                        setState(() {}); // Force UI refresh
-                                      }
-                                    }
-                                  } else if (mounted) {
-                                    // Show message if media is already in a journal entry
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'This media is already in a journal entry'),
-                                        backgroundColor: Colors.orange,
-                                      ),
-                                    );
-                                  }
-                                  break;
                                 case 'favorite':
                                   await photoOps.toggleFavorite(asset);
                                   break;

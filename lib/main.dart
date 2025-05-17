@@ -14,6 +14,7 @@ import 'features/quickaccess/pages/quickaccess_screen.dart';
 import 'features/settings/pages/settings_page.dart';
 import 'features/gallery/provider/media_provider.dart';
 import 'features/gallery/provider/photo_operations_provider.dart';
+import 'features/gallery/provider/flashback_provider.dart';
 import 'theme/app_theme.dart';
 import 'features/splash/splash_screen.dart';
 import 'providers/gallery_preferences_provider.dart';
@@ -36,6 +37,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PhotoOperationsProvider()),
         ChangeNotifierProvider(create: (_) => OnboardingProvider()),
         ChangeNotifierProvider(create: (_) => BackupProvider()),
+        ChangeNotifierProvider(create: (_) => FlashbackProvider()),
       ],
       child: const MyApp(),
     ),

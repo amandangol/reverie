@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../provider/media_provider.dart';
+import '../provider/flashback_provider.dart';
 import 'asset_thumbnail.dart';
 
 class FlashbacksPreview extends StatefulWidget {
@@ -23,23 +24,24 @@ class _FlashbacksPreviewState extends State<FlashbacksPreview> {
 
   Future<void> _loadFlashbacks() async {
     final mediaProvider = context.read<MediaProvider>();
-    // Always reload flashbacks when preview is shown
-    await mediaProvider.clearFlashbacksCache();
+    final flashbackProvider = context.read<FlashbackProvider>();
+
+    await flashbackProvider.clearFlashbacksCache();
     await Future.wait([
-      mediaProvider.loadFlashbackPhotos(),
-      mediaProvider.loadWeeklyFlashbackPhotos(),
-      mediaProvider.loadMonthlyFlashbackPhotos(),
+      flashbackProvider.loadFlashbackPhotos(mediaProvider.allMediaItems),
+      flashbackProvider.loadWeeklyFlashbackPhotos(mediaProvider.allMediaItems),
+      flashbackProvider.loadMonthlyFlashbackPhotos(mediaProvider.allMediaItems),
     ]);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<MediaProvider>(
-      builder: (context, mediaProvider, child) {
+    return Consumer2<MediaProvider, FlashbackProvider>(
+      builder: (context, mediaProvider, flashbackProvider, child) {
         // Show loading state if any of the flashback types are loading
-        if (mediaProvider.isLoadingFlashbacks ||
-            mediaProvider.isLoadingWeeklyFlashbacks ||
-            mediaProvider.isLoadingMonthlyFlashbacks) {
+        if (flashbackProvider.isLoadingFlashbacks ||
+            flashbackProvider.isLoadingWeeklyFlashbacks ||
+            flashbackProvider.isLoadingMonthlyFlashbacks) {
           return const Padding(
             padding: EdgeInsets.all(16.0),
             child: Center(
@@ -48,9 +50,9 @@ class _FlashbacksPreviewState extends State<FlashbacksPreview> {
           );
         }
 
-        final totalMemories = mediaProvider.flashbackPhotos.length +
-            mediaProvider.weeklyFlashbackPhotos.length +
-            mediaProvider.monthlyFlashbackPhotos.length;
+        final totalMemories = flashbackProvider.flashbackPhotos.length +
+            flashbackProvider.weeklyFlashbackPhotos.length +
+            flashbackProvider.monthlyFlashbackPhotos.length;
 
         if (totalMemories == 0) {
           return const SizedBox.shrink();
@@ -86,22 +88,22 @@ class _FlashbacksPreviewState extends State<FlashbacksPreview> {
                       children: [
                         Expanded(
                           child: _buildPreviewImage(
-                            mediaProvider.flashbackPhotos.isNotEmpty
-                                ? mediaProvider.flashbackPhotos.first
+                            flashbackProvider.flashbackPhotos.isNotEmpty
+                                ? flashbackProvider.flashbackPhotos.first
                                 : null,
                           ),
                         ),
                         Expanded(
                           child: _buildPreviewImage(
-                            mediaProvider.weeklyFlashbackPhotos.isNotEmpty
-                                ? mediaProvider.weeklyFlashbackPhotos.first
+                            flashbackProvider.weeklyFlashbackPhotos.isNotEmpty
+                                ? flashbackProvider.weeklyFlashbackPhotos.first
                                 : null,
                           ),
                         ),
                         Expanded(
                           child: _buildPreviewImage(
-                            mediaProvider.monthlyFlashbackPhotos.isNotEmpty
-                                ? mediaProvider.monthlyFlashbackPhotos.first
+                            flashbackProvider.monthlyFlashbackPhotos.isNotEmpty
+                                ? flashbackProvider.monthlyFlashbackPhotos.first
                                 : null,
                           ),
                         ),

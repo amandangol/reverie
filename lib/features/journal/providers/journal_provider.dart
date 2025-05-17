@@ -795,59 +795,84 @@ class JournalProvider extends ChangeNotifier {
 
   Future<void> _exportToPDF(
       JournalEntry entry, Directory tempDir, String fileName) async {
-    final pdf = pw.Document();
+    try {
+      final pdf = pw.Document();
 
-    // Add content to PDF
-    pdf.addPage(
-      pw.Page(
-        build: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Header(
-              level: 0,
-              child: pw.Text(entry.title,
-                  style: pw.TextStyle(
-                      fontSize: 24, fontWeight: pw.FontWeight.bold)),
-            ),
-            pw.SizedBox(height: 20),
-            pw.Text(
-              DateFormat('EEEE, MMMM d, yyyy').format(entry.date),
-              style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700),
-            ),
-            if (entry.mood != null) ...[
-              pw.SizedBox(height: 10),
-              pw.Text('Mood: ${entry.mood}', style: pw.TextStyle(fontSize: 14)),
-            ],
-            pw.SizedBox(height: 20),
-            pw.Text(entry.content, style: pw.TextStyle(fontSize: 16)),
-            if (entry.tags.isNotEmpty) ...[
-              pw.SizedBox(height: 20),
-              pw.Wrap(
-                spacing: 5,
-                children: entry.tags
-                    .map((tag) => pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: pw.BoxDecoration(
-                            color: PdfColors.grey300,
-                            borderRadius: const pw.BorderRadius.all(
-                                pw.Radius.circular(4)),
-                          ),
-                          child: pw.Text('#$tag',
-                              style: pw.TextStyle(fontSize: 12)),
-                        ))
-                    .toList(),
+      // Add content to PDF
+      pdf.addPage(
+        pw.Page(
+          build: (context) => pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Header(
+                level: 0,
+                child: pw.Text(entry.title,
+                    style: pw.TextStyle(
+                        fontSize: 24, fontWeight: pw.FontWeight.bold)),
               ),
+              pw.SizedBox(height: 20),
+              pw.Text(
+                DateFormat('EEEE, MMMM d, yyyy').format(entry.date),
+                style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700),
+              ),
+              if (entry.mood != null) ...[
+                pw.SizedBox(height: 10),
+                pw.Text('Mood: ${entry.mood}',
+                    style: pw.TextStyle(fontSize: 14)),
+              ],
+              pw.SizedBox(height: 20),
+              pw.Text(entry.content, style: pw.TextStyle(fontSize: 16)),
+              if (entry.tags.isNotEmpty) ...[
+                pw.SizedBox(height: 20),
+                pw.Wrap(
+                  spacing: 5,
+                  children: entry.tags
+                      .map((tag) => pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.grey300,
+                              borderRadius: const pw.BorderRadius.all(
+                                  pw.Radius.circular(4)),
+                            ),
+                            child: pw.Text('#$tag',
+                                style: pw.TextStyle(fontSize: 12)),
+                          ))
+                      .toList(),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
-    );
+      );
 
-    // Save PDF
-    final file = File('${tempDir.path}/$fileName.pdf');
-    await file.writeAsBytes(await pdf.save());
-    await Share.shareXFiles([XFile(file.path)], text: 'Journal Entry Export');
+      // Save PDF
+      final file = File('${tempDir.path}/$fileName.pdf');
+      await file.writeAsBytes(await pdf.save());
+
+      // Use Share.shareXFiles with proper error handling
+      try {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Journal Entry Export',
+          subject: entry.title,
+        );
+      } catch (shareError) {
+        debugPrint('Error sharing PDF: $shareError');
+        // Fallback to text sharing if PDF sharing fails
+        await Share.share(
+          '${entry.title}\n\n${entry.content}\n\nDate: ${DateFormat('MMMM d, yyyy').format(entry.date)}',
+          subject: entry.title,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error generating PDF: $e');
+      // Fallback to text sharing if PDF generation fails
+      await Share.share(
+        '${entry.title}\n\n${entry.content}\n\nDate: ${DateFormat('MMMM d, yyyy').format(entry.date)}',
+        subject: entry.title,
+      );
+    }
   }
 
   Future<void> _exportToJSON(
