@@ -253,9 +253,6 @@ class _JournalEntryFormState extends State<JournalEntryForm>
         SnackbarUtils.showJournalEntryCreated(
           context,
           title: _titleController.text,
-          onView: () {
-            Navigator.pushNamed(context, '/journal');
-          },
         );
       } else {
         throw Exception('Failed to save journal entry');

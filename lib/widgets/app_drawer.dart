@@ -182,22 +182,6 @@ class AppDrawer extends StatelessWidget {
                   },
                 ),
 
-                // Smart Search Item
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.search_rounded,
-                  title: 'Smart Search',
-                  badge: 'AI',
-                  onTap: () {
-                    Navigator.pop(context); // Close drawer
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //       builder: (context) => const SmartSearchScreen()),
-                    // );
-                  },
-                ),
-
                 // Memories Item
                 _buildDrawerItem(
                   context,

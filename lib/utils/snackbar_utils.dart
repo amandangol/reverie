@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../features/gallery/pages/albums/album_page.dart';
 import '../features/gallery/provider/media_provider.dart';
 import '../features/journal/pages/journal_screen.dart';
+import 'package:photo_manager/photo_manager.dart';
 
 class SnackbarUtils {
   static void showSuccess(BuildContext context, String message) {
@@ -120,13 +121,23 @@ class SnackbarUtils {
   static void showJournalEntryCreated(
     BuildContext context, {
     required String title,
-    required VoidCallback onView,
   }) {
     showWithAction(
       context,
       message: 'Journal entry "$title" created successfully',
       actionLabel: 'View',
-      onAction: onView,
+      onAction: () {
+        Future.microtask(() {
+          if (context.mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const JournalScreen(),
+              ),
+            );
+          }
+        });
+      },
       icon: Icons.book,
       isError: false,
     );
@@ -142,7 +153,19 @@ class SnackbarUtils {
       message:
           count == 1 ? 'Added to favorites' : '$count items added to favorites',
       actionLabel: 'View Favorites',
-      onAction: onView,
+      onAction: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AlbumPage(
+              album: AssetPathEntity(id: 'favorites', name: 'Favorites'),
+              isGridView: true,
+              gridCrossAxisCount: 3,
+              isFavoritesAlbum: true,
+            ),
+          ),
+        );
+      },
       icon: Icons.favorite,
       isError: false,
     );

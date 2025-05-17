@@ -11,6 +11,7 @@ import '../../../journal/widgets/journal_entry_form.dart';
 import '../../provider/media_provider.dart';
 import '../../provider/photo_operations_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
+import '../albums/album_page.dart';
 import '../media_detail_view.dart';
 import 'package:reverie/utils/media_utils.dart';
 import '../../../permissions/provider/permission_provider.dart';
@@ -101,6 +102,28 @@ class _PhotosTabState extends State<PhotosTab> {
                                     onPressed: photoOps.toggleSelectionMode,
                                     child: const Text('Cancel'),
                                   ),
+                                  const SizedBox(width: 16),
+                                  _buildSelectionActionButton(
+                                    icon: Icons.share,
+                                    onPressed: photoOps.selectedItems.isEmpty
+                                        ? null
+                                        : () => _handleShareSelected(
+                                            photoOps, mediaProvider),
+                                  ),
+                                  _buildSelectionActionButton(
+                                    icon: Icons.delete,
+                                    onPressed: photoOps.selectedItems.isEmpty
+                                        ? null
+                                        : () => _handleDeleteSelected(
+                                            photoOps, mediaProvider),
+                                  ),
+                                  _buildSelectionActionButton(
+                                    icon: Icons.favorite,
+                                    onPressed: photoOps.selectedItems.isEmpty
+                                        ? null
+                                        : () => _handleFavoriteSelected(
+                                            photoOps, mediaProvider),
+                                  ),
                                 ],
                               )
                             : Row(
@@ -133,43 +156,6 @@ class _PhotosTabState extends State<PhotosTab> {
                       ],
                     ),
                   ),
-                  if (photoOps.isSelectionMode)
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Theme.of(context).dividerColor,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildSelectionActionButton(
-                            icon: Icons.share,
-                            onPressed: photoOps.selectedItems.isEmpty
-                                ? null
-                                : () => _handleShareSelected(
-                                    photoOps, mediaProvider),
-                          ),
-                          _buildSelectionActionButton(
-                            icon: Icons.delete,
-                            onPressed: photoOps.selectedItems.isEmpty
-                                ? null
-                                : () => _handleDeleteSelected(
-                                    photoOps, mediaProvider),
-                          ),
-                          _buildSelectionActionButton(
-                            icon: Icons.favorite,
-                            onPressed: photoOps.selectedItems.isEmpty
-                                ? null
-                                : () => _handleFavoriteSelected(
-                                    photoOps, mediaProvider),
-                          ),
-                        ],
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -273,7 +259,17 @@ class _PhotosTabState extends State<PhotosTab> {
           context,
           count: successCount,
           onView: () {
-            Navigator.pushNamed(context, '/albums/favorites');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AlbumPage(
+                  album: AssetPathEntity(id: 'favorites', name: 'Favorites'),
+                  isGridView: widget.isGridView,
+                  gridCrossAxisCount: widget.gridCrossAxisCount,
+                  isFavoritesAlbum: true,
+                ),
+              ),
+            );
           },
         );
       }

@@ -7,6 +7,7 @@ import 'package:reverie/utils/media_utils.dart';
 import 'package:intl/intl.dart';
 import '../media_detail_view.dart';
 import '../../widgets/asset_thumbnail.dart';
+import '../albums/album_page.dart';
 
 class RecapScreen extends StatefulWidget {
   const RecapScreen({super.key});

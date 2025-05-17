@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
+import 'package:reverie/features/gallery/pages/albums/album_page.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'package:reverie/widgets/app_drawer.dart';
 import 'features/about/pages/features_screen.dart';
