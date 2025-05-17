@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:reverie/features/about/pages/features_screen.dart';
 import 'package:reverie/features/gallery/pages/flashbacks/flashbacks_screen.dart';
+import 'package:reverie/features/gallery/pages/recap/recap_screen.dart';
+import 'package:reverie/features/gallery/pages/smart_search_screen.dart';
 import 'package:reverie/features/quickaccess/pages/quickaccess_screen.dart';
 import 'package:reverie/features/settings/pages/settings_page.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -170,7 +172,30 @@ class AppDrawer extends StatelessWidget {
                   context,
                   icon: Icons.dashboard_rounded,
                   title: 'Quick Glance',
-                  onTap: () => onNavigation(const QuickAccessScreen()),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const QuickAccessScreen()),
+                    );
+                  },
+                ),
+
+                // Smart Search Item
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.search_rounded,
+                  title: 'Smart Search',
+                  badge: 'AI',
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //       builder: (context) => const SmartSearchScreen()),
+                    // );
+                  },
                 ),
 
                 // Memories Item
@@ -178,7 +203,30 @@ class AppDrawer extends StatelessWidget {
                   context,
                   icon: Icons.history_rounded,
                   title: 'Memories',
-                  onTap: () => onNavigation(const FlashbacksScreen()),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const FlashbacksScreen()),
+                    );
+                  },
+                ),
+
+                // Monthly Recap Item
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.calendar_month_rounded,
+                  title: 'Monthly Recap',
+                  badge: 'New',
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const RecapScreen()),
+                    );
+                  },
                 ),
 
                 // Settings Item
@@ -186,7 +234,14 @@ class AppDrawer extends StatelessWidget {
                   context,
                   icon: Icons.settings_rounded,
                   title: 'Settings',
-                  onTap: () => onNavigation(const SettingsPage()),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const SettingsPage()),
+                    );
+                  },
                 ),
 
                 Padding(
@@ -194,7 +249,6 @@ class AppDrawer extends StatelessWidget {
                   child: Divider(color: colorScheme.onSurface.withOpacity(0.2)),
                 ),
 
-                const Spacer(),
                 // Features Item
                 _buildDrawerItem(
                   context,

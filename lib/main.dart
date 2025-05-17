@@ -5,6 +5,8 @@ import 'package:reverie/widgets/app_drawer.dart';
 import 'features/about/pages/features_screen.dart';
 import 'features/gallery/pages/gallery_page.dart';
 import 'features/gallery/pages/media_detail_view.dart';
+import 'features/gallery/pages/recap/recap_screen.dart';
+import 'features/gallery/pages/smart_search_screen.dart';
 import 'features/journal/models/journal_entry.dart';
 import 'features/journal/pages/all_journals_screen.dart';
 import 'features/journal/pages/journal_detail_screen.dart';
@@ -60,6 +62,7 @@ class MyApp extends StatelessWidget {
         '/main': (context) => const MainScreen(),
         '/onboarding': (context) => const OnboardingScreen(),
         '/flashbacks': (context) => const FlashbacksScreen(),
+        '/recap': (context) => const RecapScreen(),
         '/journal/new': (context) => JournalEntryForm(
               onSave: (title, content, mediaIds, mood, tags, {lastEdited}) {
                 // Handle saving new journal entry

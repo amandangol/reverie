@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/widgets/custom_app_bar.dart';
-import 'package:photo_manager/photo_manager.dart';
-import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import '../../../providers/gallery_preferences_provider.dart';
 import '../../backupdrive/pages/backup_screen.dart';
 import '../../permissions/provider/permission_provider.dart';
@@ -13,7 +11,6 @@ import '../widgets/gallery_search_delegate.dart';
 import 'tabs/photos_tab.dart';
 import 'tabs/albums_tab.dart';
 import '../../backupdrive/provider/backup_provider.dart';
-import '../pages/media_detail_view.dart';
 
 class GalleryPage extends StatefulWidget {
   final VoidCallback? onMenuPressed;
@@ -68,9 +65,8 @@ class _GalleryPageState extends State<GalleryPage>
           onMenuPressed: widget.onMenuPressed,
           actions: [
             IconButton(
-              icon: Icon(
+              icon: const Icon(
                 Icons.search_rounded,
-                color: colorScheme.primary,
               ),
               onPressed: () {
                 showSearch(

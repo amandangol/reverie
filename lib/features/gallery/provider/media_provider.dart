@@ -956,7 +956,6 @@ class MediaProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error launching URL: $e');
-      // You might want to show a snackbar or dialog to inform the user
     }
   }
 
