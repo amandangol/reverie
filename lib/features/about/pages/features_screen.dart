@@ -120,6 +120,20 @@ class FeaturesScreen extends StatelessWidget {
                   const SizedBox(height: 32),
                   _buildFeatureSection(
                     context,
+                    'Recap & Memories',
+                    Icons.auto_awesome_motion_rounded,
+                    const Color(0xFF00BCD4),
+                    [
+                      'Monthly memory recaps',
+                      'Beautiful timeline view',
+                      'Smart date-based grouping',
+                      'Quick month navigation',
+                      'Memory count tracking',
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  _buildFeatureSection(
+                    context,
                     'AI-Powered Features',
                     Icons.auto_awesome_rounded,
                     const Color(0xFFEA4335),

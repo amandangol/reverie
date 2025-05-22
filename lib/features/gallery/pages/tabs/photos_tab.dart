@@ -541,44 +541,76 @@ class _PhotosTabState extends State<PhotosTab> {
                     },
                     child: Row(
                       children: [
-                        SizedBox(
-                          width: 80,
-                          height: 80,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              AssetThumbnail(
-                                asset: asset,
-                                heroTag: heroTag,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(8),
-                                  bottomLeft: Radius.circular(8),
+                        if (!photoOps.isSelectionMode)
+                          SizedBox(
+                            width: 80,
+                            height: 80,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                AssetThumbnail(
+                                  asset: asset,
+                                  heroTag: heroTag,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(8),
+                                    bottomLeft: Radius.circular(8),
+                                  ),
+                                  isSelected:
+                                      photoOps.selectedItems.contains(asset.id),
+                                  showSelectionIndicator:
+                                      photoOps.isSelectionMode,
+                                  onTap: () => _showMediaDetail(
+                                      context, asset, mediaProvider),
+                                  onLongPress: () {
+                                    if (!photoOps.isSelectionMode) {
+                                      photoOps.toggleSelectionMode();
+                                      photoOps.toggleItemSelection(asset.id);
+                                    }
+                                  },
                                 ),
-                                isSelected:
-                                    photoOps.selectedItems.contains(asset.id),
-                                showSelectionIndicator:
-                                    photoOps.isSelectionMode,
-                              ),
-                              if (asset.type == AssetType.video)
-                                Positioned(
-                                  bottom: 4,
-                                  right: 4,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.6),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: const Icon(
-                                      Icons.play_arrow,
-                                      color: Colors.white,
-                                      size: 12,
+                                if (asset.type == AssetType.video)
+                                  Positioned(
+                                    bottom: 4,
+                                    right: 4,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.6),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Icon(
+                                        Icons.play_arrow,
+                                        color: Colors.white,
+                                        size: 12,
+                                      ),
                                     ),
                                   ),
+                              ],
+                            ),
+                          )
+                        else
+                          SizedBox(
+                            width: 80,
+                            height: 80,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                AssetThumbnail(
+                                  asset: asset,
+                                  heroTag: heroTag,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(8),
+                                    bottomLeft: Radius.circular(8),
+                                  ),
+                                  isSelected:
+                                      photoOps.selectedItems.contains(asset.id),
+                                  showSelectionIndicator: true,
+                                  onTap: () =>
+                                      photoOps.toggleItemSelection(asset.id),
                                 ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -674,14 +706,53 @@ class _PhotosTabState extends State<PhotosTab> {
                                   ],
                                 ),
                               ),
+                              const PopupMenuItem<String>(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete,
+                                        size: 16, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Delete',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                             onSelected: (value) async {
                               switch (value) {
                                 case 'favorite':
-                                  await photoOps.toggleFavorite(asset);
+                                  final mediaProvider =
+                                      context.read<MediaProvider>();
+                                  await mediaProvider.toggleFavorite(asset);
+                                  if (context.mounted) {
+                                    final isFavorite =
+                                        mediaProvider.isFavorite(asset.id);
+                                    if (isFavorite) {
+                                      SnackbarUtils.showMediaAddedToFavorites(
+                                        context,
+                                        count: 1,
+                                        onView: () {
+                                          Navigator.pushNamed(
+                                              context, '/albums/favorites');
+                                        },
+                                      );
+                                    } else {
+                                      SnackbarUtils
+                                          .showMediaRemovedFromFavorites(
+                                              context,
+                                              count: 1);
+                                    }
+                                  }
                                   break;
                                 case 'share':
                                   await photoOps.shareMedia(asset);
+                                  break;
+                                case 'delete':
+                                  await _handleDeleteSelected(
+                                      photoOps, mediaProvider);
                                   break;
                               }
                             },

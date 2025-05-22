@@ -34,7 +34,7 @@ class AppDrawer extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   colorScheme.primary.withOpacity(0.9),
-                  colorScheme.secondary.withOpacity(0.7),
+                  colorScheme.onPrimary.withOpacity(0.7),
                 ],
               ),
             ),

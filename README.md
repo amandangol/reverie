@@ -30,6 +30,13 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 - Time-based memory organization
 - Easy navigation through your memory timeline
 
+### 📅 Recap & Memories
+- Monthly memory recaps with beautiful timeline view
+- Smart date-based grouping of memories
+- Quick month navigation with visual calendar
+- Memory count tracking for each month
+- Beautiful grid layout for memory browsing
+
 ### 🤖 AI-Powered Features
 - Smart image analysis and description generation
 - AI-assisted journal writing

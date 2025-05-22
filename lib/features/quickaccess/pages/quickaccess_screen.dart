@@ -329,16 +329,11 @@ class QuickAccessScreen extends StatelessWidget {
         'onTap': () => Navigator.pushNamed(context, '/journals'),
       },
       {
-        'title': 'Search',
-        'icon': Icons.search_rounded,
-        'color': Colors.teal,
-        'onTap': () {
-          showSearch(
-            context: context,
-            delegate: JournalSearchDelegate(context.read<JournalProvider>()),
-          );
-        },
-      },
+        'title': 'Recap',
+        'icon': Icons.replay_rounded,
+        'color': Colors.brown,
+        'onTap': () => Navigator.pushNamed(context, '/recap'),
+      }
     ];
 
     return GridView.builder(
