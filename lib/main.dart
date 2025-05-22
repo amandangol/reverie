@@ -27,6 +27,7 @@ import 'features/journal/widgets/journal_entry_form.dart';
 import 'features/onboarding/pages/onboarding_screen.dart';
 import 'features/onboarding/provider/onboarding_provider.dart';
 import 'features/backupdrive/provider/backup_provider.dart';
+import 'features/journal/providers/translation_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +43,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => OnboardingProvider()),
         ChangeNotifierProvider(create: (_) => BackupProvider()),
         ChangeNotifierProvider(create: (_) => FlashbackProvider()),
+        ChangeNotifierProvider(create: (_) => TranslationProvider()),
       ],
       child: const MyApp(),
     ),

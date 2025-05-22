@@ -13,6 +13,7 @@ import '../../../utils/snackbar_utils.dart';
 import '../../gallery/provider/media_provider.dart';
 import '../widgets/journal_entry_form.dart';
 import 'package:reverie/features/gallery/pages/media_detail_view.dart';
+import '../providers/translation_provider.dart';
 
 class JournalDetailScreen extends StatefulWidget {
   final JournalEntry entry;
@@ -28,11 +29,430 @@ class JournalDetailScreen extends StatefulWidget {
 
 class _JournalDetailScreenState extends State<JournalDetailScreen> {
   late JournalEntry _currentEntry;
+  String? _translatedTitle;
+  String? _translatedContent;
+  String? _currentLanguage;
+  bool _isTranslating = false;
 
   @override
   void initState() {
     super.initState();
     _currentEntry = widget.entry;
+  }
+
+  Future<void> _translateEntry(String targetLanguage) async {
+    if (_isTranslating) return;
+
+    setState(() {
+      _isTranslating = true;
+    });
+
+    try {
+      final translationProvider = context.read<TranslationProvider>();
+
+      // Translate title
+      final titleResult = await translationProvider.translateText(
+        text: _currentEntry.title,
+        targetLanguage: targetLanguage,
+      );
+
+      // Translate content
+      final contentResult = await translationProvider.translateText(
+        text: _currentEntry.content,
+        targetLanguage: targetLanguage,
+      );
+
+      if (mounted) {
+        setState(() {
+          _translatedTitle = titleResult['translatedText'];
+          _translatedContent = contentResult['translatedText'];
+          _currentLanguage = targetLanguage;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Translation failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTranslating = false;
+        });
+      }
+    }
+  }
+
+  void _showTranslationOptions() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Translate Entry',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (_currentLanguage != null)
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _translatedTitle = null;
+                              _translatedContent = null;
+                              _currentLanguage = null;
+                            });
+                            Navigator.pop(context);
+                          },
+                          icon: const Icon(Icons.restore),
+                          label: const Text('Show Original'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: colorScheme.primary,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Consumer<TranslationProvider>(
+                  builder: (context, provider, _) {
+                    if (provider.isLoading) {
+                      return const Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: [
+                        _buildLanguageOption(
+                          context,
+                          'Arabic',
+                          'ar',
+                          '🇸🇦',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Bengali',
+                          'bn',
+                          '🇧🇩',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Chinese (Simplified)',
+                          'zh-CN',
+                          '🇨🇳',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Czech',
+                          'cs',
+                          '🇨🇿',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Danish',
+                          'da',
+                          '🇩🇰',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Dutch',
+                          'nl',
+                          '🇳🇱',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Finnish',
+                          'fi',
+                          '🇫🇮',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'French',
+                          'fr',
+                          '🇫🇷',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'German',
+                          'de',
+                          '🇩🇪',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Greek',
+                          'el',
+                          '🇬🇷',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Hebrew',
+                          'he',
+                          '🇮🇱',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Hindi',
+                          'hi',
+                          '🇮🇳',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Hungarian',
+                          'hu',
+                          '🇭🇺',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Indonesian',
+                          'id',
+                          '🇮🇩',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Italian',
+                          'it',
+                          '🇮🇹',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Japanese',
+                          'ja',
+                          '🇯🇵',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Korean',
+                          'ko',
+                          '🇰🇷',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Malay',
+                          'ms',
+                          '🇲🇾',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Malayalam',
+                          'ml',
+                          '🇮🇳',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Marathi',
+                          'mr',
+                          '🇮🇳',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Norwegian',
+                          'no',
+                          '🇳🇴',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Persian',
+                          'fa',
+                          '🇮🇷',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Polish',
+                          'pl',
+                          '🇵🇱',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Portuguese',
+                          'pt',
+                          '🇵🇹',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Romanian',
+                          'ro',
+                          '🇷🇴',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Russian',
+                          'ru',
+                          '🇷🇺',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Spanish',
+                          'es',
+                          '🇪🇸',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Swedish',
+                          'sv',
+                          '🇸🇪',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Tamil',
+                          'ta',
+                          '🇮🇳',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Telugu',
+                          'te',
+                          '🇮🇳',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Thai',
+                          'th',
+                          '🇹🇭',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Turkish',
+                          'tr',
+                          '🇹🇷',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Ukrainian',
+                          'uk',
+                          '🇺🇦',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Urdu',
+                          'ur',
+                          '🇵🇰',
+                          colorScheme,
+                        ),
+                        _buildLanguageOption(
+                          context,
+                          'Vietnamese',
+                          'vi',
+                          '🇻🇳',
+                          colorScheme,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(
+    BuildContext context,
+    String language,
+    String code,
+    String flag,
+    ColorScheme colorScheme,
+  ) {
+    final isSelected = _currentLanguage == language;
+
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? colorScheme.primaryContainer
+              : colorScheme.surfaceVariant.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          flag,
+          style: const TextStyle(fontSize: 20),
+        ),
+      ),
+      title: Text(
+        language,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+        ),
+      ),
+      trailing: isSelected
+          ? Icon(
+              Icons.check_circle_rounded,
+              color: colorScheme.primary,
+            )
+          : null,
+      onTap: () {
+        Navigator.pop(context);
+        _translateEntry(language);
+      },
+    );
   }
 
   void _showShareOptions() {
@@ -308,6 +728,11 @@ Date: ${DateFormat('MMMM d, yyyy').format(widget.entry.date)}
             scrolledUnderElevation: 0,
             actions: [
               IconButton(
+                icon: const Icon(Icons.translate),
+                tooltip: 'Translate Entry',
+                onPressed: _showTranslationOptions,
+              ),
+              IconButton(
                 icon: const Icon(Icons.download_rounded),
                 tooltip: 'Export Entry',
                 onPressed: _showExportOptions,
@@ -542,50 +967,7 @@ Date: ${DateFormat('MMMM d, yyyy').format(widget.entry.date)}
                   const SizedBox(height: 16),
 
                   // Content section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color:
-                          colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.book_rounded,
-                              color: colorScheme.primary,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _currentEntry.title,
-                                style: textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.primary,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        CustomMarkdown(
-                          data: _currentEntry.content,
-                          textColor: colorScheme.onSurface,
-                          headingColor: colorScheme.primary,
-                          fontSize: 16,
-                          headingFontSize: 20,
-                          lineSpacing: 1.7,
-                          paragraphSpacing: 16,
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildContentSection(theme),
 
                   // Tags section
                   if (_currentEntry.tags.isNotEmpty) ...[
@@ -912,6 +1294,7 @@ Date: ${DateFormat('MMMM d, yyyy').format(widget.entry.date)}
           ),
         ),
         child: JournalEntryForm(
+          initialId: _currentEntry.id,
           initialTitle: _currentEntry.title,
           initialContent: _currentEntry.content,
           initialMediaIds: _currentEntry.mediaIds,
@@ -1076,5 +1459,153 @@ Date: ${DateFormat('MMMM d, yyyy').format(widget.entry.date)}
         ),
       ),
     );
+  }
+
+  Widget _buildContentSection(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.book_rounded,
+                color: theme.colorScheme.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _translatedTitle ?? _currentEntry.title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (_currentLanguage != null)
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_currentLanguage != null)
+                        Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Text(
+                            _getLanguageFlag(_currentLanguage!),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          CustomMarkdown(
+            data: _translatedContent ?? _currentEntry.content,
+            textColor: theme.colorScheme.onSurface,
+            headingColor: theme.colorScheme.primary,
+            fontSize: 16,
+            headingFontSize: 20,
+            lineSpacing: 1.7,
+            paragraphSpacing: 16,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getLanguageFlag(String language) {
+    switch (language.toLowerCase()) {
+      case 'arabic':
+        return '🇸🇦';
+      case 'bengali':
+        return '🇧🇩';
+      case 'chinese (simplified)':
+        return '🇨🇳';
+      case 'czech':
+        return '🇨🇿';
+      case 'danish':
+        return '🇩🇰';
+      case 'dutch':
+        return '🇳🇱';
+      case 'finnish':
+        return '🇫🇮';
+      case 'french':
+        return '🇫🇷';
+      case 'german':
+        return '🇩🇪';
+      case 'greek':
+        return '🇬🇷';
+      case 'hebrew':
+        return '🇮🇱';
+      case 'hindi':
+        return '🇮🇳';
+      case 'hungarian':
+        return '🇭🇺';
+      case 'indonesian':
+        return '🇮🇩';
+      case 'italian':
+        return '🇮🇹';
+      case 'japanese':
+        return '🇯🇵';
+      case 'korean':
+        return '🇰🇷';
+      case 'malay':
+        return '🇲🇾';
+      case 'malayalam':
+        return '🇮🇳';
+      case 'marathi':
+        return '🇮🇳';
+      case 'norwegian':
+        return '🇳🇴';
+      case 'persian':
+        return '🇮🇷';
+      case 'polish':
+        return '🇵🇱';
+      case 'portuguese':
+        return '🇵🇹';
+      case 'romanian':
+        return '🇷🇴';
+      case 'russian':
+        return '🇷🇺';
+      case 'spanish':
+        return '🇪🇸';
+      case 'swedish':
+        return '🇸🇪';
+      case 'tamil':
+        return '🇮🇳';
+      case 'telugu':
+        return '🇮🇳';
+      case 'thai':
+        return '🇹🇭';
+      case 'turkish':
+        return '🇹🇷';
+      case 'ukrainian':
+        return '🇺🇦';
+      case 'urdu':
+        return '🇵🇰';
+      case 'vietnamese':
+        return '🇻🇳';
+      default:
+        return '';
+    }
   }
 }

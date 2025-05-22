@@ -157,24 +157,24 @@ class PhotoOperationsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<List<String>> addToJournal(AssetEntity asset) async {
-    try {
-      // Check if the asset is already in a journal entry
-      final journalProvider = JournalProvider();
-      final entries = journalProvider.entries
-          .where((entry) => entry.mediaIds.contains(asset.id))
-          .toList();
+  // Future<List<String>> addToJournal(AssetEntity asset) async {
+  //   try {
+  //     // Check if the asset is already in a journal entry
+  //     final journalProvider = JournalProvider();
+  //     final entries = journalProvider.entries
+  //         .where((entry) => entry.mediaIds.contains(asset.id))
+  //         .toList();
 
-      // If the asset is already in a journal entry, return empty list
-      if (entries.isNotEmpty) {
-        return [];
-      }
+  //     // If the asset is already in a journal entry, return empty list
+  //     if (entries.isNotEmpty) {
+  //       return [];
+  //     }
 
-      // Return a list with single media ID
-      return [asset.id];
-    } catch (e) {
-      debugPrint('Error checking journal entries: $e');
-      return [];
-    }
-  }
+  //     // Return a list with single media ID
+  //     return [asset.id];
+  //   } catch (e) {
+  //     debugPrint('Error checking journal entries: $e');
+  //     return [];
+  //   }
+  // }
 }

@@ -19,6 +19,7 @@ class JournalEntryForm extends StatefulWidget {
   final String? initialMood;
   final List<String>? initialTags;
   final DateTime? initialDate;
+  final String? initialId;
   final Function(String title, String content, List<String> mediaIds,
       String? mood, List<String> tags) onSave;
   final VoidCallback? onDelete;
@@ -31,6 +32,7 @@ class JournalEntryForm extends StatefulWidget {
     this.initialMood,
     this.initialTags,
     this.initialDate,
+    this.initialId,
     required this.onSave,
     this.onDelete,
   });
@@ -223,7 +225,7 @@ class _JournalEntryFormState extends State<JournalEntryForm>
 
       // Create the journal entry
       final entry = JournalEntry(
-        id: const Uuid().v4(),
+        id: widget.initialId ?? const Uuid().v4(),
         title: _titleController.text,
         content: _contentController.text,
         date: _selectedDate,
@@ -233,8 +235,10 @@ class _JournalEntryFormState extends State<JournalEntryForm>
         lastEdited: DateTime.now(),
       );
 
-      // Save the entry
-      final success = await journalProvider.addEntry(entry);
+      // Save or update the entry
+      final success = widget.initialId != null
+          ? await journalProvider.updateEntry(entry)
+          : await journalProvider.addEntry(entry);
 
       if (success && mounted) {
         // Call the onSave callback with the form data
