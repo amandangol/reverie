@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
-import 'package:reverie/features/gallery/pages/albums/album_page.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'package:reverie/widgets/app_drawer.dart';
 import 'features/about/pages/features_screen.dart';
 import 'features/gallery/pages/gallery_page.dart';
-import 'features/gallery/pages/media_detail_view.dart';
+import 'features/gallery/pages/mediadetail/media_detail_view.dart';
 import 'features/gallery/pages/recap/recap_screen.dart';
-import 'features/gallery/pages/smart_search_screen.dart';
 import 'features/journal/models/journal_entry.dart';
 import 'features/journal/pages/all_journals_screen.dart';
 import 'features/journal/pages/journal_detail_screen.dart';

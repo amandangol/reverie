@@ -12,7 +12,7 @@ import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-
+import 'package:exif/exif.dart' as exif;
 import '../../../services/connectivity_service.dart';
 
 // Add sorting enum at the top level
@@ -96,6 +96,9 @@ class MediaProvider extends ChangeNotifier {
   String _searchQuery = '';
   List<AssetEntity> _searchResults = [];
   bool _isSearching = false;
+
+  // Add location cache map
+  final Map<String, Map<String, dynamic>> _locationCache = {};
 
   MediaProvider() {
     _initSharedPreferences();
@@ -1385,11 +1388,122 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     notifyListeners();
   }
 
+  // Replace the getLocation method with getExifData
+  Future<Map<String, dynamic>?> getExifData(AssetEntity asset) async {
+    debugPrint('Getting EXIF data for asset: ${asset.id}');
+
+    try {
+      final file = await asset.file;
+      if (file == null) {
+        debugPrint('No file found for asset ${asset.id}');
+        return null;
+      }
+
+      final bytes = await file.readAsBytes();
+      final exifData = await exif.readExifFromBytes(bytes);
+
+      if (exifData.isEmpty) {
+        debugPrint('No EXIF data found');
+        return null;
+      }
+
+      // Extract relevant EXIF data
+      final exifInfo = <String, dynamic>{};
+
+      // Camera info
+      exifInfo['camera'] = exifData['Image Make']?.printable ??
+          exifData['EXIF Tag 0x9A00']?.printable;
+      exifInfo['model'] = exifData['Image Model']?.printable;
+
+      // Date and time
+      exifInfo['dateTime'] = exifData['EXIF DateTimeOriginal']?.printable ??
+          exifData['Image DateTime']?.printable;
+
+      // Exposure settings
+      if (exifData['EXIF ExposureTime'] != null) {
+        exifInfo['exposureTime'] = exifData['EXIF ExposureTime']?.printable;
+      }
+      if (exifData['EXIF FNumber'] != null) {
+        exifInfo['fNumber'] = exifData['EXIF FNumber']?.printable;
+      }
+      if (exifData['EXIF ISOSpeedRatings'] != null) {
+        exifInfo['iso'] = exifData['EXIF ISOSpeedRatings']?.printable;
+      }
+      if (exifData['EXIF FocalLength'] != null) {
+        exifInfo['focalLength'] = exifData['EXIF FocalLength']?.printable;
+      }
+      if (exifData['EXIF FocalLengthIn35mmFilm'] != null) {
+        exifInfo['focalLength35mm'] =
+            exifData['EXIF FocalLengthIn35mmFilm']?.printable;
+      }
+
+      // Other settings
+      exifInfo['flash'] = exifData['EXIF Flash']?.printable;
+      exifInfo['whiteBalance'] = exifData['EXIF WhiteBalance']?.printable;
+      exifInfo['exposureProgram'] = exifData['EXIF ExposureProgram']?.printable;
+      exifInfo['meteringMode'] = exifData['EXIF MeteringMode']?.printable;
+      exifInfo['sceneCaptureType'] =
+          exifData['EXIF SceneCaptureType']?.printable;
+
+      // Additional camera info
+      if (exifData['EXIF Tag 0x9999'] != null) {
+        try {
+          final cameraSettings = exifData['EXIF Tag 0x9999']?.printable;
+          if (cameraSettings != null) {
+            exifInfo['cameraSettings'] = cameraSettings;
+          }
+        } catch (e) {
+          debugPrint('Error parsing camera settings: $e');
+        }
+      }
+
+      return exifInfo;
+    } catch (e) {
+      debugPrint('Error getting EXIF data: $e');
+      return null;
+    }
+  }
+
+  // Remove the location cache and related methods
   @override
   void dispose() {
     _mounted = false;
     _imageLabeler.close();
     _textRecognizer.close();
     super.dispose();
+  }
+
+  Future<void> saveEditedImage(
+      Uint8List editedImage, AssetEntity originalAsset) async {
+    try {
+      // Get the app's temporary directory
+      final tempDir = await getTemporaryDirectory();
+      final fileName =
+          'edited_${originalAsset.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final file = File('${tempDir.path}/$fileName');
+
+      // Write the edited image to the file
+      await file.writeAsBytes(editedImage);
+
+      // Save the edited image to the gallery
+      final result = await PhotoManager.editor.saveImageWithPath(
+        file.path,
+        title: 'Edited ${originalAsset.title ?? 'Image'}',
+      );
+
+      if (result != null) {
+        // Clear the cache for the original asset
+        _fileCache.remove(originalAsset.id);
+        _thumbnailCache.remove(originalAsset.id);
+        _sizeCache.remove(originalAsset.id);
+        _createDateCache.remove(originalAsset.id);
+
+        // Reload media to update the UI
+        await loadMedia();
+      }
+    } catch (e) {
+      debugPrint('Error saving edited image: $e');
+      rethrow;
+    }
   }
 }

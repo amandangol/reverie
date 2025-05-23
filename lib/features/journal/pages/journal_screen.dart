@@ -930,9 +930,8 @@ class _JournalScreenState extends State<JournalScreen> {
         onMenuPressed: widget.onMenuPressed,
         actions: [
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.search_rounded,
-              color: colorScheme.primary,
             ),
             onPressed: () {
               showSearch(
@@ -944,9 +943,8 @@ class _JournalScreenState extends State<JournalScreen> {
             tooltip: 'Search entries',
           ),
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.help_outline_rounded,
-              color: colorScheme.primary,
             ),
             onPressed: () => _showHelpDialog(context),
             tooltip: 'Journaling Guide',

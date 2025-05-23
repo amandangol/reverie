@@ -10,16 +10,19 @@ import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
-import '../../../utils/snackbar_utils.dart';
-import '../provider/media_provider.dart';
-import '../../../utils/media_utils.dart';
-import '../../journal/providers/journal_provider.dart';
-import '../../journal/widgets/journal_entry_form.dart';
-import '../../journal/models/journal_entry.dart';
-import 'albums/album_page.dart';
+import '../../../../utils/snackbar_utils.dart';
+import '../../provider/media_provider.dart';
+import '../../../../utils/media_utils.dart';
+import '../../../journal/providers/journal_provider.dart';
+import '../../../journal/widgets/journal_entry_form.dart';
+import '../../../journal/models/journal_entry.dart';
+import '../albums/album_page.dart';
 import 'package:intl/intl.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+
+import 'widgets/info_panel.dart';
+import 'widgets/media_controls.dart';
 
 class MediaDetailView extends StatefulWidget {
   final AssetEntity? asset;
@@ -503,7 +506,7 @@ class _MediaDetailViewState extends State<MediaDetailView>
                 ),
 
                 // Controls
-                _MediaControls(
+                MediaControls(
                   showControls: _showControls,
                   isFullScreen: _isFullScreen,
                   showInfo: _showInfo,
@@ -562,7 +565,7 @@ class _MediaDetailViewState extends State<MediaDetailView>
                     left: 0,
                     right: 0,
                     child: SafeArea(
-                      child: _InfoPanel(
+                      child: InfoPanel(
                         asset: widget.assetList != null
                             ? widget.assetList![_currentIndex]
                             : widget.asset!,
@@ -1758,357 +1761,5 @@ class _MediaDetailViewState extends State<MediaDetailView>
         _isRecognizingText = false;
       });
     }
-  }
-}
-
-class _MediaControls extends StatelessWidget {
-  final bool showControls;
-  final bool isFullScreen;
-  final bool showInfo;
-  final bool showJournal;
-  final int currentIndex;
-  final int totalItems;
-  final VoidCallback onClose;
-  final VoidCallback onToggleInfo;
-  final VoidCallback onToggleJournal;
-  final VoidCallback onShare;
-  final VoidCallback onDelete;
-  final VoidCallback onDetectObjects;
-  final VoidCallback onAnalyzeImage;
-  final VoidCallback onRecognizeText;
-  final Widget Function(BuildContext) favoriteButtonBuilder;
-  final AssetEntity? currentAsset;
-
-  const _MediaControls({
-    required this.showControls,
-    required this.isFullScreen,
-    required this.showInfo,
-    required this.showJournal,
-    required this.currentIndex,
-    required this.totalItems,
-    required this.onClose,
-    required this.onToggleInfo,
-    required this.onToggleJournal,
-    required this.onShare,
-    required this.onDelete,
-    required this.onDetectObjects,
-    required this.onAnalyzeImage,
-    required this.onRecognizeText,
-    required this.favoriteButtonBuilder,
-    required this.currentAsset,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (!showControls) return const SizedBox.shrink();
-
-    return Stack(
-      children: [
-        // Top bar
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: SafeArea(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.8),
-                    Colors.black.withOpacity(0),
-                  ],
-                ),
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: onClose,
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${currentIndex + 1}/$totalItems',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Bottom bar
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: SafeArea(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.8),
-                    Colors.black.withOpacity(0),
-                  ],
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Essential icons
-                  favoriteButtonBuilder(context),
-                  IconButton(
-                    icon: const Icon(Icons.book_outlined, color: Colors.white),
-                    onPressed: onToggleJournal,
-                  ),
-                  if (currentAsset?.type == AssetType.image) ...[
-                    IconButton(
-                      icon: const Icon(Icons.search, color: Colors.white),
-                      onPressed: onDetectObjects,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.auto_awesome, color: Colors.white),
-                      onPressed: onAnalyzeImage,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.text_fields, color: Colors.white),
-                      onPressed: onRecognizeText,
-                    ),
-                  ],
-                  // More options menu
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: Colors.white),
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'share':
-                          onShare();
-                          break;
-                        case 'info':
-                          onToggleInfo();
-                          break;
-                        case 'delete':
-                          onDelete();
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'share',
-                        child: Row(
-                          children: [
-                            Icon(Icons.share, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text('Share'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'info',
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text('Info'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _InfoPanel extends StatelessWidget {
-  final AssetEntity asset;
-  final VoidCallback onClose;
-
-  const _InfoPanel({
-    required this.asset,
-    required this.onClose,
-  });
-
-  Future<Map<String, dynamic>> _getMediaDetails(
-      MediaProvider mediaProvider) async {
-    final details = <String, dynamic>{};
-
-    // Get creation date
-    details['date'] = mediaProvider.getCreateDate(asset.id);
-
-    // Get dimensions
-    details['size'] = mediaProvider.getSize(asset.id);
-
-    // Get file size
-    try {
-      final file = await asset.file;
-      if (file != null) {
-        details['filePath'] = file.path;
-        // Try to get file size
-        try {
-          final fileSize = await file.length();
-          details['fileSize'] = fileSize;
-        } catch (e) {}
-      }
-    } catch (e) {}
-
-    // Get duration for videos
-    if (asset.type == AssetType.video) {
-      details['duration'] = mediaProvider.getDuration(asset.id);
-    }
-
-    // Get device info
-    if (asset.title != null) {
-      details['device'] = asset.title;
-    }
-
-    // Get modified date
-    if (asset.modifiedDateTime != null) {
-      details['modifiedDate'] = asset.modifiedDateTime;
-    }
-
-    return details;
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Media Information',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: onClose,
-              ),
-            ],
-          ),
-          const Divider(color: Colors.white30),
-          const SizedBox(height: 16),
-          FutureBuilder<Map<String, dynamic>>(
-            future: _getMediaDetails(context.read<MediaProvider>()),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
-
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text(
-                    'Error loading details: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                );
-              }
-
-              final details = snapshot.data ?? {};
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildInfoRow('Type',
-                      asset.type == AssetType.video ? 'Video' : 'Image'),
-                  const SizedBox(height: 12),
-                  if (details['date'] != null)
-                    _buildInfoRow(
-                        'Date', MediaUtils.formatDate(details['date'])),
-                  const SizedBox(height: 12),
-                  if (details['size'] != null)
-                    _buildInfoRow('Dimensions',
-                        MediaUtils.formatDimensions(details['size'])),
-                  const SizedBox(height: 12),
-                  if (details['fileSize'] != null)
-                    _buildInfoRow('File Size',
-                        MediaUtils.formatFileSize(details['fileSize'])),
-                  const SizedBox(height: 12),
-                  if (details['filePath'] != null)
-                    _buildInfoRow('File Path', details['filePath']),
-                  const SizedBox(height: 12),
-                  if (asset.type == AssetType.video &&
-                      details['duration'] != null)
-                    _buildInfoRow('Duration',
-                        MediaUtils.formatDuration(details['duration'])),
-                  const SizedBox(height: 12),
-                  if (details['device'] != null)
-                    _buildInfoRow('Device', details['device']),
-                  const SizedBox(height: 12),
-                  if (details['modifiedDate'] != null)
-                    _buildInfoRow('Modified',
-                        MediaUtils.formatDate(details['modifiedDate'])),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
   }
 }

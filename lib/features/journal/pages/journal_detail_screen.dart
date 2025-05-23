@@ -12,7 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../gallery/provider/media_provider.dart';
 import '../widgets/journal_entry_form.dart';
-import 'package:reverie/features/gallery/pages/media_detail_view.dart';
+import 'package:reverie/features/gallery/pages/mediadetail/media_detail_view.dart';
 import '../providers/translation_provider.dart';
 
 class JournalDetailScreen extends StatefulWidget {
@@ -732,21 +732,75 @@ Date: ${DateFormat('MMMM d, yyyy').format(widget.entry.date)}
                 tooltip: 'Translate Entry',
                 onPressed: _showTranslationOptions,
               ),
-              IconButton(
-                icon: const Icon(Icons.download_rounded),
-                tooltip: 'Export Entry',
-                onPressed: _showExportOptions,
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                tooltip: 'More options',
+                onSelected: (value) {
+                  switch (value) {
+                    case 'export':
+                      _showExportOptions();
+                      break;
+                    case 'share':
+                      _showShareOptions();
+                      break;
+                    case 'delete':
+                      _confirmDeleteEntry(context);
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'export',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.download_rounded,
+                          color: colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Export Entry'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'share',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.share_rounded,
+                          color: colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Share Entry'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.delete_outline_rounded,
+                          color: colorScheme.error,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Delete Entry',
+                          style: TextStyle(
+                            color: colorScheme.error,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.share_rounded),
-                tooltip: 'Share Entry',
-                onPressed: _showShareOptions,
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                tooltip: 'Delete Entry',
-                onPressed: () => _confirmDeleteEntry(context),
-              ),
+              const SizedBox(width: 8),
             ],
           ),
 

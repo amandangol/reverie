@@ -3,7 +3,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:provider/provider.dart';
 import '../provider/media_provider.dart';
-import '../pages/media_detail_view.dart';
+import '../pages/mediadetail/media_detail_view.dart';
 import '../../../providers/gallery_preferences_provider.dart';
 import 'package:reverie/utils/media_utils.dart';
 

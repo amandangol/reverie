@@ -8,7 +8,7 @@ import '../../../../widgets/shimmer_loading.dart';
 import '../../provider/media_provider.dart';
 import '../../provider/photo_operations_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
-import '../media_detail_view.dart';
+import '../mediadetail/media_detail_view.dart';
 import 'package:uuid/uuid.dart';
 
 class AlbumPage extends StatefulWidget {

@@ -5,9 +5,8 @@ import 'package:reverie/features/gallery/provider/media_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:reverie/utils/media_utils.dart';
 import 'package:intl/intl.dart';
-import '../media_detail_view.dart';
+import '../mediadetail/media_detail_view.dart';
 import '../../widgets/asset_thumbnail.dart';
-import '../albums/album_page.dart';
 
 class RecapScreen extends StatefulWidget {
   const RecapScreen({super.key});

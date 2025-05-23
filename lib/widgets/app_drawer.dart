@@ -7,6 +7,8 @@ import 'package:reverie/features/quickaccess/pages/quickaccess_screen.dart';
 import 'package:reverie/features/settings/pages/settings_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../features/backupdrive/pages/backup_screen.dart';
+
 class AppDrawer extends StatelessWidget {
   final Function(Widget) onNavigation;
 
@@ -209,6 +211,19 @@ class AppDrawer extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                           builder: (context) => const RecapScreen()),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.backup_rounded,
+                  title: 'Backup',
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const BackupScreen()),
                     );
                   },
                 ),

@@ -3,16 +3,12 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/widgets/empty_state.dart';
 import 'package:reverie/widgets/shimmer_loading.dart';
-import 'package:uuid/uuid.dart';
 import '../../../../utils/snackbar_utils.dart';
-import '../../../journal/providers/journal_provider.dart';
-import '../../../journal/models/journal_entry.dart';
-import '../../../journal/widgets/journal_entry_form.dart';
 import '../../provider/media_provider.dart';
 import '../../provider/photo_operations_provider.dart';
 import '../../widgets/asset_thumbnail.dart';
 import '../albums/album_page.dart';
-import '../media_detail_view.dart';
+import '../mediadetail/media_detail_view.dart';
 import 'package:reverie/utils/media_utils.dart';
 import '../../../permissions/provider/permission_provider.dart';
 
@@ -816,42 +812,5 @@ class _PhotosTabState extends State<PhotosTab> {
     // Sort the dates in descending order
     return Map.fromEntries(
         grouped.entries.toList()..sort((a, b) => b.key.compareTo(a.key)));
-  }
-
-  void _openMediaDetail(AssetEntity asset) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MediaDetailView(asset: asset),
-      ),
-    );
-
-    if (result != null && result is AssetEntity) {
-      // Refresh the media list to show the edited image
-      context.read<MediaProvider>().refreshMedia();
-    }
-  }
-}
-
-class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-
-  _SliverAppBarDelegate({required this.child});
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return child;
-  }
-
-  @override
-  double get maxExtent => 100.0;
-
-  @override
-  double get minExtent => 100.0;
-
-  @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    return false;
   }
 }
