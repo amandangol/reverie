@@ -96,6 +96,7 @@ Currently, Reverie is available for Android devices only. You can download the A
 ## 🎥 Demo Videos
 
 ### 📸 Gallery & Media Features
+
 - [Gallery Overview](https://github.com/user-attachments/assets/355e92dc-b1bc-478f-aa45-31ba4281e4f3)
 
 - [Photo Editing](https://github.com/user-attachments/assets/3ef6a2ef-9cc5-49df-8314-726f5ffb2418)
@@ -105,6 +106,7 @@ Currently, Reverie is available for Android devices only. You can download the A
 - [Camera Preview](https://github.com/user-attachments/assets/547013b3-dfec-4fad-aa5b-cf810667d348)
 
 ### 📝 Journal & Memories
+
 - [Journal Features](https://github.com/user-attachments/assets/34eef0bc-1a1d-4496-8b4c-e6c7d3447f35)
 
 - [Journal Sharing](https://github.com/user-attachments/assets/3e0c854c-6553-4554-975f-ed5ffb96b1a9)
@@ -112,9 +114,11 @@ Currently, Reverie is available for Android devices only. You can download the A
 - [Memories & Recaps](https://github.com/user-attachments/assets/5ce43d20-28f8-400e-9f37-1a0299b06936)
 
 ### 🤖 AI Features
+
 - [AI Capabilities](https://github.com/user-attachments/assets/10b73108-14ec-4c87-81e1-4b15be1aac2b)
 
 ### 🔄 Backup & Additional Features
+
 - [Google Drive Backup](https://github.com/user-attachments/assets/5bdaf89a-a6c5-4342-bd6c-caa202604784)
 
 - [Additional Information](https://github.com/user-attachments/assets/7284e09d-d26e-4756-b388-c02d7804c4f8)
