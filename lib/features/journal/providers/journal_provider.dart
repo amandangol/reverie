@@ -25,7 +25,6 @@ class JournalProvider extends ChangeNotifier {
   Map<String, List<JournalEntry>> _tagCache = {};
   Map<String, List<JournalEntry>> _moodCache = {};
   Map<String, AssetEntity?> _imageCache = {};
-  Map<String, String?> _coverPhotoCache = {};
   GenerativeModel? _model;
 
   SortOption _currentSort = SortOption.dateDesc;

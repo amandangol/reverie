@@ -72,110 +72,111 @@ class _PhotosTabState extends State<PhotosTab> {
 
         final groupedPhotos = _groupPhotosByDate(mediaProvider.mediaItems);
 
-        return Column(
-          children: [
-            Container(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        photoOps.isSelectionMode
-                            ? Row(
-                                children: [
-                                  Text(
-                                    '${photoOps.selectedCount} selected',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  TextButton(
-                                    onPressed: photoOps.toggleSelectionMode,
-                                    child: const Text('Cancel'),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  _buildSelectionActionButton(
-                                    icon: Icons.share,
-                                    onPressed: photoOps.selectedItems.isEmpty
-                                        ? null
-                                        : () => _handleShareSelected(
-                                            photoOps, mediaProvider),
-                                  ),
-                                  _buildSelectionActionButton(
-                                    icon: Icons.delete,
-                                    onPressed: photoOps.selectedItems.isEmpty
-                                        ? null
-                                        : () => _handleDeleteSelected(
-                                            photoOps, mediaProvider),
-                                  ),
-                                  _buildSelectionActionButton(
-                                    icon: Icons.favorite,
-                                    onPressed: photoOps.selectedItems.isEmpty
-                                        ? null
-                                        : () => _handleFavoriteSelected(
-                                            photoOps, mediaProvider),
-                                  ),
-                                ],
-                              )
-                            : Row(
-                                children: [
-                                  const Text(
-                                    'All Photos',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    '(${mediaProvider.mediaItems.length} photos)',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ],
+        return CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              floating: false,
+              snap: false,
+              stretch: false,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              titleSpacing: 0,
+              toolbarHeight: 56,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Container(
+                  height: 1,
+                  color: Theme.of(context).dividerColor.withOpacity(0.1),
+                ),
+              ),
+              title: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    photoOps.isSelectionMode
+                        ? Row(
+                            children: [
+                              Text(
+                                '${photoOps.selectedCount} selected',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                        IconButton(
-                          icon: photoOps.isSelectionMode
-                              ? const Icon(Icons.check_box)
-                              : const Icon(Icons.select_all),
-                          onPressed: photoOps.toggleSelectionMode,
-                          tooltip: 'Select items',
-                        ),
-                      ],
+                              const SizedBox(width: 16),
+                              TextButton(
+                                onPressed: photoOps.toggleSelectionMode,
+                                child: const Text('Cancel'),
+                              ),
+                              const SizedBox(width: 8),
+                              _buildSelectionActionButton(
+                                icon: Icons.share,
+                                onPressed: photoOps.selectedItems.isEmpty
+                                    ? null
+                                    : () => _handleShareSelected(
+                                        photoOps, mediaProvider),
+                              ),
+                              _buildSelectionActionButton(
+                                icon: Icons.delete,
+                                onPressed: photoOps.selectedItems.isEmpty
+                                    ? null
+                                    : () => _handleDeleteSelected(
+                                        photoOps, mediaProvider),
+                              ),
+                              _buildSelectionActionButton(
+                                icon: Icons.favorite,
+                                onPressed: photoOps.selectedItems.isEmpty
+                                    ? null
+                                    : () => _handleFavoriteSelected(
+                                        photoOps, mediaProvider),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              const Text(
+                                'All Photos',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                '(${mediaProvider.mediaItems.length} photos)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                    IconButton(
+                      icon: photoOps.isSelectionMode
+                          ? const Icon(Icons.check_box)
+                          : const Icon(Icons.select_all),
+                      onPressed: photoOps.toggleSelectionMode,
+                      tooltip: 'Select items',
                     ),
+                  ],
+                ),
+              ),
+            ),
+            if (widget.isGridView)
+              _buildPhotoGridByDate(groupedPhotos, mediaProvider, photoOps)
+            else
+              _buildPhotoListByDate(groupedPhotos, mediaProvider, photoOps),
+            if (mediaProvider.isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(
+                    child: CircularProgressIndicator(),
                   ),
-                ],
+                ),
               ),
-            ),
-            Expanded(
-              child: CustomScrollView(
-                slivers: [
-                  if (widget.isGridView)
-                    _buildPhotoGridByDate(
-                        groupedPhotos, mediaProvider, photoOps)
-                  else
-                    _buildPhotoListByDate(
-                        groupedPhotos, mediaProvider, photoOps),
-                  if (mediaProvider.isLoadingMore)
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
           ],
         );
       },
@@ -190,6 +191,12 @@ class _PhotosTabState extends State<PhotosTab> {
       onPressed: onPressed,
       icon: Icon(icon),
       color: onPressed == null ? Colors.grey : null,
+      iconSize: 24,
+      padding: const EdgeInsets.all(4),
+      constraints: const BoxConstraints(
+        minWidth: 32,
+        minHeight: 32,
+      ),
     );
   }
 

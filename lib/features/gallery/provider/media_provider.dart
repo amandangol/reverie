@@ -998,7 +998,7 @@ class MediaProvider extends ChangeNotifier {
 
       final bytes = await file.readAsBytes();
 
-      final prompt = '''
+      const prompt = '''
 You are an AI visual analyst. Analyze the following gallery image and provide a structured, concise analysis under these headings:
 
 1. **Main Subject**: What is the central object, person, or scene in the image? Be specific.

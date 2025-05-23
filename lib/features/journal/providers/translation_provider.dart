@@ -43,7 +43,7 @@ class TranslationProvider extends ChangeNotifier {
 
       return {
         'translatedText': translation.text,
-        'sourceLanguage': translation.sourceLanguage?.code ?? 'auto',
+        'sourceLanguage': translation.sourceLanguage.code
       };
     } catch (e) {
       _error = 'Translation failed: $e';
