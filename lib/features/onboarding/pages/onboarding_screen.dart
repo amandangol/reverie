@@ -25,37 +25,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingPage(
       title: 'Gallery & Media',
       description:
-          'Browse and organize your photos and videos in a beautiful gallery view.',
+          'Browse, organize, and edit your photos and videos with monthly recaps and flashback memories.',
       icon: Icons.photo_library_rounded,
       color: Colors.blue,
     ),
     OnboardingPage(
       title: 'Journal & Memories',
       description:
-          'Write journal entries, add media, and track your emotional journey.',
+          'Create rich journal entries with photos, videos, and AI-powered content generation.',
       icon: Icons.auto_stories_rounded,
       color: Colors.purple,
     ),
     OnboardingPage(
-      title: 'Flashbacks & Calendar',
+      title: 'Search & Organization',
       description:
-          'Relive past memories and view your journal entries organized by date.',
-      icon: Icons.history_rounded,
-      color: Colors.orange,
-    ),
-    OnboardingPage(
-      title: 'Favorites & Videos',
-      description:
-          'Keep your favorite memories close and enjoy your video collection.',
-      icon: Icons.favorite_rounded,
-      color: Colors.red,
+          'Find your memories easily with searching and sorting across all media and organized collections.',
+      icon: Icons.search_rounded,
+      color: Colors.teal,
     ),
     OnboardingPage(
       title: 'AI-Powered Features',
       description:
-          'Let our AI assistant help you organize memories and generate content.',
+          'Smart image analysis, object detection, text recognition, and AI-assisted journal writing.',
       icon: Icons.auto_awesome_rounded,
       color: Colors.green,
+    ),
+    OnboardingPage(
+      title: 'Backup & Security',
+      description:
+          'Secure your memories with Google Drive backup and privacy-focused features.',
+      icon: Icons.backup_rounded,
+      color: Colors.indigo,
     ),
   ];
 

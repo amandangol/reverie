@@ -3,7 +3,7 @@
 <img src="assets/icon/icon.png" alt="ReverieLogo" width="150" height="150"/>
 
 
-Reverie is a beautiful and intuitive mobile application that helps you capture, organize, and relive your precious memories through photos, videos, and journal entries. Built with Flutter, it offers a seamless experience across iOS and Android platforms.
+Reverie is a beautiful and intuitive mobile application that helps you capture, organize, and relive your precious memories through photos, videos, and journal entries. Built with Flutter, it offers a seamless experience across Android platforms, (designed to support multiple platforms — currently Android).
 
 ## 🚀 Getting Started
 
@@ -116,6 +116,7 @@ Currently, Reverie is available for Android devices only. You can download the A
 ### 🤖 AI Features
 
 - [AI Capabilities](https://github.com/user-attachments/assets/10b73108-14ec-4c87-81e1-4b15be1aac2b)
+
 
 ### 🔄 Backup & Additional Features
 
@@ -250,8 +251,8 @@ If you encounter any issues or have questions:
   <img src="https://github.com/user-attachments/assets/579e0273-c119-40bb-978b-0bfdd47c80e3" alt="Journal Home" width="200" height="400" />
   <img src="https://github.com/user-attachments/assets/d18a275d-ace9-4e6c-827b-7dd7c9e4316b" alt="Journal Detail" width="200" height="400" />
   <img src="https://github.com/user-attachments/assets/166e9445-6fac-412e-a8cd-bf23ff30e205" alt="Journal Calendar" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/2c4d3396-152a-47c1-98dd-4c51f36428dc" alt="Journal Detail" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/a64bb383-6208-4d0d-bd2b-f776a41f5389" alt="Journal Detail" width="200" height="400" />
+  <img src="https://github.com/user-attachments/assets/2c4d3396-152a-47c1-98dd-4c51f36428dc" alt="Journal Edit Detail" width="200" height="400" />
+  <img src="https://github.com/user-attachments/assets/a64bb383-6208-4d0d-bd2b-f776a41f5389" alt="Journal Share" width="200" height="400" />
   <img src="https://github.com/user-attachments/assets/0adaa6c9-e9e0-4ee9-8309-a3edf5ae1353" alt="Journal Translation" width="200" height="400" />
 </div>
 
