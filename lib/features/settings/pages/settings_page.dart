@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
-import 'package:reverie/features/onboarding/pages/onboarding_screen.dart';
 import '../../gallery/provider/media_provider.dart';
 import '../../permissions/provider/permission_provider.dart';
 import '../../permissions/widgets/permission_dialog.dart';
@@ -174,7 +173,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const OnboardingScreen(),
+                    builder: (context) => const TermsOfServicePage(),
                   ),
                 ),
               ),

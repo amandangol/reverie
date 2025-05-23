@@ -14,7 +14,7 @@ Currently, Reverie is available for Android devices only. You can download the A
   <a href="https://github.com/amandangol/reverie/releases/latest">
     <img src="https://img.shields.io/badge/GitHub-Release-blue?style=for-the-badge&logo=github" alt="GitHub Release"/>
   </a>
-  <a href="https://drive.google.com/file/d/your-file-id/view">
+  <a href="https://drive.google.com/drive/folders/1MNTdj5D0BILBhL1hQ1qiUFoUMC3aKW1X?usp=sharing">
     <img src="https://img.shields.io/badge/Google_Drive-Download-orange?style=for-the-badge&logo=googledrive" alt="Google Drive"/>
   </a>
 </div>
@@ -130,6 +130,8 @@ Currently, Reverie is available for Android devices only. You can download the A
 - [Memories & Recaps](https://github.com/user-attachments/assets/5ce43d20-28f8-400e-9f37-1a0299b06936)
 
 ### 🤖 AI Features
+
+- [AI Capabilities](https://github.com/user-attachments/assets/10b73108-14ec-4c87-81e1-4b15be1aac2b)
 
 - [AI Capabilities](https://github.com/user-attachments/assets/10b73108-14ec-4c87-81e1-4b15be1aac2b)
 
