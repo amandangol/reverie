@@ -1463,21 +1463,31 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
     super.dispose();
   }
 
-  Future<void> saveEditedImage(
-      Uint8List editedImage, AssetEntity originalAsset) async {
+  Future<File> editImage(AssetEntity asset) async {
     try {
-      // Get the app's temporary directory
+      final file = await asset.file;
+      if (file == null) throw Exception('Could not load image file');
+
+      final bytes = await file.readAsBytes();
+
+      // Create a temporary file for editing
       final tempDir = await getTemporaryDirectory();
-      final fileName =
-          'edited_${originalAsset.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final file = File('${tempDir.path}/$fileName');
+      final tempFile = File('${tempDir.path}/edit_${asset.id}.jpg');
+      await tempFile.writeAsBytes(bytes);
 
-      // Write the edited image to the file
-      await file.writeAsBytes(editedImage);
+      return tempFile;
+    } catch (e) {
+      debugPrint('Error preparing image for editing: $e');
+      rethrow;
+    }
+  }
 
+  Future<void> saveEditedImage(
+      File editedFile, AssetEntity originalAsset) async {
+    try {
       // Save the edited image to the gallery
       final result = await PhotoManager.editor.saveImageWithPath(
-        file.path,
+        editedFile.path,
         title: 'Edited ${originalAsset.title ?? 'Image'}',
       );
 

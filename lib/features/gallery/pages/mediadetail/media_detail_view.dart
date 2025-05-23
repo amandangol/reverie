@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../../utils/snackbar_utils.dart';
 import '../../provider/media_provider.dart';
 import '../../../../utils/media_utils.dart';
@@ -20,6 +21,7 @@ import '../albums/album_page.dart';
 import 'package:intl/intl.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:pro_image_editor/pro_image_editor.dart';
 
 import 'widgets/info_panel.dart';
 import 'widgets/media_controls.dart';
@@ -506,57 +508,7 @@ class _MediaDetailViewState extends State<MediaDetailView>
                 ),
 
                 // Controls
-                MediaControls(
-                  showControls: _showControls,
-                  isFullScreen: _isFullScreen,
-                  showInfo: _showInfo,
-                  showJournal: _showJournal,
-                  currentIndex: _currentIndex,
-                  totalItems: widget.assetList?.length ?? 1,
-                  onClose: () {
-                    _resetSystemUI();
-                    Navigator.pop(context);
-                  },
-                  onToggleInfo: () {
-                    setState(() {
-                      _showInfo = !_showInfo;
-                      _showJournal = false;
-                      if (_showInfo) {
-                        _toggleControls(true);
-                        _controlsTimer?.cancel();
-                      } else {
-                        _startControlsTimer();
-                      }
-                    });
-                  },
-                  onToggleJournal: _showJournalPanel,
-                  onShare: _shareMedia,
-                  onDelete: _deleteMedia,
-                  onDetectObjects: _showObjectDetectionResults,
-                  onAnalyzeImage: _showImageAnalysis,
-                  onRecognizeText: _recognizeText,
-                  favoriteButtonBuilder: (context) => Consumer<MediaProvider>(
-                    builder: (context, mediaProvider, _) {
-                      final asset = widget.assetList != null
-                          ? widget.assetList![_currentIndex]
-                          : widget.asset;
-                      return IconButton(
-                        icon: Icon(
-                          mediaProvider.isFavorite(asset!.id)
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: mediaProvider.isFavorite(asset.id)
-                              ? Colors.red
-                              : Colors.white,
-                        ),
-                        onPressed: () => _toggleFavorite(asset),
-                      );
-                    },
-                  ),
-                  currentAsset: widget.assetList != null
-                      ? widget.assetList![_currentIndex]
-                      : widget.asset,
-                ),
+                _buildMediaControls(),
 
                 // Info Panel
                 if (_showInfo)
@@ -1761,5 +1713,129 @@ class _MediaDetailViewState extends State<MediaDetailView>
         _isRecognizingText = false;
       });
     }
+  }
+
+  Future<void> _editImage() async {
+    final asset = widget.assetList != null
+        ? widget.assetList![_currentIndex]
+        : widget.asset;
+
+    if (asset == null || asset.type == AssetType.video) return;
+
+    try {
+      final mediaProvider = context.read<MediaProvider>();
+      final tempFile = await mediaProvider.editImage(asset);
+
+      if (!mounted) return;
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProImageEditor.file(
+            tempFile,
+            callbacks: ProImageEditorCallbacks(
+              onImageEditingComplete: (Uint8List bytes) async {
+                // Create a temporary file from the edited bytes
+                final tempDir = await getTemporaryDirectory();
+                final editedFile =
+                    File('${tempDir.path}/edited_${asset.id}.jpg');
+                await editedFile.writeAsBytes(bytes);
+
+                // Save the edited image as a new entry in the gallery
+                final savedAsset = await PhotoManager.editor.saveImageWithPath(
+                  editedFile.path,
+                  title: 'Edited_${DateTime.now().millisecondsSinceEpoch}',
+                );
+
+                if (savedAsset != null) {
+                  // Add the new image to the media provider
+                  await mediaProvider.addNewMedia(savedAsset);
+                }
+
+                if (mounted) {
+                  Navigator.pop(context, editedFile);
+                }
+              },
+              onCloseEditor: () {
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        ),
+      );
+
+      if (result != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image edited and saved to gallery'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to edit image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildMediaControls() {
+    return MediaControls(
+      showControls: _showControls,
+      isFullScreen: _isFullScreen,
+      showInfo: _showInfo,
+      showJournal: _showJournal,
+      currentIndex: _currentIndex,
+      totalItems: widget.assetList?.length ?? 1,
+      onClose: () {
+        _resetSystemUI();
+        Navigator.pop(context);
+      },
+      onToggleInfo: () {
+        setState(() {
+          _showInfo = !_showInfo;
+          _showJournal = false;
+          if (_showInfo) {
+            _toggleControls(true);
+            _controlsTimer?.cancel();
+          } else {
+            _startControlsTimer();
+          }
+        });
+      },
+      onToggleJournal: _showJournalPanel,
+      onShare: _shareMedia,
+      onDelete: _deleteMedia,
+      onDetectObjects: _showObjectDetectionResults,
+      onAnalyzeImage: _showImageAnalysis,
+      onRecognizeText: _recognizeText,
+      onEdit: _editImage,
+      favoriteButtonBuilder: (context) => Consumer<MediaProvider>(
+        builder: (context, mediaProvider, _) {
+          final asset = widget.assetList != null
+              ? widget.assetList![_currentIndex]
+              : widget.asset;
+          return IconButton(
+            icon: Icon(
+              mediaProvider.isFavorite(asset!.id)
+                  ? Icons.favorite
+                  : Icons.favorite_border,
+              color: mediaProvider.isFavorite(asset.id)
+                  ? Colors.red
+                  : Colors.white,
+            ),
+            onPressed: () => _toggleFavorite(asset),
+          );
+        },
+      ),
+      currentAsset: widget.assetList != null
+          ? widget.assetList![_currentIndex]
+          : widget.asset,
+    );
   }
 }

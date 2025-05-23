@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:reverie/features/about/pages/features_screen.dart';
 import 'package:reverie/features/gallery/pages/flashbacks/flashbacks_screen.dart';
 import 'package:reverie/features/gallery/pages/recap/recap_screen.dart';
-import 'package:reverie/features/gallery/pages/smart_search_screen.dart';
 import 'package:reverie/features/quickaccess/pages/quickaccess_screen.dart';
 import 'package:reverie/features/settings/pages/settings_page.dart';
 import 'package:url_launcher/url_launcher.dart';

@@ -10,7 +10,6 @@ import 'package:provider/provider.dart';
 import 'package:reverie/features/backupdrive/provider/backup_provider.dart';
 import 'package:reverie/features/gallery/provider/media_provider.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
-import 'package:reverie/features/journal/widgets/journal_search_delegate.dart';
 
 class QuickAccessScreen extends StatelessWidget {
   const QuickAccessScreen({super.key});

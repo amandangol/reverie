@@ -16,6 +16,7 @@ class MediaControls extends StatelessWidget {
   final VoidCallback onDetectObjects;
   final VoidCallback onAnalyzeImage;
   final VoidCallback onRecognizeText;
+  final VoidCallback onEdit;
   final Widget Function(BuildContext) favoriteButtonBuilder;
   final AssetEntity? currentAsset;
 
@@ -34,6 +35,7 @@ class MediaControls extends StatelessWidget {
     required this.onDetectObjects,
     required this.onAnalyzeImage,
     required this.onRecognizeText,
+    required this.onEdit,
     required this.favoriteButtonBuilder,
     required this.currentAsset,
   });
@@ -102,6 +104,10 @@ class MediaControls extends StatelessWidget {
                 children: [
                   // Essential icons
                   favoriteButtonBuilder(context),
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.white),
+                    onPressed: onEdit,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.book_outlined, color: Colors.white),
                     onPressed: onToggleJournal,
