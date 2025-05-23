@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class FlashbackProvider extends ChangeNotifier {
   // Flashback properties
@@ -255,9 +254,8 @@ class FlashbackProvider extends ChangeNotifier {
     try {
       if (_isMusicPlaying) {
         await _audioPlayer?.pause();
-        await _audioPlayer?.stop();
       } else {
-        await _audioPlayer?.stop(); // Stop any existing playback
+        await _audioPlayer?.seek(Duration.zero); // Reset to start
         await _audioPlayer?.play();
       }
       _isMusicPlaying = !_isMusicPlaying;
@@ -272,7 +270,7 @@ class FlashbackProvider extends ChangeNotifier {
   Future<void> stopMusic() async {
     try {
       await _audioPlayer?.pause();
-      await _audioPlayer?.stop();
+      await _audioPlayer?.seek(Duration.zero); // Reset to start
       _isMusicPlaying = false;
       notifyListeners();
     } catch (e) {
@@ -481,8 +479,7 @@ class FlashbackProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _audioPlayer?.pause();
-    _audioPlayer?.stop();
+    stopMusic(); // Stop music before disposing
     _audioPlayer?.dispose();
     _audioPlayer = null;
     _isMusicPlaying = false;

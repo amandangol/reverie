@@ -220,7 +220,7 @@ class _GalleryPageState extends State<GalleryPage>
                   color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
-              title: const Text('Choose from Gallery'),
+              title: const Text('Choose from Existing Media'),
               subtitle: const Text('Select an existing photo or video'),
               onTap: () {
                 Navigator.pop(context);

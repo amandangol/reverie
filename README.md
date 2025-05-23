@@ -12,6 +12,11 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 - Smart organization with albums and collections
 - Video library for easy access to your video memories
 - Favorites collection for quick access to special moments
+- Built-in camera for capturing photos and videos
+  - High-quality photo capture
+  - Video recording up to 10 minutes
+  - Quick access from gallery
+  - Instant saving to gallery
 - Google Drive integration for secure backup and restoration
   - One-click backup of selected albums
   - Automatic organization in Google Drive
@@ -24,6 +29,12 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 - Calendar view to browse entries by date
 - Add tags and categories for better organization
 - AI-powered content generation to help express your thoughts
+- Multi-language support for journal entries
+  - Translate entries to 40+ languages
+  - Real-time translation
+  - Language-specific formatting
+  - Easy language switching
+  - Flag indicators for translated content
 
 ### ⏳ Flashbacks & Calendar
 - Relive past memories with the flashbacks feature
@@ -41,7 +52,7 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 - Smart image analysis and description generation
 - AI-assisted journal writing
 - Object Labeling for image
-- Intelligent memory organization
+- Text recognition in images
 - Personalized content suggestions
 
 ### 🔄 Backup & Sync
@@ -52,6 +63,61 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 - Account-specific backup management
 - Automatic backup status indicators
 - Secure authentication with Google accounts
+
+## 🚀 Upcoming Features
+
+### 🎨 Media Enhancement
+- Photo editing capabilities
+  - Filters and effects
+  - Basic adjustments (brightness, contrast, etc.)
+  - Crop and rotate
+  - Text and sticker overlays
+- Video editing features
+  - Trim and cut
+  - Add music
+  - Basic effects
+  - Speed control
+
+### 🌐 Enhanced Translation
+- Offline translation support
+- Batch translation for multiple entries
+- Translation memory for frequently used phrases
+- Custom translation dictionaries
+- Voice input for translations
+
+### 📊 Advanced Organization
+- Smart albums based on AI analysis
+- Location-based organization
+- Face recognition and tagging
+- Event-based grouping
+- Custom album covers and themes
+
+### 🔍 Search & Discovery
+- Advanced search with multiple filters
+- Similar image search
+- Voice search capability
+- Search history and suggestions
+
+### 🎯 Memory Features
+- Memory reminders and anniversaries
+- Memory sharing with family and friends
+- Memory stories and collections
+- Memory statistics and insights
+- Memory export in various formats
+
+### 🎮 Interactive Features
+- Memory quizzes and games
+- Memory challenges
+- Memory sharing with family
+- Collaborative memory albums
+- Memory timeline visualization
+
+### 🔒 Privacy & Security
+- End-to-end encryption for sensitive content
+- Biometric authentication
+- Private albums and entries
+- Secure sharing options
+- Data export and backup options
 
 ## 🎥 Demo Video
 
@@ -112,6 +178,8 @@ flutter build ios --release
 - `url_launcher`: External link handling
 - `google_sign_in`: Google authentication
 - `googleapis`: Google Drive API integration
+- `image_picker`: Camera and gallery access
+- `google_mlkit_translation`: Translation services
 
 ## 📱 Screenshots
 
@@ -157,6 +225,8 @@ If you encounter any issues or have questions:
 4. **Cross-Platform**: Seamless experience on both iOS and Android
 5. **Regular Updates**: Continuous improvements and new features
 6. **Secure Backup**: Reliable Google Drive integration for your memories
+7. **Multi-language Support**: Translate your memories to share with anyone
+8. **Built-in Camera**: Capture moments directly in the app
 
 ## 📈 Roadmap
 

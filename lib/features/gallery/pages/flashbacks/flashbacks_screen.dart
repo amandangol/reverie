@@ -32,6 +32,7 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   AudioPlayer? _audioPlayer;
   bool _isMusicPlaying = false;
   VideoPlayerController? _videoController;
+  late FlashbackProvider _flashbackProvider;
 
   String _getMonthName(int month) {
     const months = [
@@ -130,6 +131,12 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _flashbackProvider = Provider.of<FlashbackProvider>(context, listen: false);
+  }
+
   Future<void> _initAudioPlayer() async {
     try {
       _audioPlayer = AudioPlayer();
@@ -161,11 +168,11 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
   void dispose() {
     _tabController.dispose();
     _autoPlayTimer?.cancel();
-    _audioPlayer?.pause();
-    _audioPlayer?.stop();
-    _audioPlayer?.dispose();
-    _audioPlayer = null;
     _disposeVideoController();
+    // Stop music and cleanup audio player
+    final flashbackProvider =
+        Provider.of<FlashbackProvider>(context, listen: false);
+    flashbackProvider.stopMusic();
     super.dispose();
   }
 
@@ -184,104 +191,113 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Consumer2<MediaProvider, FlashbackProvider>(
-          builder: (context, mediaProvider, flashbackProvider, child) {
-            final memories =
-                _getMemoriesForCurrentTab(mediaProvider, flashbackProvider);
-            final filteredMemories = _filterMemoriesByYear(memories);
-            return Text(
-              _getTitleForTab(_tabController.index, filteredMemories),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
-            );
-          },
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorSize: TabBarIndicatorSize.label,
-          indicatorWeight: 2,
-          labelStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+    return WillPopScope(
+      onWillPop: () async {
+        if (_isViewingSlideshow) {
+          _closeSlideshow();
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Consumer2<MediaProvider, FlashbackProvider>(
+            builder: (context, mediaProvider, flashbackProvider, child) {
+              final memories =
+                  _getMemoriesForCurrentTab(mediaProvider, flashbackProvider);
+              final filteredMemories = _filterMemoriesByYear(memories);
+              return Text(
+                _getTitleForTab(_tabController.index, filteredMemories),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              );
+            },
           ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorSize: TabBarIndicatorSize.label,
+            indicatorWeight: 2,
+            labelStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            tabs: const [
+              Tab(text: 'Today'),
+              Tab(text: 'This Week'),
+              Tab(text: 'This Month'),
+            ],
           ),
-          tabs: const [
-            Tab(text: 'Today'),
-            Tab(text: 'This Week'),
-            Tab(text: 'This Month'),
-          ],
         ),
-      ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Consumer2<MediaProvider, FlashbackProvider>(
-                builder: (context, mediaProvider, flashbackProvider, child) {
-                  final memories = _getMemoriesForCurrentTab(
-                      mediaProvider, flashbackProvider);
-                  final availableYears = _getAvailableYears(memories);
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                Consumer2<MediaProvider, FlashbackProvider>(
+                  builder: (context, mediaProvider, flashbackProvider, child) {
+                    final memories = _getMemoriesForCurrentTab(
+                        mediaProvider, flashbackProvider);
+                    final availableYears = _getAvailableYears(memories);
 
-                  if (availableYears.isEmpty) return const SizedBox.shrink();
+                    if (availableYears.isEmpty) return const SizedBox.shrink();
 
-                  return Container(
-                    height: 40,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: availableYears.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
+                    return Container(
+                      height: 40,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: availableYears.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: FilterChip(
+                                label: const Text('All Years'),
+                                selected: _selectedYear == null,
+                                onSelected: (selected) {
+                                  setState(() => _selectedYear = null);
+                                },
+                              ),
+                            );
+                          }
+                          final year = availableYears[index - 1];
                           return Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: FilterChip(
-                              label: const Text('All Years'),
-                              selected: _selectedYear == null,
+                              label: Text(year.toString()),
+                              selected: _selectedYear == year,
                               onSelected: (selected) {
-                                setState(() => _selectedYear = null);
+                                setState(() =>
+                                    _selectedYear = selected ? year : null);
                               },
                             ),
                           );
-                        }
-                        final year = availableYears[index - 1];
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: FilterChip(
-                            label: Text(year.toString()),
-                            selected: _selectedYear == year,
-                            onSelected: (selected) {
-                              setState(
-                                  () => _selectedYear = selected ? year : null);
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildDailyFlashbacks(),
-                    _buildWeeklyFlashbacks(),
-                    _buildMonthlyFlashbacks(),
-                  ],
+                        },
+                      ),
+                    );
+                  },
                 ),
-              ),
-            ],
-          ),
-          if (_isViewingSlideshow && _currentSlideshow != null)
-            _buildSlideshowView(),
-        ],
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildDailyFlashbacks(),
+                      _buildWeeklyFlashbacks(),
+                      _buildMonthlyFlashbacks(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (_isViewingSlideshow && _currentSlideshow != null)
+              _buildSlideshowView(),
+          ],
+        ),
       ),
     );
   }
@@ -629,8 +645,6 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
     final slideshow = await flashbackProvider.generateSlideshow(imageMemories);
     if (slideshow != null) {
       // Stop any existing audio
-      await _audioPlayer?.pause();
-      await _audioPlayer?.stop();
       await flashbackProvider.stopMusic();
 
       setState(() {
@@ -643,7 +657,6 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
       _startAutoPlay();
 
       // Start new audio
-      await _audioPlayer?.play();
       await flashbackProvider.toggleMusic();
       setState(() {
         _isMusicPlaying = true;
@@ -676,8 +689,6 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
     final flashbackProvider =
         Provider.of<FlashbackProvider>(context, listen: false);
     _autoPlayTimer?.cancel();
-    await _audioPlayer?.pause();
-    await _audioPlayer?.stop();
     await flashbackProvider.stopMusic();
     setState(() {
       _isViewingSlideshow = false;
@@ -786,19 +797,22 @@ class _FlashbacksScreenState extends State<FlashbacksScreen>
                 ),
                 Row(
                   children: [
-                    IconButton(
-                      icon: Icon(
-                        _isMusicPlaying ? Icons.music_note : Icons.music_off,
-                        color: Colors.white,
-                      ),
-                      onPressed: () {
-                        final flashbackProvider =
-                            Provider.of<FlashbackProvider>(context,
-                                listen: false);
-                        flashbackProvider.toggleMusic();
-                        setState(() {
-                          _isMusicPlaying = !_isMusicPlaying;
-                        });
+                    Consumer<FlashbackProvider>(
+                      builder: (context, provider, _) {
+                        return IconButton(
+                          icon: Icon(
+                            provider.isMusicPlaying
+                                ? Icons.music_note
+                                : Icons.music_off,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            provider.toggleMusic();
+                            setState(() {
+                              _isMusicPlaying = provider.isMusicPlaying;
+                            });
+                          },
+                        );
                       },
                     ),
                     IconButton(
