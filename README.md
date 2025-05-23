@@ -21,7 +21,19 @@ Currently, Reverie is available for Android devices only. You can download the A
 
 ### 🖼️ Reverie Glimpses
 
- <img src="https://github.com/user-attachments/assets/b519a5c5-a73d-4097-af1c-85bf8fa9d921" alt="Gallery App Drawer" width="200" height="400" />  <img src="https://github.com/user-attachments/assets/579e0273-c119-40bb-978b-0bfdd47c80e3" alt="Journal Home" width="200" height="400" />    <img src="https://github.com/user-attachments/assets/d18a275d-ace9-4e6c-827b-7dd7c9e4316b" alt="Journal Detail" width="200" height="400" />  <img src="https://github.com/user-attachments/assets/adb08fe5-f531-4de8-ab68-4291598144ab" alt="Gallery Albums" width="200" height="400" />  <img src="https://github.com/user-attachments/assets/2c4d3396-152a-47c1-98dd-4c51f36428dc" alt="Journal Edit Detail" width="200" height="400" />  <img src="https://github.com/user-attachments/assets/dd248617-e442-481c-b91a-2d385a02be0d" alt="Object Detection" width="200" height="400" />  <img src="https://github.com/user-attachments/assets/7c97d312-1bf3-4a98-8eda-cbf67b6c6594" alt="Flashback Memories" width="200" height="400" />   <img src="https://github.com/user-attachments/assets/be101790-7f45-4373-9678-ba12400d0696" alt="Google Drive Backup" width="200" height="400" />
+<div align="center" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 16px;">
+
+  <img src="https://github.com/user-attachments/assets/b519a5c5-a73d-4097-af1c-85bf8fa9d921" alt="Gallery App Drawer" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
+  <img src="https://github.com/user-attachments/assets/579e0273-c119-40bb-978b-0bfdd47c80e3" alt="Journal Home" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
+  <img src="https://github.com/user-attachments/assets/d18a275d-ace9-4e6c-827b-7dd7c9e4316b" alt="Journal Detail" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
+  <img src="https://github.com/user-attachments/assets/adb08fe5-f531-4de8-ab68-4291598144ab" alt="Gallery Albums" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
+  <img src="https://github.com/user-attachments/assets/2c4d3396-152a-47c1-98dd-4c51f36428dc" alt="Journal Edit Detail" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
+  <img src="https://github.com/user-attachments/assets/dd248617-e442-481c-b91a-2d385a02be0d" alt="Object Detection" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
+  <img src="https://github.com/user-attachments/assets/7c97d312-1bf3-4a98-8eda-cbf67b6c6594" alt="Flashback Memories" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
+  <img src="https://github.com/user-attachments/assets/be101790-7f45-4373-9678-ba12400d0696" alt="Google Drive Backup" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
+
+</div>
+
 
 ## 🌟 Features
 
@@ -168,7 +180,7 @@ flutter build ios --release
 ## 🛠️ Technical Details
 
 ### Architecture
-- Built with Flutter for android (currently) compatibility
+- Built with Flutter (designed to support multiple platforms — currently Android)
 - Uses Provider for state management
 - Implements Material Design 3 for modern UI
 - Follows clean architecture principles
@@ -237,59 +249,50 @@ If you encounter any issues or have questions:
 
 ### 🖼️ Gallery & Media
 
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/f0bc085a-8cee-47f9-b2a2-3457379847d7" alt="Gallery Home" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/b519a5c5-a73d-4097-af1c-85bf8fa9d921" alt="Gallery App Drawer" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/adb08fe5-f531-4de8-ab68-4291598144ab" alt="Gallery Albums" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/f44ef417-249b-4cde-b6d5-cc78ae557664" alt="Gallery Setting" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/071593c4-5182-4797-bc6c-61109a028d8f" alt="Media Detail View" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/857b2ec1-a7b5-4605-b4e1-795e5d4f3a42" alt="Gallery Videos" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/8a106b96-232c-402d-9292-ba0db9067ef7" alt="Gallery Camera" width="200" height="400" />
-</div>
+<img src="https://github.com/user-attachments/assets/f0bc085a-8cee-47f9-b2a2-3457379847d7" width="200"/>
+<img src="https://github.com/user-attachments/assets/b519a5c5-a73d-4097-af1c-85bf8fa9d921" width="200"/>
+<img src="https://github.com/user-attachments/assets/adb08fe5-f531-4de8-ab68-4291598144ab" width="200"/>
+<img src="https://github.com/user-attachments/assets/f44ef417-249b-4cde-b6d5-cc78ae557664" width="200"/>
+<img src="https://github.com/user-attachments/assets/071593c4-5182-4797-bc6c-61109a028d8f" width="200"/>
+<img src="https://github.com/user-attachments/assets/857b2ec1-a7b5-4605-b4e1-795e5d4f3a42" width="200"/>
+<img src="https://github.com/user-attachments/assets/8a106b96-232c-402d-9292-ba0db9067ef7" width="200"/>
 
 ---
 
 ### 📔 Journal
 
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/579e0273-c119-40bb-978b-0bfdd47c80e3" alt="Journal Home" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/d18a275d-ace9-4e6c-827b-7dd7c9e4316b" alt="Journal Detail" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/166e9445-6fac-412e-a8cd-bf23ff30e205" alt="Journal Calendar" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/2c4d3396-152a-47c1-98dd-4c51f36428dc" alt="Journal Edit Detail" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/a64bb383-6208-4d0d-bd2b-f776a41f5389" alt="Journal Share" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/0adaa6c9-e9e0-4ee9-8309-a3edf5ae1353" alt="Journal Translation" width="200" height="400" />
-</div>
+<img src="https://github.com/user-attachments/assets/579e0273-c119-40bb-978b-0bfdd47c80e3" width="200"/>
+<img src="https://github.com/user-attachments/assets/d18a275d-ace9-4e6c-827b-7dd7c9e4316b" width="200"/>
+<img src="https://github.com/user-attachments/assets/166e9445-6fac-412e-a8cd-bf23ff30e205" width="200"/>
+<img src="https://github.com/user-attachments/assets/2c4d3396-152a-47c1-98dd-4c51f36428dc" width="200"/>
+<img src="https://github.com/user-attachments/assets/a64bb383-6208-4d0d-bd2b-f776a41f5389" width="200"/>
+<img src="https://github.com/user-attachments/assets/0adaa6c9-e9e0-4ee9-8309-a3edf5ae1353" width="200"/>
 
 ---
 
 ### 🤖 AI & Media Info
 
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/0ae82b7c-d5bb-4c12-b064-3342d071ade9" alt="Image Analysis" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/dd248617-e442-481c-b91a-2d385a02be0d" alt="Object Detection" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/62a031ff-54a9-4f3e-8a03-ced391dc6df1" alt="Text Recognition" width="200" height="400" />
-</div>
+<img src="https://github.com/user-attachments/assets/0ae82b7c-d5bb-4c12-b064-3342d071ade9" width="200"/>
+<img src="https://github.com/user-attachments/assets/dd248617-e442-481c-b91a-2d385a02be0d" width="200"/>
+<img src="https://github.com/user-attachments/assets/62a031ff-54a9-4f3e-8a03-ced391dc6df1" width="200"/>
+<img src="https://github.com/user-attachments/assets/cf826926-93f4-4cec-86ec-9d8d240a4274" width="200"/>
+<img src="https://github.com/user-attachments/assets/19a27b60-4d50-4d3e-a0ed-b239943a943d" width="200"/>
 
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/cf826926-93f4-4cec-86ec-9d8d240a4274" alt="Media Info" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/19a27b60-4d50-4d3e-a0ed-b239943a943d" alt="Media Journal" width="200" height="400" />
-</div>
+---
 
 ### 🌟 Flashbacks & Monthly Recap
 
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/2e7bb359-0f69-4b9f-8e2a-4569db0c1e34" alt="Flashback Memories" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/7c97d312-1bf3-4a98-8eda-cbf67b6c6594" alt="Flashback Memories" width="200" height="400" />
-  </div>
+<img src="https://github.com/user-attachments/assets/2e7bb359-0f69-4b9f-8e2a-4569db0c1e34" width="200"/>
+<img src="https://github.com/user-attachments/assets/7c97d312-1bf3-4a98-8eda-cbf67b6c6594" width="200"/>
 
 ---
 
 ### ☁️ Backup & Quick Actions
 
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/be101790-7f45-4373-9678-ba12400d0696" alt="Google Drive Backup" width="200" height="400" />
-  <img src="https://github.com/user-attachments/assets/7f3f4a5f-17dc-4cab-84fe-1e12e0844533" alt="Quick Screen" width="200" height="400" />
-</div>
+<img src="https://github.com/user-attachments/assets/be101790-7f45-4373-9678-ba12400d0696" width="200"/>
+<img src="https://github.com/user-attachments/assets/7f3f4a5f-17dc-4cab-84fe-1e12e0844533" width="200"/>
+
 ---
 
-Made with ❤️ by amandangol AKA 4m.4n
+Made with ❤️ by **amandangol** AKA **4m.4n**
+
