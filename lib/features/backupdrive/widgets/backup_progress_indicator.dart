@@ -4,18 +4,22 @@ import '../provider/backup_provider.dart';
 import '../../../theme/app_theme.dart';
 
 class BackupProgressIndicator extends StatelessWidget {
+  final double progress;
+  final bool isJournalBackup;
+
   const BackupProgressIndicator({
     super.key,
     required this.progress,
+    this.isJournalBackup = false,
   });
-
-  final double progress;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final journalTextTheme = AppTheme.journalTextTheme;
+    final primaryColor =
+        isJournalBackup ? const Color(0xFF4285F4) : const Color(0xFF34A853);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -23,7 +27,7 @@ class BackupProgressIndicator extends StatelessWidget {
         color: colorScheme.surfaceVariant.withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF34A853).withOpacity(0.3),
+          color: primaryColor.withOpacity(0.3),
           width: 1,
         ),
       ),
@@ -32,18 +36,20 @@ class BackupProgressIndicator extends StatelessWidget {
         children: [
           Row(
             children: [
-              const SizedBox(
+              SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF34A853)),
+                  valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Backing up your memories...',
+                  isJournalBackup
+                      ? 'Backing up your journals...'
+                      : 'Backing up your memories...',
                   style: journalTextTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
@@ -69,8 +75,7 @@ class BackupProgressIndicator extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: colorScheme.surfaceVariant,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Color(0xFF34A853)),
+              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
               minHeight: 6,
             ),
           ),
@@ -81,7 +86,7 @@ class BackupProgressIndicator extends StatelessWidget {
               Text(
                 '${(progress * 100).toStringAsFixed(0)}% complete',
                 style: journalTextTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF34A853),
+                  color: primaryColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),

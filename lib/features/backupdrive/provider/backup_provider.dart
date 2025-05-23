@@ -1,12 +1,17 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../../../services/google_drive_service.dart';
 import '../../../services/connectivity_service.dart';
+import '../../journal/models/journal_entry.dart';
+import '../../journal/providers/journal_provider.dart';
 
 class BackupProvider extends ChangeNotifier {
   final GoogleDriveService _driveService = GoogleDriveService();
@@ -24,6 +29,9 @@ class BackupProvider extends ChangeNotifier {
   String? _userName;
   String? _userPhotoUrl;
   String? _lastSuccessMessage;
+  String? _driveFolderUrl;
+  bool _isBackingUpJournals = false;
+  BuildContext? _context;
 
   static const String _signedInKey = 'google_drive_signed_in';
   static const String _userEmailKey = 'google_drive_user_email';
@@ -31,6 +39,9 @@ class BackupProvider extends ChangeNotifier {
 
   // Add new field to track backed-up files
   final Map<String, Map<String, Set<String>>> _backedUpFilesPerAccount = {};
+
+  // Add new field to track backed-up journals
+  final Map<String, Set<String>> _backedUpJournalsPerAccount = {};
 
   // Getters
   bool get isBackingUp => _isBackingUp;
@@ -41,9 +52,13 @@ class BackupProvider extends ChangeNotifier {
   String? get userEmail => _userEmail;
   bool get isSignedIn => _isSignedIn;
   Set<String> get backedUpAlbums => _backedUpAlbumsPerAccount[_userEmail] ?? {};
+  Set<String> get backedUpJournals =>
+      _backedUpJournalsPerAccount[_userEmail] ?? {};
   String? get userName => _userName;
   String? get userPhotoUrl => _userPhotoUrl;
   String? get lastSuccessMessage => _lastSuccessMessage;
+  String? get driveFolderUrl => _driveFolderUrl;
+  bool get isBackingUpJournals => _isBackingUpJournals;
 
   BackupProvider() {
     _initializeSignInState();
@@ -119,7 +134,12 @@ class BackupProvider extends ChangeNotifier {
         final albums = prefs.getStringList('backed_up_albums_$account') ?? [];
         _backedUpAlbumsPerAccount[account] = albums.toSet();
 
-        // Load backed-up files for each album per account
+        // Load backed-up journals
+        final journals =
+            prefs.getStringList('backed_up_journals_$account') ?? [];
+        _backedUpJournalsPerAccount[account] = journals.toSet();
+
+        // Load backed-up files for each album
         _backedUpFilesPerAccount[account] = {};
         for (final albumName in albums) {
           final files =
@@ -148,6 +168,12 @@ class BackupProvider extends ChangeNotifier {
     await prefs.setStringList(
       'backed_up_albums_$_userEmail',
       _backedUpAlbumsPerAccount[_userEmail]?.toList() ?? [],
+    );
+
+    // Save journals for current account
+    await prefs.setStringList(
+      'backed_up_journals_$_userEmail',
+      _backedUpJournalsPerAccount[_userEmail]?.toList() ?? [],
     );
 
     // Save backed-up files for each album
@@ -212,6 +238,10 @@ class BackupProvider extends ChangeNotifier {
       _userPhotoUrl = userInfo['photoUrl'];
       await _saveSignInState(true, _userEmail);
       _lastSuccessMessage = 'Successfully signed in to Google Drive';
+
+      // Get the Drive folder URL after signing in
+      await getDriveFolderUrl();
+
       notifyListeners();
     } catch (e) {
       _backupError = e.toString();
@@ -219,6 +249,7 @@ class BackupProvider extends ChangeNotifier {
       _userEmail = null;
       _userName = null;
       _userPhotoUrl = null;
+      _driveFolderUrl = null;
       await _saveSignInState(false, null);
       notifyListeners();
       rethrow;
@@ -386,6 +417,9 @@ class BackupProvider extends ChangeNotifier {
     if (!await _connectivityService.checkConnection()) {
       throw NoInternetException();
     }
+    if (_context == null) {
+      throw Exception('Context not set');
+    }
 
     try {
       _isRestoring = true;
@@ -394,13 +428,18 @@ class BackupProvider extends ChangeNotifier {
       notifyListeners();
 
       final backedUpFiles = await _driveService.listBackedUpFiles();
+      print('[DEBUG] Total files found: ${backedUpFiles.length}');
       final totalItems = backedUpFiles.length;
       var processedItems = 0;
+
+      // Create a temporary directory for restored files
+      final tempDir = await getTemporaryDirectory();
+      final restoredJournals = <JournalEntry>[];
 
       for (final file in backedUpFiles) {
         if (!_mounted) break;
 
-        final tempDir = await getTemporaryDirectory();
+        print('[DEBUG] Processing file: ${file.name}');
         final localPath = path.join(tempDir.path, file.name!);
         await _driveService.restoreFile(
           file.id!,
@@ -414,12 +453,62 @@ class BackupProvider extends ChangeNotifier {
           },
         );
 
+        // If it's a journal entry file, parse and add it to the list
+        if ((file.name!.startsWith('journals/') ||
+                file.name!.endsWith('.json')) &&
+            file.name!.endsWith('.json')) {
+          print('[DEBUG] Found journal file: ${file.name}');
+          try {
+            final jsonString = await File(localPath).readAsString();
+            print('[DEBUG] Journal file content: $jsonString');
+            final jsonData = json.decode(jsonString);
+            final journalEntry = JournalEntry.fromJson(jsonData);
+            restoredJournals.add(journalEntry);
+            print(
+                '[DEBUG] Successfully parsed journal entry: ${journalEntry.id}');
+          } catch (e) {
+            print('[DEBUG] Error parsing journal entry: $e');
+          }
+        }
+
         processedItems++;
         _backupProgress = processedItems / totalItems;
         notifyListeners();
       }
 
+      // Save restored journal entries
+      if (restoredJournals.isNotEmpty) {
+        final journalProvider =
+            Provider.of<JournalProvider>(_context!, listen: false);
+        print('[DEBUG] Initializing JournalProvider...');
+        await journalProvider.initialize(); // Ensure DB is ready
+        print('[DEBUG] Clearing all journal entries...');
+        await journalProvider.clearAll();
+        print(
+            '[DEBUG] Adding restored journal entries: count = \'${restoredJournals.length}\'');
+        int successCount = 0;
+        for (final entry in restoredJournals) {
+          final result = await journalProvider.addEntry(entry);
+          print('[DEBUG] addEntry for id=${entry.id} returned $result');
+          if (result) successCount++;
+        }
+        print('[DEBUG] Total successfully added: $successCount');
+        print('[DEBUG] Reloading entries...');
+        await journalProvider.loadEntries();
+        print(
+            '[DEBUG] Entries after reload: ${journalProvider.entries.length}');
+        _backedUpJournalsPerAccount[_userEmail!] =
+            restoredJournals.map((e) => e.id).toSet();
+        await _saveBackedUpAlbums();
+        // Force UI update
+        journalProvider.notifyListeners();
+      } else {
+        print('[DEBUG] No journal entries found to restore.');
+      }
+
       _backupProgress = 1.0;
+      _lastSuccessMessage =
+          'Successfully restored ${restoredJournals.length} journal entries';
     } catch (e) {
       _backupError = e.toString();
       rethrow;
@@ -485,5 +574,132 @@ class BackupProvider extends ChangeNotifier {
         }
       }
     }
+  }
+
+  //   method to get the Drive folder URL
+  Future<String?> getDriveFolderUrl() async {
+    if (!_isSignedIn) {
+      print('Not signed in, cannot get Drive folder URL');
+      return null;
+    }
+    try {
+      print('Fetching Drive folder URL...');
+      _driveFolderUrl = await _driveService.getBackupFolderUrl();
+      print('Drive folder URL: $_driveFolderUrl');
+      notifyListeners();
+      return _driveFolderUrl;
+    } catch (e) {
+      print('Error getting Drive folder URL: $e');
+      return null;
+    }
+  }
+
+  //   method for backing up journals
+  Future<void> backupJournals(List<JournalEntry> journals) async {
+    if (_isBackingUpJournals || journals.isEmpty) return;
+    if (_userEmail == null) {
+      throw Exception('Please sign in to Google Drive first');
+    }
+
+    if (!await _connectivityService.checkConnection()) {
+      throw NoInternetException();
+    }
+
+    try {
+      _isBackingUpJournals = true;
+      _backupProgress = 0.0;
+      _backupError = null;
+      notifyListeners();
+
+      // Filter out already backed up journals
+      final journalsToBackup =
+          journals.where((journal) => !isJournalBackedUp(journal.id)).toList();
+
+      final totalJournals = journalsToBackup.length;
+      var processedJournals = 0;
+
+      for (final journal in journalsToBackup) {
+        if (!_mounted || _isCancelling) {
+          _isBackingUpJournals = false;
+          _isCancelling = false;
+          _backupProgress = 0.0;
+          notifyListeners();
+          return;
+        }
+
+        // Create a JSON file for the journal entry
+        final journalData = {
+          'id': journal.id,
+          'title': journal.title,
+          'content': journal.content,
+          'date': journal.date.toIso8601String(),
+          'mediaIds': journal.mediaIds,
+          'mood': journal.mood,
+          'tags': journal.tags,
+          'lastEdited': journal.lastEdited?.toIso8601String(),
+        };
+
+        final jsonString = json.encode(journalData);
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = File('${tempDir.path}/${journal.id}.json');
+        await tempFile.writeAsString(jsonString);
+
+        // Upload to Google Drive
+        await _driveService.uploadFile(
+          tempFile,
+          'journals/${journal.id}.json',
+          onProgress: (progress) {
+            if (!_isCancelling) {
+              final journalProgress = progress / totalJournals;
+              final overallProgress =
+                  (processedJournals + journalProgress) / totalJournals;
+              _backupProgress = overallProgress;
+              notifyListeners();
+            }
+          },
+        );
+
+        // Clean up temp file
+        await tempFile.delete();
+
+        if (!_isCancelling) {
+          // Initialize sets if they don't exist
+          _backedUpJournalsPerAccount[_userEmail!] ??= {};
+          _backedUpJournalsPerAccount[_userEmail]!.add(journal.id);
+          await _saveBackedUpAlbums();
+        }
+
+        processedJournals++;
+        _backupProgress = processedJournals / totalJournals;
+        notifyListeners();
+      }
+
+      if (!_isCancelling) {
+        _backupProgress = 1.0;
+        _lastSuccessMessage =
+            'Successfully backed up $processedJournals journal entries';
+      }
+    } catch (e) {
+      _backupError = e.toString();
+      rethrow;
+    } finally {
+      _isBackingUpJournals = false;
+      _isCancelling = false;
+      if (_isCancelling) {
+        _backupProgress = 0.0;
+      }
+      notifyListeners();
+    }
+  }
+
+  // Add method to check if a journal is backed up
+  bool isJournalBackedUp(String journalId) {
+    if (_userEmail == null) return false;
+    return _backedUpJournalsPerAccount[_userEmail]?.contains(journalId) ??
+        false;
+  }
+
+  void setContext(BuildContext context) {
+    _context = context;
   }
 }

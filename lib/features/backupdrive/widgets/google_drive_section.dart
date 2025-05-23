@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import '../provider/backup_provider.dart';
 import '../../../theme/app_theme.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class GoogleDriveSection extends StatelessWidget {
   const GoogleDriveSection({super.key});
@@ -26,25 +27,25 @@ class GoogleDriveSection extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: const Color(0xFF4285F4).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: SvgPicture.asset(
                     'assets/svg/google_drive.svg',
-                    width: 24,
-                    height: 24,
+                    width: 18,
+                    height: 18,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,14 +55,15 @@ class GoogleDriveSection extends StatelessWidget {
                         style: journalTextTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: colorScheme.onSurface,
-                          fontSize: 18,
+                          fontSize: 14,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         'Connect to save your memories securely',
-                        style: journalTextTheme.bodyMedium?.copyWith(
+                        style: journalTextTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -69,7 +71,7 @@ class GoogleDriveSection extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             Selector<BackupProvider, bool>(
               selector: (_, provider) => provider.isSignedIn,
               builder: (context, isSignedIn, _) {
@@ -84,121 +86,132 @@ class GoogleDriveSection extends StatelessWidget {
                         },
                         builder: (context, userInfo, _) {
                           return Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color:
                                   colorScheme.surfaceVariant.withOpacity(0.4),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Row(
+                            child: Column(
                               children: [
-                                if (userInfo['photoUrl'] != null &&
-                                    userInfo['photoUrl']!.isNotEmpty)
-                                  ClipOval(
-                                    child: Image.network(
-                                      userInfo['photoUrl']!,
-                                      width: 40,
-                                      height: 40,
-                                      fit: BoxFit.cover,
-                                      loadingBuilder:
-                                          (context, child, loadingProgress) {
-                                        if (loadingProgress == null) {
-                                          return child;
-                                        }
-                                        return const CupertinoActivityIndicator();
-                                      },
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return CircleAvatar(
-                                            radius: 22,
-                                            backgroundColor:
-                                                const Color(0xFF4285F4),
-                                            child: Text(
-                                              userInfo['name']?[0]
-                                                      .toUpperCase() ??
-                                                  userInfo['email']?[0]
-                                                      .toUpperCase() ??
-                                                  'G',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 18,
-                                              ),
-                                            ));
-                                      },
-                                    ),
-                                  )
-                                else
-                                  CircleAvatar(
-                                    radius: 22,
-                                    backgroundColor: const Color(0xFF4285F4),
-                                    child: Text(
-                                      userInfo['name']?[0].toUpperCase() ??
-                                          userInfo['email']?[0].toUpperCase() ??
-                                          'G',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                  ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        userInfo['name'] ??
-                                            userInfo['email'] ??
-                                            'Google Account',
-                                        style: journalTextTheme.bodyMedium
-                                            ?.copyWith(
-                                          fontWeight: FontWeight.w500,
+                                Row(
+                                  children: [
+                                    if (userInfo['photoUrl'] != null &&
+                                        userInfo['photoUrl']!.isNotEmpty)
+                                      ClipOval(
+                                        child: Image.network(
+                                          userInfo['photoUrl']!,
+                                          width: 32,
+                                          height: 32,
+                                          fit: BoxFit.cover,
+                                          loadingBuilder: (context, child,
+                                              loadingProgress) {
+                                            if (loadingProgress == null) {
+                                              return child;
+                                            }
+                                            return const CupertinoActivityIndicator();
+                                          },
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return CircleAvatar(
+                                                radius: 16,
+                                                backgroundColor:
+                                                    const Color(0xFF4285F4),
+                                                child: Text(
+                                                  userInfo['name']?[0]
+                                                          .toUpperCase() ??
+                                                      userInfo['email']?[0]
+                                                          .toUpperCase() ??
+                                                      'G',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14,
+                                                  ),
+                                                ));
+                                          },
                                         ),
-                                      ),
-                                      if (userInfo['email'] != null) ...[
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          userInfo['email']!,
-                                          style: journalTextTheme.bodySmall
-                                              ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
+                                      )
+                                    else
+                                      CircleAvatar(
+                                        radius: 16,
+                                        backgroundColor:
+                                            const Color(0xFF4285F4),
+                                        child: Text(
+                                          userInfo['name']?[0].toUpperCase() ??
+                                              userInfo['email']?[0]
+                                                  .toUpperCase() ??
+                                              'G',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
                                           ),
                                         ),
-                                      ],
-                                      const SizedBox(height: 4),
-                                      Row(
+                                      ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Container(
-                                            width: 8,
-                                            height: 8,
-                                            decoration: const BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: Color(0xFF34A853),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
                                           Text(
-                                            'Connected',
+                                            userInfo['name'] ??
+                                                userInfo['email'] ??
+                                                'Google Account',
                                             style: journalTextTheme.bodySmall
                                                 ?.copyWith(
-                                              color: const Color(0xFF34A853),
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),
+                                          if (userInfo['email'] != null) ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              userInfo['email']!,
+                                              style: journalTextTheme.bodySmall
+                                                  ?.copyWith(
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Container(
+                                                width: 6,
+                                                height: 6,
+                                                decoration: const BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Color(0xFF34A853),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Connected',
+                                                style: journalTextTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                  color:
+                                                      const Color(0xFF34A853),
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           );
                         },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                     ],
                     GoogleDriveButton(
                       isSignedIn: isSignedIn,
@@ -269,9 +282,9 @@ class GoogleDriveButton extends StatelessWidget {
               : const Color(0xFF4285F4).withOpacity(0.2),
           foregroundColor: isSignedIn ? const Color(0xFF4285F4) : Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             side: isSignedIn
                 ? const BorderSide(color: Color(0xFF4285F4), width: 1.5)
                 : BorderSide.none,
@@ -283,21 +296,21 @@ class GoogleDriveButton extends StatelessWidget {
             if (!isSignedIn) ...[
               SvgPicture.asset(
                 'assets/svg/google-icon.svg',
-                width: 20,
-                height: 20,
+                width: 18,
+                height: 18,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
             ],
             Icon(
               isSignedIn ? Icons.logout_rounded : Icons.login_rounded,
-              size: 20,
+              size: 18,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               isSignedIn ? 'Sign Out' : 'Sign in with Google',
               style: const TextStyle(
                 fontWeight: FontWeight.w500,
-                fontSize: 14,
+                fontSize: 13,
               ),
             ),
           ],

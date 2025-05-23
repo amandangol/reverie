@@ -5,12 +5,14 @@ class BackupButton extends StatelessWidget {
   final Set<AssetPathEntity> selectedAlbums;
   final bool isBackingUp;
   final Future<void> Function() onBackupPressed;
+  final bool isJournalBackup;
 
   const BackupButton({
     super.key,
     required this.selectedAlbums,
     required this.isBackingUp,
     required this.onBackupPressed,
+    this.isJournalBackup = false,
   });
 
   @override
@@ -35,7 +37,8 @@ class BackupButton extends StatelessWidget {
           child: SizedBox(
             width: MediaQuery.of(context).size.width * 0.7,
             child: ElevatedButton.icon(
-              onPressed: (selectedAlbums.isEmpty || isBackingUp)
+              onPressed: (isJournalBackup ? false : selectedAlbums.isEmpty) ||
+                      isBackingUp
                   ? null
                   : () async {
                       try {
@@ -67,18 +70,26 @@ class BackupButton extends StatelessWidget {
               icon: Icon(
                 isBackingUp
                     ? Icons.hourglass_empty_rounded
-                    : Icons.backup_rounded,
+                    : isJournalBackup
+                        ? Icons.book_rounded
+                        : Icons.backup_rounded,
                 size: 20,
               ),
               label: Text(
-                selectedAlbums.isEmpty
-                    ? 'Select albums to backup'
-                    : isBackingUp
-                        ? 'Backing up...'
-                        : 'Backup ${selectedAlbums.length} ${selectedAlbums.length == 1 ? 'album' : 'albums'}',
+                isJournalBackup
+                    ? isBackingUp
+                        ? 'Backing up journals...'
+                        : 'Backup All Journals'
+                    : selectedAlbums.isEmpty
+                        ? 'Select albums to backup'
+                        : isBackingUp
+                            ? 'Backing up...'
+                            : 'Backup ${selectedAlbums.length} ${selectedAlbums.length == 1 ? 'album' : 'albums'}',
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.primary,
+                backgroundColor: isJournalBackup
+                    ? const Color(0xFF4285F4)
+                    : colorScheme.primary,
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: colorScheme.surface,
                 disabledForegroundColor: colorScheme.onSurfaceVariant,

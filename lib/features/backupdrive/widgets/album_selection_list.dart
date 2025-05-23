@@ -47,7 +47,7 @@ class AlbumSelectionList extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(
-              'Select albums to backup',
+              'Select albums',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),

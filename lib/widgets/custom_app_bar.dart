@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -9,6 +10,17 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color? backgroundColor;
   final bool showMenu;
   final VoidCallback? onMenuPressed;
+  final Widget? flexibleSpace;
+  final PreferredSizeWidget? bottom;
+  final SystemUiOverlayStyle? systemOverlayStyle;
+  final bool automaticallyImplyLeading;
+  final Widget? leading;
+  final double? titleSpacing;
+  final TextStyle? titleStyle;
+  final double? toolbarHeight;
+  final Color? foregroundColor;
+  final Color? shadowColor;
+  final Color? surfaceTintColor;
 
   const CustomAppBar({
     super.key,
@@ -19,6 +31,17 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.backgroundColor,
     this.showMenu = true,
     this.onMenuPressed,
+    this.flexibleSpace,
+    this.bottom,
+    this.systemOverlayStyle,
+    this.automaticallyImplyLeading = true,
+    this.leading,
+    this.titleSpacing,
+    this.titleStyle,
+    this.toolbarHeight,
+    this.foregroundColor,
+    this.shadowColor,
+    this.surfaceTintColor,
   });
 
   @override
@@ -26,13 +49,21 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final journalTextTheme = AppTheme.journalTextTheme;
 
+    // Memoize the title style
+    final defaultTitleStyle = journalTextTheme.titleLarge?.copyWith(
+      fontWeight: FontWeight.bold,
+      color: foregroundColor ?? colorScheme.onSurface,
+      fontSize: 20,
+      letterSpacing: 0.15,
+    );
+
     return AppBar(
       leading: showMenu
           ? Builder(
               builder: (context) => IconButton(
                 icon: Icon(
                   Icons.menu_rounded,
-                  color: colorScheme.onSurface,
+                  color: foregroundColor ?? colorScheme.onSurface,
                 ),
                 onPressed: () {
                   if (onMenuPressed != null) {
@@ -43,24 +74,31 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 },
               ),
             )
-          : null,
+          : leading,
+      automaticallyImplyLeading: automaticallyImplyLeading,
       title: Text(
         title,
-        style: journalTextTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: colorScheme.onSurface,
-          fontSize: 20,
-          letterSpacing: 0.15,
-        ),
+        style: titleStyle ?? defaultTitleStyle,
       ),
       centerTitle: centerTitle,
       elevation: elevation,
       scrolledUnderElevation: elevation,
       backgroundColor: backgroundColor ?? colorScheme.background,
+      foregroundColor: foregroundColor,
+      shadowColor: shadowColor,
+      surfaceTintColor: surfaceTintColor,
       actions: actions,
+      flexibleSpace: flexibleSpace,
+      bottom: bottom,
+      systemOverlayStyle: systemOverlayStyle,
+      titleSpacing: titleSpacing,
+      toolbarHeight: toolbarHeight,
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => Size.fromHeight(
+        (toolbarHeight ?? kToolbarHeight) +
+            (bottom?.preferredSize.height ?? 0.0),
+      );
 }

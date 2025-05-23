@@ -103,10 +103,12 @@ Currently, Reverie is available for Android devices only. You can download the A
 ### 🔄 Backup & Sync
 - Secure Google Drive integration
 - Selective album backup
+- Journal entries backup and restore
 - Progress tracking during backup
 - Easy restoration process
 - Account-specific backup management
-- Automatic backup status indicators
+- Backup history tracking
+- Selective journal restoration
 - Secure authentication with Google accounts
 
 ## 🎥 Demo Videos

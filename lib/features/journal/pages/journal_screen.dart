@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/widgets/custom_app_bar.dart';
+import '../../backupdrive/pages/backup_screen.dart';
+import '../../backupdrive/provider/backup_provider.dart';
 import 'journal_detail_screen.dart';
 import 'calendar_screen.dart';
 import '../providers/journal_provider.dart';
@@ -13,6 +15,7 @@ import '../widgets/journal_card.dart';
 import '../widgets/journal_shimmer.dart';
 import 'all_journals_screen.dart';
 import '../widgets/journal_search_delegate.dart';
+import 'package:reverie/widgets/google_drive_info_sheet.dart';
 
 class JournalScreen extends StatefulWidget {
   final VoidCallback? onMenuPressed;
@@ -928,6 +931,9 @@ class _JournalScreenState extends State<JournalScreen> {
       appBar: CustomAppBar(
         title: 'Journal',
         onMenuPressed: widget.onMenuPressed,
+        foregroundColor: colorScheme.onSurface,
+        backgroundColor: colorScheme.background,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(
@@ -941,6 +947,22 @@ class _JournalScreenState extends State<JournalScreen> {
               );
             },
             tooltip: 'Search entries',
+          ),
+          Consumer<BackupProvider>(
+            builder: (context, backupProvider, _) {
+              return IconButton(
+                icon: Icon(
+                  Icons.cloud_rounded,
+                  color: backupProvider.isSignedIn
+                      ? const Color(0xFF34A853)
+                      : colorScheme.onSurfaceVariant,
+                ),
+                onPressed: () => _showGoogleDriveInfo(context, backupProvider),
+                tooltip: backupProvider.isSignedIn
+                    ? 'Connected to Google Drive'
+                    : 'Connect to Google Drive',
+              );
+            },
           ),
           IconButton(
             icon: const Icon(
@@ -1108,6 +1130,19 @@ class _JournalScreenState extends State<JournalScreen> {
               elevation: 4,
             )
           : null,
+    );
+  }
+
+  void _showGoogleDriveInfo(
+      BuildContext context, BackupProvider backupProvider) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => GoogleDriveInfoSheet(
+        backupProvider: backupProvider,
+      ),
     );
   }
 

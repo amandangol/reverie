@@ -24,56 +24,31 @@ class GoogleDriveService {
   String? _userEmail;
   String? _accessToken;
   String? _refreshToken;
+  bool _isSignedIn = false;
 
   Future<bool> isSignedIn() async {
     try {
       final account = await _googleSignIn.signInSilently();
       if (account == null) {
-        // Try to restore from saved tokens
-        final prefs = await SharedPreferences.getInstance();
-        _accessToken = prefs.getString(_accessTokenKey);
-        _refreshToken = prefs.getString(_refreshTokenKey);
-
-        if (_accessToken != null) {
-          try {
-            final client = GoogleAuthClient(_accessToken!);
-            _driveApi = drive.DriveApi(client);
-            _folderId = await _getOrCreateAppFolder();
-            return true;
-          } catch (e) {
-            // Token is invalid, clear it
-            await prefs.remove(_accessTokenKey);
-            await prefs.remove(_refreshTokenKey);
-            _accessToken = null;
-            _refreshToken = null;
-            return false;
-          }
-        }
+        _isSignedIn = false;
         return false;
       }
 
       final auth = await account.authentication;
       if (auth.accessToken == null) {
+        _isSignedIn = false;
         return false;
       }
 
-      _accessToken = auth.accessToken;
-      _refreshToken = auth.idToken;
-
-      // Save tokens
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_accessTokenKey, _accessToken!);
-      if (_refreshToken != null) {
-        await prefs.setString(_refreshTokenKey, _refreshToken!);
-      }
-
-      final client = GoogleAuthClient(_accessToken!);
+      final client = GoogleAuthClient(auth.accessToken!);
       _driveApi = drive.DriveApi(client);
       _folderId = await _getOrCreateAppFolder();
-      _userEmail = account.email;
+      _isSignedIn = true;
       return true;
     } catch (e) {
-      print('Error checking sign-in status: $e');
+      _isSignedIn = false;
+      _driveApi = null;
+      _folderId = null;
       return false;
     }
   }
@@ -96,65 +71,37 @@ class GoogleDriveService {
     try {
       final account = await _googleSignIn.signIn();
       if (account == null) {
-        throw Exception('Sign in aborted');
+        throw Exception('Sign in was cancelled');
       }
 
       final auth = await account.authentication;
-      if (auth.accessToken == null) {
-        throw Exception('Failed to get access token');
-      }
-
-      _accessToken = auth.accessToken;
-      _refreshToken = auth.idToken;
-
-      // Save tokens
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_accessTokenKey, _accessToken!);
-      if (_refreshToken != null) {
-        await prefs.setString(_refreshTokenKey, _refreshToken!);
-      }
-
-      final client = GoogleAuthClient(_accessToken!);
+      final client = GoogleAuthClient(auth.accessToken!);
       _driveApi = drive.DriveApi(client);
+      _isSignedIn = true;
+
+      // Create or get backup folder
       _folderId = await _getOrCreateAppFolder();
-      _userEmail = account.email;
     } catch (e) {
+      _isSignedIn = false;
       _driveApi = null;
       _folderId = null;
-      _userEmail = null;
-      _accessToken = null;
-      _refreshToken = null;
-
-      // Clear saved tokens on error
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(_accessTokenKey);
-        await prefs.remove(_refreshTokenKey);
-      } catch (_) {
-        // Ignore errors during cleanup
-      }
-
       rethrow;
     }
   }
 
   Future<void> signOut() async {
-    try {
-      await _googleSignIn.signOut();
-      // Clear saved tokens
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_accessTokenKey);
-      await prefs.remove(_refreshTokenKey);
+    await _googleSignIn.signOut();
+    // Clear saved tokens
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_accessTokenKey);
+    await prefs.remove(_refreshTokenKey);
 
-      _driveApi = null;
-      _folderId = null;
-      _userEmail = null;
-      _accessToken = null;
-      _refreshToken = null;
-    } catch (e) {
-      print('Error signing out: $e');
-      rethrow;
-    }
+    _driveApi = null;
+    _folderId = null;
+    _userEmail = null;
+    _accessToken = null;
+    _refreshToken = null;
+    _isSignedIn = false;
   }
 
   Future<String?> _getOrCreateAppFolder() async {
@@ -228,14 +175,17 @@ class GoogleDriveService {
     }
 
     try {
+      print('[DEBUG] Listing files in folder: $_folderId');
       final result = await _driveApi!.files.list(
         q: "'$_folderId' in parents and trashed = false",
         spaces: 'drive',
         $fields: 'files(id,name,size,createdTime,mimeType)',
       );
 
+      print('[DEBUG] Found ${result.files?.length ?? 0} files');
+
       // Filter out Google Docs files and map the remaining files
-      return result.files
+      final files = result.files
               ?.where((file) =>
                   !(file.mimeType?.startsWith('application/vnd.google-apps.') ??
                       false))
@@ -246,6 +196,13 @@ class GoogleDriveService {
                 ..createdTime = file.createdTime)
               .toList() ??
           [];
+
+      print('[DEBUG] After filtering, ${files.length} files remain');
+      for (final file in files) {
+        print('[DEBUG] File: ${file.name}');
+      }
+
+      return files;
     } catch (e) {
       print('Error listing backed up files: $e');
       rethrow;
@@ -262,7 +219,7 @@ class GoogleDriveService {
       // First get the file metadata to check its type
       final fileMetadata = await _driveApi!.files.get(
         fileId,
-        $fields: 'id,name,mimeType',
+        $fields: 'id,name,mimeType,size',
       ) as drive.File;
 
       // Check if it's a Google Docs/Sheets/Slides file
@@ -277,26 +234,42 @@ class GoogleDriveService {
       final response = await _driveApi!.files.get(
         fileId,
         downloadOptions: drive.DownloadOptions.fullMedia,
-      ) as http.Response;
+      );
 
       final localFile = File(localPath);
-      final totalBytes = response.contentLength ?? 0;
-      var receivedBytes = 0;
+      final totalBytes = double.tryParse(fileMetadata.size ?? '0') ?? 0.0;
+      var receivedBytes = 0.0;
 
       final sink = localFile.openWrite();
-      final bytes = response.bodyBytes;
 
-      // Process chunks of data
-      const chunkSize = 8192; // 8KB chunks
-      for (var i = 0; i < bytes.length; i += chunkSize) {
-        final end =
-            (i + chunkSize < bytes.length) ? i + chunkSize : bytes.length;
-        final chunk = bytes.sublist(i, end);
-        sink.add(chunk);
-        receivedBytes += chunk.length;
-        if (onProgress != null) {
-          onProgress(receivedBytes / totalBytes);
+      // Handle the response based on its type
+      if (response is http.Response) {
+        // If it's a direct HTTP response
+        final bytes = response.bodyBytes;
+        const chunkSize = 8192; // 8KB chunks
+        for (var i = 0; i < bytes.length; i += chunkSize) {
+          final end =
+              (i + chunkSize < bytes.length) ? i + chunkSize : bytes.length;
+          final chunk = bytes.sublist(i, end);
+          sink.add(chunk);
+          receivedBytes += chunk.length.toDouble();
+          if (onProgress != null) {
+            onProgress(receivedBytes / totalBytes);
+          }
         }
+      } else if (response is drive.Media) {
+        // If it's a Media object
+        final stream = response.stream;
+        await for (final chunk in stream) {
+          sink.add(chunk);
+          receivedBytes += chunk.length.toDouble();
+          if (onProgress != null) {
+            onProgress(receivedBytes / totalBytes);
+          }
+        }
+      } else {
+        throw Exception(
+            'Unexpected response type from Google Drive API: ${response.runtimeType}');
       }
 
       await sink.close();
@@ -449,6 +422,62 @@ class GoogleDriveService {
       };
     } catch (e) {
       print('Error getting user info: $e');
+      rethrow;
+    }
+  }
+
+  // Add method to get the backup folder URL
+  Future<String?> getBackupFolderUrl() async {
+    if (_driveApi == null || _folderId == null) {
+      return null;
+    }
+
+    try {
+      // Get the folder metadata to ensure it exists
+      final folder = await _driveApi!.files.get(
+        _folderId!,
+        $fields: 'id,name',
+      ) as drive.File;
+
+      // Construct the Google Drive folder URL using the folder ID
+      return 'https://drive.google.com/drive/folders/${folder.id}';
+    } catch (e) {
+      print('Error getting backup folder URL: $e');
+      return null;
+    }
+  }
+
+  //  method to upload a file to Google Drive
+  Future<void> uploadFile(
+    File file,
+    String path, {
+    void Function(double)? onProgress,
+  }) async {
+    if (!_isSignedIn || _driveApi == null || _folderId == null) {
+      throw Exception('Not signed in to Google Drive');
+    }
+
+    try {
+      final fileMetadata = drive.File()
+        ..name = path.split('/').last
+        ..parents = [_folderId!];
+
+      final media = drive.Media(
+        file.openRead(),
+        await file.length(),
+      );
+
+      await _driveApi!.files.create(
+        fileMetadata,
+        uploadMedia: media,
+      );
+
+      // Since we can't track progress directly, we'll just call onProgress with 1.0 when done
+      if (onProgress != null) {
+        onProgress(1.0);
+      }
+    } catch (e) {
+      print('Error uploading file to Google Drive: $e');
       rethrow;
     }
   }
