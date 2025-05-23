@@ -41,6 +41,10 @@ Currently, Reverie is available for Android devices only. You can download the A
   - Automatic organization in Google Drive
   - Easy restoration of backed-up content
   - Secure authentication with Google accounts
+-  Search & Organization
+  - Quick search across all media files
+  - Filter by date, type, and tags
+  - Sort albums by name, date, or size
 
 ### 📝 Journal & Memories
 - Create rich journal entries with photos and videos
@@ -54,6 +58,12 @@ Currently, Reverie is available for Android devices only. You can download the A
   - Language-specific formatting
   - Easy language switching
   - Flag indicators for translated content
+- Efficient Journal Management
+  - Quick search through journal entries
+  - Sort entries by date, mood, or tags
+  - Filter entries by content type
+  - Advanced text search within entries
+  - Export and share functionality
 
 ### ⏳ Flashbacks & Calendar
 - Relive past memories with the flashbacks feature
@@ -82,56 +92,6 @@ Currently, Reverie is available for Android devices only. You can download the A
 - Account-specific backup management
 - Automatic backup status indicators
 - Secure authentication with Google accounts
-
-## 🚀 Upcoming Features
-
-### 🎨 Media Enhancement
-- Video editing features
-  - Trim and cut
-  - Add music
-  - Basic effects
-  - Speed control
-
-### 🌐 Enhanced Translation
-- Offline translation support
-- Batch translation for multiple entries
-- Translation memory for frequently used phrases
-- Custom translation dictionaries
-- Voice input for translations
-
-### 📊 Advanced Organization
-- Smart albums based on AI analysis
-- Location-based organization
-- Face recognition and tagging
-- Event-based grouping
-- Custom album covers and themes
-
-### 🔍 Search & Discovery
-- Advanced search with multiple filters
-- Similar image search
-- Voice search capability
-- Search history and suggestions
-
-### 🎯 Memory Features
-- Memory reminders and anniversaries
-- Memory sharing with family and friends
-- Memory stories and collections
-- Memory statistics and insights
-- Memory export in various formats
-
-### 🎮 Interactive Features
-- Memory quizzes and games
-- Memory challenges
-- Memory sharing with family
-- Collaborative memory albums
-- Memory timeline visualization
-
-### 🔒 Privacy & Security
-- End-to-end encryption for sensitive content
-- Biometric authentication
-- Private albums and entries
-- Secure sharing options
-- Data export and backup options
 
 ## 🎥 Demo Videos
 
@@ -199,7 +159,7 @@ flutter build ios --release
 ## 🛠️ Technical Details
 
 ### Architecture
-- Built with Flutter for cross-platform compatibility
+- Built with Flutter for android (currently) compatibility
 - Uses Provider for state management
 - Implements Material Design 3 for modern UI
 - Follows clean architecture principles
@@ -221,9 +181,6 @@ flutter build ios --release
 - `just_audio`: Background music for slideshows
 - `pdf`: PDF generation for journal entries
 
-## 📱 Screenshots
-
-[Insert your app screenshots here]
 
 ## 🔒 Privacy & Security
 
@@ -261,7 +218,7 @@ If you encounter any issues or have questions:
 1. **Beautiful Design**: Modern, intuitive interface that makes memory-keeping a joy
 2. **Privacy-Focused**: Your memories stay on your device with optional cloud backup
 3. **AI-Enhanced**: Smart features that make organizing memories easier
-4. **Cross-Platform**: Seamless experience on both iOS and Android
+4. **Cross-Platform**: Seamless experience on Android for now
 5. **Regular Updates**: Continuous improvements and new features
 6. **Secure Backup**: Reliable Google Drive integration for your memories
 7. **Multi-language Support**: Translate your memories to share with anyone
