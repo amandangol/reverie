@@ -30,8 +30,7 @@ Currently, Reverie is available for Android devices only. You can download the A
   <img src="https://github.com/user-attachments/assets/2c4d3396-152a-47c1-98dd-4c51f36428dc" alt="Journal Edit Detail" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
   <img src="https://github.com/user-attachments/assets/dd248617-e442-481c-b91a-2d385a02be0d" alt="Object Detection" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
   <img src="https://github.com/user-attachments/assets/7c97d312-1bf3-4a98-8eda-cbf67b6c6594" alt="Flashback Memories" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
-  <img src="https://github.com/user-attachments/assets/be101790-7f45-4373-9678-ba12400d0696" alt="Google Drive Backup" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
-
+  <img src="https://github.com/user-attachments/assets/b9f4451d-4d1c-4de6-bb7b-3b8e8b553f68" alt="Google Drive Backup" width="200" style="border:1px solid #ccc; padding:4px; border-radius:8px;" />
 </div>
 
 
@@ -293,7 +292,7 @@ If you encounter any issues or have questions:
 
 ### ☁️ Backup & Quick Actions
 
-<img src="https://github.com/user-attachments/assets/be101790-7f45-4373-9678-ba12400d0696" width="200"/>
+<img src="https://github.com/user-attachments/assets/b9f4451d-4d1c-4de6-bb7b-3b8e8b553f68" width="200"/>
 <img src="https://github.com/user-attachments/assets/7f3f4a5f-17dc-4cab-84fe-1e12e0844533" width="200"/>
 
 ---
