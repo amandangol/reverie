@@ -15,7 +15,6 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:exif/exif.dart' as exif;
 import '../../../services/connectivity_service.dart';
 
-// Add sorting enum at the top level
 enum AlbumSortOption { nameAsc, nameDesc, countAsc, countDesc }
 
 class MediaProvider extends ChangeNotifier {
@@ -72,33 +71,24 @@ class MediaProvider extends ChangeNotifier {
     apiKey: 'AIzaSyCyCzEzKjHpkacME7Y8wj1u2E787Q-NAu4',
   );
 
-  // Add this with other cache maps at the top of the class
   final Map<String, Map<String, dynamic>> _analysisCache = {};
-  // Add this map to track analysis state
   final Map<String, bool> _analysisInProgress = {};
 
-  // Add new properties for captions
   final Map<String, String> _captionCache = {};
 
-  // Keep memory analysis related properties
   final Map<String, Map<String, dynamic>> _memoryAnalysisCache = {};
   final Map<String, bool> _memoryAnalysisInProgress = {};
 
   AlbumSortOption _currentSortOption = AlbumSortOption.nameAsc;
   AlbumSortOption get currentSortOption => _currentSortOption;
 
-  // Keep text recognition related properties
   final _textRecognizer = TextRecognizer();
   final Map<String, RecognizedText> _textRecognitionCache = {};
   final Map<String, bool> _textRecognitionInProgress = {};
 
-  // Add these properties after other properties
   String _searchQuery = '';
   List<AssetEntity> _searchResults = [];
   bool _isSearching = false;
-
-  // Add location cache map
-  final Map<String, Map<String, dynamic>> _locationCache = {};
 
   MediaProvider() {
     _initSharedPreferences();
@@ -1503,6 +1493,51 @@ Keep the analysis personal and nostalgic, focusing on the emotional and narrativ
       }
     } catch (e) {
       debugPrint('Error saving edited image: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> addNewMedia(AssetEntity newAsset) async {
+    try {
+      // Add to all media items map
+      _allMediaItems[newAsset.id] = newAsset;
+
+      // Add to all media list
+      _allMediaList.insert(
+          0, newAsset); // Insert at beginning since it's newest
+
+      // Add to current album items if we're in the main gallery
+      if (_currentAlbumId == null) {
+        _currentAlbumItems.insert(0, newAsset);
+      }
+
+      // Update grouped photos
+      final date = newAsset.createDateTime;
+      final dateKey = DateTime(date.year, date.month, date.day);
+
+      // Update main grouped photos
+      if (!_groupedPhotos.containsKey(dateKey)) {
+        _groupedPhotos[dateKey] = [];
+      }
+      _groupedPhotos[dateKey]!.insert(0, newAsset);
+
+      // Update album grouped photos if we're in an album
+      if (_currentAlbumId != null) {
+        if (!_albumGroupedPhotos.containsKey(_currentAlbumId)) {
+          _albumGroupedPhotos[_currentAlbumId!] = {};
+        }
+        if (!_albumGroupedPhotos[_currentAlbumId]!.containsKey(dateKey)) {
+          _albumGroupedPhotos[_currentAlbumId]![dateKey] = [];
+        }
+        _albumGroupedPhotos[_currentAlbumId]![dateKey]!.insert(0, newAsset);
+      }
+
+      // Cache the asset data
+      await cacheAssetData(newAsset);
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error adding new media: $e');
       rethrow;
     }
   }

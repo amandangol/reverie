@@ -106,6 +106,7 @@ class MediaControls extends StatelessWidget {
                     icon: const Icon(Icons.book_outlined, color: Colors.white),
                     onPressed: onToggleJournal,
                   ),
+
                   if (currentAsset?.type == AssetType.image) ...[
                     IconButton(
                       icon: const Icon(Icons.search, color: Colors.white),
