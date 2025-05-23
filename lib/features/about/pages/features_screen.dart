@@ -87,6 +87,7 @@ class FeaturesScreen extends StatelessWidget {
                       'Video library for easy access',
                       'Favorites collection',
                       'Built-in camera for photos and videos',
+                      'Photo editing with filters and effects',
                       'Google Drive integration',
                     ],
                   ),

@@ -4,6 +4,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:reverie/utils/media_utils.dart';
+import 'package:reverie/utils/language_utils.dart';
 import 'package:reverie/features/journal/models/journal_entry.dart';
 import 'package:reverie/features/journal/providers/journal_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -33,11 +34,13 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
   String? _translatedContent;
   String? _currentLanguage;
   bool _isTranslating = false;
+  List<Map<String, String>> _filteredLanguages = [];
 
   @override
   void initState() {
     super.initState();
     _currentEntry = widget.entry;
+    _filteredLanguages = List.from(LanguageUtils.allLanguages);
   }
 
   Future<void> _translateEntry(String targetLanguage) async {
@@ -88,328 +91,120 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    // Reset filtered languages when opening the modal
+    setState(() {
+      _filteredLanguages = List.from(LanguageUtils.allLanguages);
+    });
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 8),
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Translate Entry',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Translate Entry',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (_currentLanguage != null)
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _translatedTitle = null;
+                            _translatedContent = null;
+                            _currentLanguage = null;
+                          });
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.restore),
+                        label: const Text('Show Original'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: colorScheme.primary,
                         ),
                       ),
-                      if (_currentLanguage != null)
-                        TextButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _translatedTitle = null;
-                              _translatedContent = null;
-                              _currentLanguage = null;
-                            });
-                            Navigator.pop(context);
-                          },
-                          icon: const Icon(Icons.restore),
-                          label: const Text('Show Original'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: colorScheme.primary,
-                          ),
-                        ),
-                    ],
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                Consumer<TranslationProvider>(
+              ),
+              const SizedBox(height: 16),
+              // Search bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search language...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  onChanged: _filterLanguages,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Consumer<TranslationProvider>(
                   builder: (context, provider, _) {
                     if (provider.isLoading) {
-                      return const Padding(
-                        padding: EdgeInsets.all(24.0),
-                        child: Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                      return const Center(
+                        child: CircularProgressIndicator(),
                       );
                     }
-                    return Column(
-                      children: [
-                        _buildLanguageOption(
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _filteredLanguages.length,
+                      itemBuilder: (context, index) {
+                        final language = _filteredLanguages[index];
+                        return _buildLanguageOption(
                           context,
-                          'Arabic',
-                          'ar',
-                          '🇸🇦',
+                          language['name']!,
+                          language['code']!,
+                          language['flag']!,
                           colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Bengali',
-                          'bn',
-                          '🇧🇩',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Chinese (Simplified)',
-                          'zh-CN',
-                          '🇨🇳',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Czech',
-                          'cs',
-                          '🇨🇿',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Danish',
-                          'da',
-                          '🇩🇰',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Dutch',
-                          'nl',
-                          '🇳🇱',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Finnish',
-                          'fi',
-                          '🇫🇮',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'French',
-                          'fr',
-                          '🇫🇷',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'German',
-                          'de',
-                          '🇩🇪',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Greek',
-                          'el',
-                          '🇬🇷',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Hebrew',
-                          'he',
-                          '🇮🇱',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Hindi',
-                          'hi',
-                          '🇮🇳',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Hungarian',
-                          'hu',
-                          '🇭🇺',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Indonesian',
-                          'id',
-                          '🇮🇩',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Italian',
-                          'it',
-                          '🇮🇹',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Japanese',
-                          'ja',
-                          '🇯🇵',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Korean',
-                          'ko',
-                          '🇰🇷',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Malay',
-                          'ms',
-                          '🇲🇾',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Malayalam',
-                          'ml',
-                          '🇮🇳',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Marathi',
-                          'mr',
-                          '🇮🇳',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Norwegian',
-                          'no',
-                          '🇳🇴',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Persian',
-                          'fa',
-                          '🇮🇷',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Polish',
-                          'pl',
-                          '🇵🇱',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Portuguese',
-                          'pt',
-                          '🇵🇹',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Romanian',
-                          'ro',
-                          '🇷🇴',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Russian',
-                          'ru',
-                          '🇷🇺',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Spanish',
-                          'es',
-                          '🇪🇸',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Swedish',
-                          'sv',
-                          '🇸🇪',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Tamil',
-                          'ta',
-                          '🇮🇳',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Telugu',
-                          'te',
-                          '🇮🇳',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Thai',
-                          'th',
-                          '🇹🇭',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Turkish',
-                          'tr',
-                          '🇹🇷',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Ukrainian',
-                          'uk',
-                          '🇺🇦',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Urdu',
-                          'ur',
-                          '🇵🇰',
-                          colorScheme,
-                        ),
-                        _buildLanguageOption(
-                          context,
-                          'Vietnamese',
-                          'vi',
-                          '🇻🇳',
-                          colorScheme,
-                        ),
-                      ],
+                        );
+                      },
                     );
                   },
                 ),
-                const SizedBox(height: 16),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  void _filterLanguages(String query) {
+    setState(() {
+      _filteredLanguages = LanguageUtils.filterLanguages(query);
+    });
   }
 
   Widget _buildLanguageOption(
@@ -1587,79 +1382,6 @@ Date: ${DateFormat('MMMM d, yyyy').format(widget.entry.date)}
   }
 
   String _getLanguageFlag(String language) {
-    switch (language.toLowerCase()) {
-      case 'arabic':
-        return '🇸🇦';
-      case 'bengali':
-        return '🇧🇩';
-      case 'chinese (simplified)':
-        return '🇨🇳';
-      case 'czech':
-        return '🇨🇿';
-      case 'danish':
-        return '🇩🇰';
-      case 'dutch':
-        return '🇳🇱';
-      case 'finnish':
-        return '🇫🇮';
-      case 'french':
-        return '🇫🇷';
-      case 'german':
-        return '🇩🇪';
-      case 'greek':
-        return '🇬🇷';
-      case 'hebrew':
-        return '🇮🇱';
-      case 'hindi':
-        return '🇮🇳';
-      case 'hungarian':
-        return '🇭🇺';
-      case 'indonesian':
-        return '🇮🇩';
-      case 'italian':
-        return '🇮🇹';
-      case 'japanese':
-        return '🇯🇵';
-      case 'korean':
-        return '🇰🇷';
-      case 'malay':
-        return '🇲🇾';
-      case 'malayalam':
-        return '🇮🇳';
-      case 'marathi':
-        return '🇮🇳';
-      case 'norwegian':
-        return '🇳🇴';
-      case 'persian':
-        return '🇮🇷';
-      case 'polish':
-        return '🇵🇱';
-      case 'portuguese':
-        return '🇵🇹';
-      case 'romanian':
-        return '🇷🇴';
-      case 'russian':
-        return '🇷🇺';
-      case 'spanish':
-        return '🇪🇸';
-      case 'swedish':
-        return '🇸🇪';
-      case 'tamil':
-        return '🇮🇳';
-      case 'telugu':
-        return '🇮🇳';
-      case 'thai':
-        return '🇹🇭';
-      case 'turkish':
-        return '🇹🇷';
-      case 'ukrainian':
-        return '🇺🇦';
-      case 'urdu':
-        return '🇵🇰';
-      case 'vietnamese':
-        return '🇻🇳';
-      default:
-        return '';
-    }
+    return LanguageUtils.getLanguageFlag(language);
   }
 }

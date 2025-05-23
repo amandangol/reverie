@@ -21,6 +21,7 @@ class MediaControls extends StatelessWidget {
   final AssetEntity? currentAsset;
 
   const MediaControls({
+    super.key,
     required this.showControls,
     required this.isFullScreen,
     required this.showInfo,
@@ -99,86 +100,126 @@ class MediaControls extends StatelessWidget {
                   ],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Essential icons
-                  favoriteButtonBuilder(context),
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.white),
-                    onPressed: onEdit,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.book_outlined, color: Colors.white),
-                    onPressed: onToggleJournal,
-                  ),
-
-                  if (currentAsset?.type == AssetType.image) ...[
-                    IconButton(
-                      icon: const Icon(Icons.search, color: Colors.white),
-                      onPressed: onDetectObjects,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.auto_awesome, color: Colors.white),
-                      onPressed: onAnalyzeImage,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.text_fields, color: Colors.white),
-                      onPressed: onRecognizeText,
-                    ),
-                  ],
-                  // More options menu
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: Colors.white),
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'share':
-                          onShare();
-                          break;
-                        case 'info':
-                          onToggleInfo();
-                          break;
-                        case 'delete':
-                          onDelete();
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'share',
-                        child: Row(
-                          children: [
-                            Icon(Icons.share, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text('Share'),
-                          ],
-                        ),
+                  // AI Features Row (only for images)
+                  if (currentAsset?.type == AssetType.image)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildAIFeatureButton(
+                            icon: Icons.search,
+                            label: 'Detect',
+                            onPressed: onDetectObjects,
+                          ),
+                          _buildAIFeatureButton(
+                            icon: Icons.auto_awesome,
+                            label: 'Analyze',
+                            onPressed: onAnalyzeImage,
+                          ),
+                          _buildAIFeatureButton(
+                            icon: Icons.text_fields,
+                            label: 'Text',
+                            onPressed: onRecognizeText,
+                          ),
+                        ],
                       ),
-                      const PopupMenuItem(
-                        value: 'info',
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text('Info'),
-                          ],
-                        ),
+                    ),
+                  // Main Actions Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      favoriteButtonBuilder(context),
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.white),
+                        onPressed: onEdit,
                       ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.book_outlined,
+                            color: Colors.white),
+                        onPressed: onToggleJournal,
+                      ),
+                      // More options menu
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, color: Colors.white),
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'share':
+                              onShare();
+                              break;
+                            case 'info':
+                              onToggleInfo();
+                              break;
+                            case 'delete':
+                              onDelete();
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'share',
+                            child: Row(
+                              children: [
+                                Icon(Icons.share, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text('Share'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'info',
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text('Info'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Delete',
+                                    style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ],
               ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAIFeatureButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(icon, color: Colors.white),
+          onPressed: onPressed,
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
           ),
         ),
       ],

@@ -17,6 +17,11 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
   - Video recording up to 10 minutes
   - Quick access from gallery
   - Instant saving to gallery
+- Photo editing capabilities
+  - Filters and effects
+  - Basic adjustments (brightness, contrast, etc.)
+  - Crop and rotate
+  - Text and sticker overlays
 - Google Drive integration for secure backup and restoration
   - One-click backup of selected albums
   - Automatic organization in Google Drive
@@ -67,11 +72,6 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 ## 🚀 Upcoming Features
 
 ### 🎨 Media Enhancement
-- Photo editing capabilities
-  - Filters and effects
-  - Basic adjustments (brightness, contrast, etc.)
-  - Crop and rotate
-  - Text and sticker overlays
 - Video editing features
   - Trim and cut
   - Add music
