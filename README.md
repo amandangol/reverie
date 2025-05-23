@@ -1,7 +1,6 @@
-# Reverie - Your Personal Memory Journal
+# Reverie - Your Digital Memory Keeper
 
 <img src="assets/icon/icon.png" alt="ReverieLogo" width="150" height="150"/>
-
 
 Reverie is a beautiful and intuitive mobile application that helps you capture, organize, and relive your precious memories through photos, videos, and journal entries. Built with Flutter, it offers a seamless experience across iOS and Android platforms.
 
@@ -18,6 +17,10 @@ Currently, Reverie is available for Android devices only. You can download the A
     <img src="https://img.shields.io/badge/Google_Drive-Download-orange?style=for-the-badge&logo=googledrive" alt="Google Drive"/>
   </a>
 </div>
+
+### 🖼️ Reverie Glimpses
+
+ <img src="https://github.com/user-attachments/assets/b519a5c5-a73d-4097-af1c-85bf8fa9d921" alt="Gallery App Drawer" width="200" height="400" />  <img src="https://github.com/user-attachments/assets/579e0273-c119-40bb-978b-0bfdd47c80e3" alt="Journal Home" width="200" height="400" />    <img src="https://github.com/user-attachments/assets/d18a275d-ace9-4e6c-827b-7dd7c9e4316b" alt="Journal Detail" width="200" height="400" />  <img src="https://github.com/user-attachments/assets/adb08fe5-f531-4de8-ab68-4291598144ab" alt="Gallery Albums" width="200" height="400" />  <img src="https://github.com/user-attachments/assets/2c4d3396-152a-47c1-98dd-4c51f36428dc" alt="Journal Edit Detail" width="200" height="400" />  <img src="https://github.com/user-attachments/assets/dd248617-e442-481c-b91a-2d385a02be0d" alt="Object Detection" width="200" height="400" />  <img src="https://github.com/user-attachments/assets/7c97d312-1bf3-4a98-8eda-cbf67b6c6594" alt="Flashback Memories" width="200" height="400" />   <img src="https://github.com/user-attachments/assets/be101790-7f45-4373-9678-ba12400d0696" alt="Google Drive Backup" width="200" height="400" />
 
 ## 🌟 Features
 
