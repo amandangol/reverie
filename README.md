@@ -5,6 +5,20 @@
 
 Reverie is a beautiful and intuitive mobile application that helps you capture, organize, and relive your precious memories through photos, videos, and journal entries. Built with Flutter, it offers a seamless experience across iOS and Android platforms.
 
+## 🚀 Getting Started
+
+### 📱 Download APK
+Currently, Reverie is available for Android devices only. You can download the APK from:
+
+<div align="center">
+  <a href="https://github.com/amandangol/reverie/releases/latest">
+    <img src="https://img.shields.io/badge/GitHub-Release-blue?style=for-the-badge&logo=github" alt="GitHub Release"/>
+  </a>
+  <a href="https://drive.google.com/file/d/your-file-id/view">
+    <img src="https://img.shields.io/badge/Google_Drive-Download-orange?style=for-the-badge&logo=googledrive" alt="Google Drive"/>
+  </a>
+</div>
+
 ## 🌟 Features
 
 ### 📸 Gallery & Media
@@ -123,19 +137,18 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 
 ### 📸 Gallery & Media Features
 - [Gallery Overview](https://github.com/user-attachments/assets/355e92dc-b1bc-478f-aa45-31ba4281e4f3)
-  
-  
+
 - [Photo Editing](https://github.com/user-attachments/assets/3ef6a2ef-9cc5-49df-8314-726f5ffb2418)
-  
+
 - [Album Management](https://github.com/user-attachments/assets/3ba9dbfe-99ba-47d4-9e7b-7bae64d19020)
-  
+
 - [Camera Preview](https://github.com/user-attachments/assets/547013b3-dfec-4fad-aa5b-cf810667d348)
 
 ### 📝 Journal & Memories
 - [Journal Features](https://github.com/user-attachments/assets/34eef0bc-1a1d-4496-8b4c-e6c7d3447f35)
-  
+
 - [Journal Sharing](https://github.com/user-attachments/assets/3e0c854c-6553-4554-975f-ed5ffb96b1a9)
-  
+
 - [Memories & Recaps](https://github.com/user-attachments/assets/5ce43d20-28f8-400e-9f37-1a0299b06936)
 
 ### 🤖 AI Features
@@ -143,14 +156,13 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 
 ### 🔄 Backup & Additional Features
 - [Google Drive Backup](https://github.com/user-attachments/assets/5bdaf89a-a6c5-4342-bd6c-caa202604784)
-  
+
 - [Additional Information](https://github.com/user-attachments/assets/7284e09d-d26e-4756-b388-c02d7804c4f8)
 
-## 🚀 Getting Started
 
 ### Prerequisites
-- Flutter SDK (version 3.0.0 or higher)
-- Dart SDK (version 2.17.0 or higher)
+- Flutter SDK (version 3.4.0 or higher)
+- Dart SDK (version 3.4.0 or higher)
 - Android Studio / Xcode for emulators
 - Git
 
@@ -158,7 +170,7 @@ Reverie is a beautiful and intuitive mobile application that helps you capture, 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/reverie.git
+git clone https://github.com/amandangol/reverie.git
 cd reverie
 ```
 
@@ -203,7 +215,15 @@ flutter build ios --release
 - `googleapis`: Google Drive API integration
 - `image_picker`: Camera and gallery access
 - `google_mlkit_translation`: Translation services
+- `pro_image_editor`: Advanced photo editing
+- `translator`: Multi-language support
+- `table_calendar`: Calendar view for memories
+- `just_audio`: Background music for slideshows
+- `pdf`: PDF generation for journal entries
 
+## 📱 Screenshots
+
+[Insert your app screenshots here]
 
 ## 🔒 Privacy & Security
 
@@ -227,14 +247,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - Flutter team for the amazing framework
-- All contributors who have helped shape Reverie
 - The open-source community for their invaluable tools and libraries
 
 ## 📞 Support
 
 If you encounter any issues or have questions:
 - Open an issue in the GitHub repository
-- Contact us at support@reverie.app
+- Contact me personally at icrextha@gmail.com
 - Join our community forum
 
 ## 🌟 Why Choose Reverie?
@@ -307,4 +326,4 @@ If you encounter any issues or have questions:
 </div>
 ---
 
-Made with ❤️ by amandangol
+Made with ❤️ by amandangol AKA 4m.4n
