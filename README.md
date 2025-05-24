@@ -5,9 +5,7 @@
 
 Reverie is a beautiful and intuitive mobile application that helps you capture, organize, and relive your precious memories through photos, videos, and journal entries. Built with Flutter, it offers a seamless experience across Android platforms, (designed to support multiple platforms — currently Android).
 
-## 🚀 Getting Started
-
-### 📱 Download APK
+## 📱 Download APK
 Currently, Reverie is available for Android devices only. You can download the APK from:
 
 <div align="center">
@@ -46,6 +44,18 @@ Currently, Reverie is available for Android devices only. You can download the A
   - Video recording up to 10 minutes
   - Quick access from gallery
   - Instant saving to gallery
+- Advanced Media Detail View
+  - Full-screen photo and video viewing
+  - Pinch to zoom and pan
+  - Video playback controls with speed adjustment
+  - Object detection and labeling
+  - Text recognition in images
+  - Image analysis with AI
+  - Quick actions (share, delete, favorite)
+  - Journal integration for adding media to entries
+  - Photo editing capabilities
+  - Full-screen mode for immersive viewing
+  - Gesture controls for navigation
 - Photo editing capabilities
   - Filters and effects
   - Basic adjustments (brightness, contrast, etc.)
@@ -53,7 +63,6 @@ Currently, Reverie is available for Android devices only. You can download the A
   - Text and sticker overlays
 - Google Drive integration for secure backup and restoration
   - One-click backup of selected albums
-  - Automatic organization in Google Drive
   - Easy restoration of backed-up content
   - Secure authentication with Google accounts
 -  Search & Organization
@@ -67,6 +76,21 @@ Currently, Reverie is available for Android devices only. You can download the A
 - Calendar view to browse entries by date
 - Add tags and categories for better organization
 - AI-powered content generation to help express your thoughts
+- Enhanced Journal Screen Features
+  - Beautiful calendar integration
+  - Journal insights and statistics
+  - Streak tracking and achievements
+  - Quick entry creation
+  - Sort and filter options
+  - Search functionality
+  - Mood tracking visualization
+  - Entry preview cards
+  - Google Drive backup integration
+  - Quick actions menu
+  - Journal writing guide
+  - Detailed statistics view
+  - Empty state handling
+  - Smooth animations and transitions
 - Multi-language support for journal entries
   - Translate entries to 40+ languages
   - Real-time translation
@@ -110,6 +134,157 @@ Currently, Reverie is available for Android devices only. You can download the A
 - Selective journal restoration
 - Secure authentication with Google accounts
 
+## 📱 Usage Guide
+
+### Getting Started
+1. **Installation**
+   - Download the APK from the provided links
+   - Install on your Android device
+   - Grant necessary permissions for media access
+
+2. **Initial Setup**
+   - Open the app and complete the onboarding process
+   - Connect to Google Drive for backup functionality
+   - Allow access to your media library
+
+### Key Features & How to Use
+
+#### 📸 Gallery Management
+- **View Photos & Videos**
+  - Access your media through the Gallery tab
+  - Switch between grid and list views
+  - Use the search function to find specific media
+  - Sort albums by name or count
+
+- **Album Organization**
+  - Browse through your photo albums
+  - View favorites and video collections
+  - Create and manage custom albums
+  - Sort and filter media by date
+
+- **Media Capture**
+  - Take photos directly from the app
+  - Record videos (up to 10 minutes)
+  - Import existing media from your device
+  - Quick access to camera features
+
+- **Media Detail View**
+  - Tap on any media to open in full-screen view
+  - Use pinch gestures to zoom in/out
+  - Swipe between photos in an album
+  - Long press for additional options
+  - Use video controls for playback speed
+  - Access AI features through the menu
+  - Add media to journal entries
+  - Share or delete media
+  - Toggle favorite status
+
+#### 📝 Journal Features
+- **Create Entries**
+  - Write daily thoughts and memories
+  - Add photos and videos to entries
+  - Track your mood and emotions
+  - Use tags for better organization
+
+- **Journal Management**
+  - Browse entries by date
+  - Search through your journal
+  - Edit or delete entries
+  - Export and share content
+
+- **Journal Screen**
+  - View your journaling streak
+  - Check monthly statistics
+  - Use calendar for date navigation
+  - Sort entries by different criteria
+  - Access quick actions menu
+  - View detailed insights
+  - Track your mood patterns
+
+#### 🤖 AI Features
+- **Image Analysis**
+  - Open any photo in detail view
+  - Tap the AI icon to analyze image
+  - View detailed description
+  - Copy analysis to clipboard
+  - Use for journal entries
+
+- **Object Detection**
+  - Open photo in detail view
+  - Access object detection feature
+  - View detected objects with confidence scores
+  - Tap objects to search on Google
+  - Use for content organization
+
+- **Text Recognition**
+  - Long press on any image
+  - Wait for text recognition
+  - View recognized text blocks
+  - Copy text to clipboard
+  - Search recognized text
+  - Use for document scanning
+
+
+#### ⏳ Flashbacks & Memories
+- **Daily Flashbacks**
+  - View memories from years past
+  - Filter by specific dates
+  - Create slideshows of memories
+  - Share flashback moments
+
+- **Memory Organization**
+  - Browse memories by month
+  - View weekly memory collections
+  - Track memory counts
+  - Create memory timelines
+
+#### 🔄 Backup & Security
+- **Google Drive Integration**
+  - Connect your Google account
+  - Select content to backup
+  - Monitor backup progress
+  - Restore from backups
+  - Manage backup settings
+
+- **Backup Management**
+  - Choose selective backup
+  - View backup history
+  - Restore specific content
+  - Manage storage space
+
+### Tips for Best Experience
+
+1. **Media Organization**
+   - Use albums to organize photos
+   - Tag important memories
+   - Create favorites collection
+   - Regular backup of content
+
+2. **Journal Writing**
+   - Write regularly
+   - Add media to entries
+   - Use tags for organization
+   - Track your mood
+
+3. **AI Features**
+   - Use image analysis for better descriptions
+   - Leverage object detection for organization
+   - Utilize text recognition for documents
+   - Enable smart suggestions
+   - Review AI recommendations
+
+4. **Backup Strategy**
+   - Regular backups to Google Drive
+   - Selective album backup
+   - Journal entry backup
+   - Monitor backup status
+
+5. **Memory Management**
+   - Use flashbacks feature
+   - Create memory slideshows
+   - Share special moments
+   - Track memory counts
+
 ## 🎥 Demo Videos
 
 ### 📸 Gallery & Media Features
@@ -145,6 +320,7 @@ Currently, Reverie is available for Android devices only. You can download the A
 
 - [Additional Information](https://github.com/user-attachments/assets/7284e09d-d26e-4756-b388-c02d7804c4f8)
 
+## 🚀 Getting Started
 
 ### Prerequisites
 - Flutter SDK (version 3.4.0 or higher)
