@@ -252,39 +252,6 @@ Currently, Reverie is available for Android devices only. You can download the A
   - Restore specific content
   - Manage storage space
 
-### Tips for Best Experience
-
-1. **Media Organization**
-   - Use albums to organize photos
-   - Tag important memories
-   - Create favorites collection
-   - Regular backup of content
-
-2. **Journal Writing**
-   - Write regularly
-   - Add media to entries
-   - Use tags for organization
-   - Track your mood
-
-3. **AI Features**
-   - Use image analysis for better descriptions
-   - Leverage object detection for organization
-   - Utilize text recognition for documents
-   - Enable smart suggestions
-   - Review AI recommendations
-
-4. **Backup Strategy**
-   - Regular backups to Google Drive
-   - Selective album backup
-   - Journal entry backup
-   - Monitor backup status
-
-5. **Memory Management**
-   - Use flashbacks feature
-   - Create memory slideshows
-   - Share special moments
-   - Track memory counts
-
 ## 🎥 Demo Videos
 
 ### 📸 Gallery & Media Features
