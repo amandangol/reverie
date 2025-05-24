@@ -122,6 +122,8 @@ Currently, Reverie is available for Android devices only. You can download the A
 
 - [Camera Preview](https://github.com/user-attachments/assets/547013b3-dfec-4fad-aa5b-cf810667d348)
 
+- https://github.com/user-attachments/assets/35fa4e1d-05af-42f0-afea-2efa14e2d2f1
+
 ### 📝 Journal & Memories
 
 - [Journal Features](https://github.com/user-attachments/assets/34eef0bc-1a1d-4496-8b4c-e6c7d3447f35)
