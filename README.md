@@ -2,6 +2,7 @@
 
 <img src="assets/icon/icon.png" alt="ReverieLogo" width="150" height="150"/>
 
+Winning App of the September Hackathon Challenge
 
 Reverie is a beautiful and intuitive mobile application that helps you capture, organize, and relive your precious memories through photos, videos, and journal entries. Built with Flutter, it offers a seamless experience across Android platforms, (designed to support multiple platforms — currently Android).
 
